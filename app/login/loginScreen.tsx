@@ -1,32 +1,63 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Modal } from "react-native";
-import { router, useRouter } from "expo-router";
+import { View, Text, TouchableOpacity, Modal, Alert } from "react-native";
+import { router } from "expo-router";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, X } from "lucide-react-native";
 import { Input, InputField } from "@/components/ui/input";
 import { Fab } from "@/components/ui/fab";
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+
+const API_URL = "http://localhost:3000/auth/login";
+
+export const login = async (phoneNumber: string, password: string) => {
+  try {
+    const response = await axios.post(API_URL, {
+      phoneNumber,
+      password,
+    });
+
+    await SecureStore.setItemAsync("accessToken", response.data.accessToken);
+    await SecureStore.setItemAsync("refreshToken", response.data.refreshToken);
+    await SecureStore.setItemAsync("user", JSON.stringify(response.data.user));
+
+    return response.data;
+  } catch (error) {
+    console.error("Login failed:", error);
+    throw error;
+  }
+};
 
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const clearInput = () => {
     setPhoneNumber("");
   };
+
   const toggleModal = () => {
     setModalVisible(!isModalVisible);
   };
-  const [showPassword, setShowPassword] = useState(false);
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleLogin = () => {
-    console.log("Phone Number:", phoneNumber);
-    console.log("Password:", password);
-    router.navigate("/(tabs)");
-    toggleModal();
+  const handleLogin = async () => {
+    try {
+      const response = await login(phoneNumber, password);
+      console.log("Login success:", response);
+      router.navigate("/(tabs)");
+    } catch (error) {
+      Alert.alert(
+        "Đăng nhập thất bại",
+        "Số điện thoại hoặc mật khẩu không đúng.",
+      );
+    } finally {
+      toggleModal();
+    }
   };
 
   return (
@@ -103,6 +134,8 @@ export default function LoginScreen() {
                 <InputField
                   type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu ..."
+                  value={password}
+                  onChangeText={setPassword}
                 />
                 <TouchableOpacity
                   onPress={toggleShowPassword}
