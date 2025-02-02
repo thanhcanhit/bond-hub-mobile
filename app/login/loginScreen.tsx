@@ -76,7 +76,7 @@ export default function LoginScreen() {
         <Text className="text-white font-semibold text-xl">ĐĂNG NHẬP</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => router.navigate("/login/signup/signupScreen1")}
+        onPress={() => router.navigate("/login/signup/signupPhoneScreen")}
         className="bg-gray-100 py-4 rounded-full w-60 items-center mt-3"
       >
         <Text className="text-black font-semibold text-xl">ĐĂNG KÝ</Text>

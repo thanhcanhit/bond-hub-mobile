@@ -1,11 +1,11 @@
 import { ArrowLeft, CircleHelp } from "lucide-react-native";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
-const SignupScreen2 = () => {
+const SignUpOTPScreen = () => {
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
-
+  const { phoneNumber } = useLocalSearchParams();
   const handleChangeText = (text: string, index: number) => {
     const newCode = [...code];
     newCode[index] = text;
@@ -28,7 +28,10 @@ const SignupScreen2 = () => {
 
   const handleNext = () => {
     console.log("Verification Code:", code);
-    router.navigate("/login/signup/signupScreen3");
+    router.navigate({
+      pathname: "/login/signup/signupPasswordScreen",
+      params: { phoneNumber },
+    });
   };
 
   return (
@@ -86,4 +89,4 @@ const SignupScreen2 = () => {
   );
 };
 
-export default SignupScreen2;
+export default SignUpOTPScreen;

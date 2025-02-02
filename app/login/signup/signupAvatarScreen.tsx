@@ -1,18 +1,31 @@
 import { ArrowLeft, CircleHelp } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   Avatar,
   AvatarBadge,
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
+import { register } from "@/services/authService";
 
-const SignupScreen5 = () => {
-  const handleNext = (isUpdate: boolean) => {
-    if (isUpdate) router.navigate("/(tabs)");
-    else router.navigate("/(tabs)");
+const SignUpAvataScreen = () => {
+  const { phoneNumber, password, fullName } = useLocalSearchParams();
+  const handleNext = async () => {
+    console.log("User", phoneNumber, password, fullName);
+    try {
+      await register(
+        phoneNumber as string,
+        password as string,
+        fullName as string,
+      );
+      Alert.alert("", "Đăng ký thành công.");
+      router.replace("/login/loginScreen");
+    } catch (error) {
+      Alert.alert("Lỗi", "Đăng ký thất bại. Vui lòng thử lại.");
+      console.error("Registration error:", error);
+    }
   };
   return (
     <View className="flex-1  items-center justify-between bg-white pt-8 pb-8 px-4">
@@ -41,13 +54,13 @@ const SignupScreen5 = () => {
       </View>
 
       <TouchableOpacity
-        onPress={() => handleNext(true)}
+        onPress={handleNext}
         className="bg-blue-500 py-4 rounded-full items-center mt-12 w-full"
       >
         <Text className="text-white text-xl font-semibold">Cập nhật</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => handleNext(false)}
+        onPress={handleNext}
         className="bg-gray-100 py-4  rounded-full items-center mt-2.5 w-full"
       >
         <Text className="text-black text-xl font-semibold">Bỏ qua</Text>
@@ -56,4 +69,4 @@ const SignupScreen5 = () => {
   );
 };
 
-export default SignupScreen5;
+export default SignUpAvataScreen;

@@ -16,7 +16,19 @@ import {
 } from "@/components/ui/checkbox";
 import { CheckIcon } from "@/components/ui/icon";
 
-const SignupScreen1 = () => {
+const SignUpPhoneScreen = () => {
+  const [phoneNumber, setPhoneNumber] = useState("");
+
+  const handleNext = () => {
+    if (!phoneNumber) {
+      alert("Vui lòng nhập số điện thoại");
+      return;
+    }
+    router.navigate({
+      pathname: "/login/signup/signupOTPScreen",
+      params: { phoneNumber },
+    });
+  };
   return (
     <View className="flex-1 justify-between items-center bg-white pt-8 pb-8">
       <View>
@@ -31,7 +43,12 @@ const SignupScreen1 = () => {
           isReadOnly={false}
           className="rounded-[10px] my-4 h-16"
         >
-          <InputField placeholder="Số điện thoại ..." />
+          <InputField
+            placeholder="Số điện thoại ..."
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+          />
         </Input>
         <Checkbox
           size="lg"
@@ -70,7 +87,7 @@ const SignupScreen1 = () => {
           </CheckboxLabel>
         </Checkbox>
         <TouchableOpacity
-          onPress={() => router.navigate("/login/signup/signupScreen2")}
+          onPress={handleNext}
           className="bg-blue-500 py-4 rounded-full items-center mt-12"
         >
           <Text className="text-white text-xl font-semibold">Tiếp tục</Text>
@@ -90,4 +107,4 @@ const SignupScreen1 = () => {
     </View>
   );
 };
-export default SignupScreen1;
+export default SignUpPhoneScreen;

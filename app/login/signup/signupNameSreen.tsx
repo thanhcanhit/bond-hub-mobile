@@ -1,12 +1,22 @@
-import { ArrowLeft, CircleHelp } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { Input, InputField } from "@/components/ui/input";
 
-const SignupScreen3 = () => {
-  const handleNext = () => {
-    router.navigate("/login/signup/signupScreen4");
+const SignUpNameScreen = () => {
+  const { phoneNumber, password } = useLocalSearchParams(); // Lấy số điện thoại và mật khẩu từ màn hình trước
+  const [fullName, setFullName] = useState("");
+
+  const handleNext = async () => {
+    if (!fullName) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên của bạn");
+      return;
+    }
+    router.navigate({
+      pathname: "/login/signup/signupInfoScreen",
+      params: { phoneNumber, password, fullName },
+    });
   };
   return (
     <View className="flex-1  items-center  bg-white pt-8 pb-8 px-4">
@@ -30,7 +40,11 @@ const SignupScreen3 = () => {
         isReadOnly={false}
         className="m-2 my-8 h-16"
       >
-        <InputField placeholder="Nguyễn Văn A ..." />
+        <InputField
+          placeholder="Nguyễn Văn A ..."
+          value={fullName}
+          onChangeText={setFullName}
+        />
       </Input>
       <Text className="text-gray-500 text-left w-full pl-6 pt-2">
         • Độ dài: 2 đến 40 ký tự
@@ -51,4 +65,4 @@ const SignupScreen3 = () => {
   );
 };
 
-export default SignupScreen3;
+export default SignUpNameScreen;

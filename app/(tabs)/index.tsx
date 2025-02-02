@@ -9,7 +9,7 @@ export const logout = async () => {
   try {
     await SecureStore.deleteItemAsync("accessToken");
     await SecureStore.deleteItemAsync("refreshToken");
-
+    await SecureStore.deleteItemAsync("user");
     router.replace("/login/loginScreen");
   } catch (error) {
     console.error("Logout failed:", error);

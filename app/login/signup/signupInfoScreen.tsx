@@ -1,8 +1,7 @@
 import { ArrowLeft, CircleHelp } from "lucide-react-native";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
-import DatePicker from "react-native-date-picker";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   Select,
   SelectTrigger,
@@ -18,9 +17,13 @@ import {
 import { ChevronDownIcon } from "@/components/ui/icon";
 import DateInput from "@/components/DateInput";
 
-const SignupScreen4 = () => {
+const SignUpInfoScreen = () => {
+  const { phoneNumber, password, fullName } = useLocalSearchParams();
   const handleNext = () => {
-    router.navigate("/login/signup/signupScreen5");
+    router.navigate({
+      pathname: "/login/signup/signupAvatarScreen",
+      params: { phoneNumber, password, fullName },
+    });
   };
   return (
     <View className="flex-1  items-center  bg-white pt-8 pb-8 px-4">
@@ -65,4 +68,4 @@ const SignupScreen4 = () => {
   );
 };
 
-export default SignupScreen4;
+export default SignUpInfoScreen;
