@@ -27,7 +27,6 @@ const SignUpOTPScreen = () => {
   const inputsRef = React.useRef<Array<TextInput | null>>([]); // Tham chiếu đến các ô input
 
   const handleNext = () => {
-    console.log("Verification Code:", code);
     router.navigate({
       pathname: "/login/signup/signupPasswordScreen",
       params: { phoneNumber },

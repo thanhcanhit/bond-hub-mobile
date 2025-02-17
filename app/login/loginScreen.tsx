@@ -4,29 +4,7 @@ import { router } from "expo-router";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, X } from "lucide-react-native";
 import { Input, InputField } from "@/components/ui/input";
 import { Fab } from "@/components/ui/fab";
-import axios from "axios";
-import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@/store/authStore";
-
-const API_URL = "http://localhost:3000/auth/login";
-
-export const login = async (phoneNumber: string, password: string) => {
-  try {
-    const response = await axios.post(API_URL, {
-      phoneNumber,
-      password,
-    });
-
-    await SecureStore.setItemAsync("accessToken", response.data.accessToken);
-    await SecureStore.setItemAsync("refreshToken", response.data.refreshToken);
-    await SecureStore.setItemAsync("user", JSON.stringify(response.data.user));
-
-    return response.data;
-  } catch (error) {
-    console.error("Login failed:", error);
-    throw error;
-  }
-};
 
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);

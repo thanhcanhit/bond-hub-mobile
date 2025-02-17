@@ -3,7 +3,6 @@ import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import { router } from "expo-router";
-
 interface User {
   fullName: string;
   phoneNumber: string;
@@ -16,16 +15,16 @@ interface AuthState {
 }
 
 interface AuthActions {
-  login: (phoneNumber: string, password: string) => Promise<void>; // Đăng nhập
+  login: (phoneNumber: string, password: string) => Promise<void>;
   register: (
     phoneNumber: string,
     password: string,
     fullName: string,
-  ) => Promise<void>; // Đăng ký
-  logout: () => Promise<void>; // Đăng xuất
+  ) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-const API_URL = "http://localhost:3000/auth";
+const API_URL = "http://192.168.5.43:3000/auth";
 
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   user: null,
