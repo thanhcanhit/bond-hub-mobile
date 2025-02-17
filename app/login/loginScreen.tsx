@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Modal, Alert } from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, X } from "lucide-react-native";
@@ -6,6 +6,7 @@ import { Input, InputField } from "@/components/ui/input";
 import { Fab } from "@/components/ui/fab";
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+import { useAuthStore } from "@/store/authStore";
 
 const API_URL = "http://localhost:3000/auth/login";
 
@@ -29,9 +30,28 @@ export const login = async (phoneNumber: string, password: string) => {
 
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
-  const [password, setPassword] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const { login, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = async () => {
+    try {
+      await login(phoneNumber, password);
+      router.replace("/(tabs)");
+    } catch (error) {
+      Alert.alert(
+        "Đăng nhập thất bại",
+        "Số điện thoại hoặc mật khẩu không đúng.",
+      );
+    }
+  };
 
   const clearInput = () => {
     setPhoneNumber("");
@@ -43,21 +63,6 @@ export default function LoginScreen() {
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
-  };
-
-  const handleLogin = async () => {
-    try {
-      const response = await login(phoneNumber, password);
-      console.log("Login success:", response);
-      router.navigate("/(tabs)");
-    } catch (error) {
-      Alert.alert(
-        "Đăng nhập thất bại",
-        "Số điện thoại hoặc mật khẩu không đúng.",
-      );
-    } finally {
-      toggleModal();
-    }
   };
 
   return (

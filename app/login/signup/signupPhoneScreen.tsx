@@ -1,12 +1,6 @@
 import React, { useState } from "react";
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  View,
-} from "react-native";
-import { router, useRouter } from "expo-router";
+import { Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
 import { Input, InputField } from "@/components/ui/input";
 import {
   Checkbox,

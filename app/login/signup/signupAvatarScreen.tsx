@@ -1,30 +1,39 @@
-import { ArrowLeft, CircleHelp } from "lucide-react-native";
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { ArrowLeft } from "lucide-react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import {
-  Avatar,
-  AvatarBadge,
-  AvatarFallbackText,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { register } from "@/services/authService";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/store/authStore";
 
 const SignUpAvataScreen = () => {
   const { phoneNumber, password, fullName } = useLocalSearchParams();
-  const handleNext = async () => {
-    console.log("User", phoneNumber, password, fullName);
+  const { register } = useAuthStore();
+
+  const handleRegister = async () => {
     try {
       await register(
         phoneNumber as string,
         password as string,
         fullName as string,
       );
-      Alert.alert("", "Đăng ký thành công.");
+      Alert.alert("Thành công", "Đăng ký thành công!");
       router.replace("/login/loginScreen");
-    } catch (error) {
-      Alert.alert("Lỗi", "Đăng ký thất bại. Vui lòng thử lại.");
-      console.error("Registration error:", error);
+    } catch (error: any) {
+      if (error.response?.data?.message === "Phone number already registered") {
+        Alert.alert(
+          "Lỗi",
+          "Số điện thoại này đã được đăng ký. Vui lòng sử dụng số khác.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/login/loginScreen"),
+            },
+          ],
+          { cancelable: false },
+        );
+      } else {
+        Alert.alert("Lỗi", "Đăng ký thất bại. Vui lòng thử lại.");
+      }
     }
   };
   return (
@@ -54,13 +63,13 @@ const SignUpAvataScreen = () => {
       </View>
 
       <TouchableOpacity
-        onPress={handleNext}
+        onPress={handleRegister}
         className="bg-blue-500 py-4 rounded-full items-center mt-12 w-full"
       >
         <Text className="text-white text-xl font-semibold">Cập nhật</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={handleNext}
+        onPress={handleRegister}
         className="bg-gray-100 py-4  rounded-full items-center mt-2.5 w-full"
       >
         <Text className="text-black text-xl font-semibold">Bỏ qua</Text>

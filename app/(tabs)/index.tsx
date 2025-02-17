@@ -4,51 +4,28 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/authStore";
 
-export const logout = async () => {
-  try {
-    await SecureStore.deleteItemAsync("accessToken");
-    await SecureStore.deleteItemAsync("refreshToken");
-    await SecureStore.deleteItemAsync("user");
-    router.replace("/login/loginScreen");
-  } catch (error) {
-    console.error("Logout failed:", error);
-  }
-};
 export default function HomeScreen() {
-  const router = useRouter();
-  interface User {
-    fullName: string;
-    phoneNumber: string;
-  }
-
-  const [user, setUser] = useState<User | null>(null);
-
-  const fetchUser = async () => {
-    const userString = await SecureStore.getItemAsync("user");
-    if (userString) {
-      setUser(JSON.parse(userString));
-    }
-  };
-
+  const { logout } = useAuthStore();
+  const [user, setUser] = useState<any>(null);
   useEffect(() => {
+    const fetchUser = async () => {
+      const userData = await SecureStore.getItemAsync("user");
+
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+    };
     fetchUser();
   }, []);
-  const handleLogout = async () => {
+  const handleLogout = () => {
     Alert.alert(
       "Đăng xuất",
       "Bạn có chắc chắn muốn đăng xuất?",
       [
-        {
-          text: "Hủy",
-          style: "cancel",
-        },
-        {
-          text: "Đăng xuất",
-          onPress: async () => {
-            await logout();
-          },
-        },
+        { text: "Hủy", style: "cancel" },
+        { text: "Đăng xuất", onPress: logout },
       ],
       { cancelable: false },
     );
