@@ -24,7 +24,13 @@ interface AuthActions {
   logout: () => Promise<void>;
 }
 
-const API_URL = "http://192.168.5.43:3000/auth";
+if (!process.env.EXPO_PUBLIC_API_URL) {
+  throw new Error("Missing EXPO_PUBLIC_API_URL in .env file");
+}
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL + "/auth";
+
+console.log("API_URL", API_URL);
 
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   user: null,
@@ -50,7 +56,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       throw error;
     }
   },
-
   // Hàm đăng ký
   register: async (phoneNumber: string, password: string, fullName: string) => {
     try {
