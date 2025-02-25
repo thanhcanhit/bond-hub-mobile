@@ -29,9 +29,6 @@ if (!process.env.EXPO_PUBLIC_API_URL) {
 }
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL + "/auth";
-
-console.log("API_URL", API_URL);
-
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   user: null,
   isAuthenticated: null,
