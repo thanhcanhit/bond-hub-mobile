@@ -1,24 +1,9 @@
 import { TouchableOpacity, Text, View, Alert } from "react-native";
 
-import { useRouter } from "expo-router";
-import * as SecureStore from "expo-secure-store";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 
 export default function HomeScreen() {
-  const { logout } = useAuthStore();
-  const [user, setUser] = useState<any>(null);
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await SecureStore.getItemAsync("user");
-
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
-    };
-    fetchUser();
-  }, []);
+  const { user, logout } = useAuthStore();
   const handleLogout = () => {
     Alert.alert(
       "Đăng xuất",
