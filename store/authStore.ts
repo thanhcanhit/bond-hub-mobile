@@ -1,7 +1,7 @@
 // src/store/authStore.ts
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
-import axios from "axios";
+import axiosInstance, { axiosPublicInstance } from "../lib/axios";
 import { router } from "expo-router";
 interface User {
   fullName: string;
@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     // Hàm đăng nhập
     login: async (phoneNumber: string, password: string) => {
       try {
-        const response = await axios.post(`${API_URL}/login`, {
+        const response = await axiosPublicInstance.post(`${API_URL}/login`, {
           phoneNumber,
           password,
         });
@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       fullName: string,
     ) => {
       try {
-        const response = await axios.post(`${API_URL}/register`, {
+        const response = await axiosPublicInstance.post(`${API_URL}/register`, {
           phoneNumber,
           password,
           fullName,
