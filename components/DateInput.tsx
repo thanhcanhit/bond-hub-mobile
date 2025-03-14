@@ -1,14 +1,24 @@
 import { CalendarDays } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
-const DateInput = () => {
-  const [date, setDate] = useState(new Date());
+interface DateInputProps {
+  value: string;
+  onChange: (date: string) => void;
+}
+
+const DateInput = ({ value, onChange }: DateInputProps) => {
+  const [date, setDate] = useState(value ? new Date(value) : new Date());
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-  const [defaulDOB, setDafaultDOB] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      setDate(new Date(value));
+    }
+  }, [value]);
+
   const showDatePicker = () => {
-    setDafaultDOB(true);
     setDatePickerVisibility(true);
   };
 
@@ -18,6 +28,7 @@ const DateInput = () => {
 
   const handleConfirm = (selectedDate: Date) => {
     setDate(selectedDate);
+    onChange(selectedDate.toISOString().split("T")[0]);
     hideDatePicker();
   };
 
@@ -28,7 +39,7 @@ const DateInput = () => {
         className="flex-row items-center w-full justify-between"
       >
         <Text className="text-gray-500 text-lg">
-          {!defaulDOB ? "Ngày sinh" : date.toLocaleDateString()}
+          {value ? date.toLocaleDateString() : "Ngày sinh"}
         </Text>
         <DateTimePickerModal
           isVisible={isDatePickerVisible}

@@ -16,14 +16,14 @@ export default function HomeScreen() {
     );
   };
   return (
-    <View className="flex-1 items-center pt-12">
-      <Text className="text-black text-2xl p-8 text-center font-bold">
+    <View className="flex-1 items-center ">
+      <Text className="text-black text-2xl p-8 text-center font-bold pt-10">
         Home Screen
       </Text>
       {user && (
         <View className="p-8 justify-center items-center">
           <Text className="text-black text-lg">{user.fullName}</Text>
-          <Text className="text-black text-lg">{user.phoneNumber}</Text>
+          <Text className="text-black text-lg">{user.email}</Text>
         </View>
       )}
       <TouchableOpacity

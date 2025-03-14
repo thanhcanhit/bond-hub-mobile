@@ -6,7 +6,7 @@ import { Input, InputField } from "@/components/ui/input";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 
 const SignUpPasswordScreen = () => {
-  const { phoneNumber } = useLocalSearchParams();
+  const { email } = useLocalSearchParams();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +33,7 @@ const SignUpPasswordScreen = () => {
 
     router.navigate({
       pathname: "/login/signup/signupNameSreen",
-      params: { phoneNumber, password },
+      params: { email, password },
     });
   };
 

@@ -24,7 +24,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "white",
-          height: 60,
+          height: 55,
           paddingTop: 10,
         },
       }}
@@ -63,7 +63,7 @@ export default function TabLayout() {
           title: "Danh bạ",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <BookUser size={28} color={focused ? "#297eff" : color} />
+              <BookUser size={25} color={focused ? "#297eff" : color} />
               {focused && (
                 <Text
                   style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
@@ -85,11 +85,7 @@ export default function TabLayout() {
           title: "Khám phá",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <Shapes
-                size={28}
-                stroke={focused ? "#297eff" : color}
-                fill={focused ? "#297eff" : "white"}
-              />
+              <Shapes size={25} color={focused ? "#297eff" : color} />
               {focused && (
                 <Text
                   style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
@@ -111,11 +107,7 @@ export default function TabLayout() {
           title: "Nhật ký",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <Clock7
-                size={focused ? 32 : 28}
-                stroke={focused ? "white" : color}
-                fill={focused ? "#297eff" : "white"}
-              />
+              <Clock7 size={25} color={focused ? "#297eff" : color} />
               {focused && (
                 <Text
                   style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
@@ -137,11 +129,7 @@ export default function TabLayout() {
           title: "Cá nhân",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <User
-                size={28}
-                stroke={focused ? "#297eff" : color}
-                fill={focused ? "#297eff" : "white"}
-              />
+              <User size={25} color={focused ? "#297eff" : color} />
               {focused && (
                 <Text
                   style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}

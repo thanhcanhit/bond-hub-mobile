@@ -2,10 +2,13 @@ import { ArrowLeft, CircleHelp } from "lucide-react-native";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useAuthStore } from "@/store/authStore";
 
 const SignUpOTPScreen = () => {
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
-  const { phoneNumber } = useLocalSearchParams();
+  const { email } = useLocalSearchParams();
+  const { verifyRegistration } = useAuthStore();
+
   const handleChangeText = (text: string, index: number) => {
     const newCode = [...code];
     newCode[index] = text;
@@ -18,19 +21,31 @@ const SignUpOTPScreen = () => {
       }
     }
   };
+
   const handleClearCode = () => {
-    setCode(Array(6).fill("")); // Reset mảng code về trạng thái ban đầu
+    setCode(Array(6).fill(""));
     if (inputsRef.current[0]) {
-      inputsRef.current[0].focus(); // Focus vào ô đầu tiên
+      inputsRef.current[0].focus();
     }
   };
-  const inputsRef = React.useRef<Array<TextInput | null>>([]); // Tham chiếu đến các ô input
 
-  const handleNext = () => {
-    router.navigate({
-      pathname: "/login/signup/signupPasswordScreen",
-      params: { phoneNumber },
-    });
+  const inputsRef = React.useRef<Array<TextInput | null>>([]);
+
+  const handleNext = async () => {
+    try {
+      const otp = code.join("");
+      if (otp.length !== 6) {
+        alert("Vui lòng nhập đủ mã OTP");
+        return;
+      }
+      await verifyRegistration(otp);
+      router.navigate({
+        pathname: "/login/signup/signupPasswordScreen",
+        params: { email },
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Mã OTP không hợp lệ");
+    }
   };
 
   return (
@@ -45,16 +60,16 @@ const SignUpOTPScreen = () => {
         <Text className="text-2xl font-bold mb-4">Nhập mã xác thực</Text>
 
         <Text className="text-center font-semibold mb-2 text-gray-700 px-4">
-          Nhập mã gồm 6 số được gửi đến số điện thoại của bạn
+          Nhập mã gồm 6 số được gửi đến email của bạn
         </Text>
 
-        <Text className="text-lg font-semibold mb-4">(+1) 9192884275</Text>
+        <Text className="text-lg font-semibold mb-4">{email}</Text>
 
         <View className="flex-row justify-between mb-4">
           {code.map((value, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputsRef.current[index] = ref)} // Lưu tham chiếu đến ô input
+              ref={(ref) => (inputsRef.current[index] = ref)}
               className="w-12 h-14 border border-gray-300 text-center text-lg rounded-[10px] mx-2 mt-2.5"
               value={value}
               onChangeText={(text) => handleChangeText(text, index)}

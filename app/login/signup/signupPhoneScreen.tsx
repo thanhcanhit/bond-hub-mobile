@@ -9,25 +9,33 @@ import {
   CheckboxLabel,
 } from "@/components/ui/checkbox";
 import { CheckIcon } from "@/components/ui/icon";
+import { useAuthStore } from "@/store/authStore";
 
 const SignUpPhoneScreen = () => {
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const { initiateRegistration } = useAuthStore();
 
-  const handleNext = () => {
-    if (!phoneNumber) {
-      alert("Vui lòng nhập số điện thoại");
+  const handleNext = async () => {
+    if (!email) {
+      alert("Vui lòng nhập email");
       return;
     }
-    router.navigate({
-      pathname: "/login/signup/signupOTPScreen",
-      params: { phoneNumber },
-    });
+    try {
+      await initiateRegistration(email);
+      router.navigate({
+        pathname: "/login/signup/signupOTPScreen",
+        params: { email },
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Đã có lỗi xảy ra");
+    }
   };
+
   return (
     <View className="flex-1 justify-between items-center bg-white pt-8 pb-8">
       <View>
         <Text className="text-[20px] font-semibold text-gray-700 text-center mt-12 mb-2">
-          NHẬP SỐ ĐIỆN THOẠI CỦA BẠN
+          NHẬP EMAIL CỦA BẠN
         </Text>
         <Input
           variant="outline"
@@ -38,10 +46,11 @@ const SignUpPhoneScreen = () => {
           className="rounded-[10px] my-4 h-16"
         >
           <InputField
-            placeholder="Số điện thoại ..."
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="phone-pad"
+            placeholder="Email ..."
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
         </Input>
         <Checkbox

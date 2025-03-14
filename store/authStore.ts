@@ -3,24 +3,29 @@ import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import axiosInstance, { axiosPublicInstance } from "../lib/axios";
 import { router } from "expo-router";
+
 interface User {
   fullName: string;
-  phoneNumber: string;
+  email: string;
 }
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean | null;
   loading: boolean;
+  registrationId: string | null;
 }
 
 interface AuthActions {
-  login: (phoneNumber: string, password: string) => Promise<void>;
-  register: (
-    phoneNumber: string,
-    password: string,
-    fullName: string,
-  ) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  initiateRegistration: (email: string) => Promise<void>;
+  verifyRegistration: (otp: string) => Promise<void>;
+  completeRegistration: (params: {
+    password: string;
+    fullName: string;
+    dateOfBirth: string;
+    gender: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -29,6 +34,7 @@ if (!process.env.EXPO_PUBLIC_API_URL) {
 }
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL + "/auth";
+
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
   // Initialize the auth state
   const initializeAuth = async () => {
@@ -56,12 +62,13 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     user: null,
     isAuthenticated: null,
     loading: true,
+    registrationId: null,
 
-    // Hàm đăng nhập
-    login: async (phoneNumber: string, password: string) => {
+    // Login function
+    login: async (email: string, password: string) => {
       try {
         const response = await axiosPublicInstance.post(`${API_URL}/login`, {
-          phoneNumber,
+          email,
           password,
         });
         const { accessToken, refreshToken, user } = response.data;
@@ -76,36 +83,72 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         throw error;
       }
     },
-    // Hàm đăng ký
-    register: async (
-      phoneNumber: string,
-      password: string,
-      fullName: string,
-    ) => {
+
+    // Step 1: Initiate Registration
+    initiateRegistration: async (email: string) => {
       try {
-        const response = await axiosPublicInstance.post(`${API_URL}/register`, {
-          phoneNumber,
-          password,
-          fullName,
-        });
-        return response.data;
+        const response = await axiosPublicInstance.post(
+          `${API_URL}/register/initiate`,
+          { email },
+        );
+        const { registrationId } = response.data;
+        set({ registrationId });
       } catch (error) {
-        console.error("Registration failed:", error);
+        console.error("Registration initiation failed:", error);
         throw error;
       }
     },
 
-    // Hàm đăng xuất
+    // Step 2: Verify OTP
+    verifyRegistration: async (otp: string) => {
+      try {
+        const registrationId = get().registrationId;
+        if (!registrationId) {
+          throw new Error("Registration ID not found");
+        }
+        await axiosPublicInstance.post(`${API_URL}/register/verify`, {
+          otp,
+          registrationId,
+        });
+      } catch (error) {
+        console.error("OTP verification failed:", error);
+        throw error;
+      }
+    },
+
+    // Step 3: Complete Registration
+    completeRegistration: async (params) => {
+      try {
+        const registrationId = get().registrationId;
+        if (!registrationId) {
+          throw new Error("Registration ID not found");
+        }
+        const response = await axiosPublicInstance.post(
+          `${API_URL}/register/complete`,
+          {
+            ...params,
+            registrationId,
+          },
+        );
+        const { user } = response.data;
+        set({ registrationId: null, user });
+      } catch (error) {
+        console.error("Registration completion failed:", error);
+        throw error;
+      }
+    },
+
+    // Logout function
     logout: async () => {
       try {
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         await SecureStore.deleteItemAsync("user");
-
         set({ isAuthenticated: false, user: null });
         router.replace("/login/loginScreen");
       } catch (error) {
         console.error("Logout failed:", error);
+        throw error;
       }
     },
   };

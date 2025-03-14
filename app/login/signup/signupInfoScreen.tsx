@@ -1,6 +1,6 @@
-import { ArrowLeft, CircleHelp } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   Select,
@@ -16,17 +16,35 @@ import {
 } from "@/components/ui/select";
 import { ChevronDownIcon } from "@/components/ui/icon";
 import DateInput from "@/components/DateInput";
+import { useAuthStore } from "@/store/authStore";
 
 const SignUpInfoScreen = () => {
-  const { phoneNumber, password, fullName } = useLocalSearchParams();
-  const handleNext = () => {
-    router.navigate({
-      pathname: "/login/signup/signupAvatarScreen",
-      params: { phoneNumber, password, fullName },
-    });
+  const { email, password, fullName } = useLocalSearchParams();
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("");
+  const { completeRegistration } = useAuthStore();
+
+  const handleNext = async () => {
+    if (!dateOfBirth || !gender) {
+      alert("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+
+    try {
+      await completeRegistration({
+        password: password as string,
+        fullName: fullName as string,
+        dateOfBirth,
+        gender,
+      });
+      router.replace("/login/loginScreen");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Đã có lỗi xảy ra");
+    }
   };
+
   return (
-    <View className="flex-1  items-center  bg-white pt-8 pb-8 px-4">
+    <View className="flex-1 items-center bg-white pt-8 pb-8 px-4">
       <TouchableOpacity
         onPress={() => router.back()}
         className="absolute top-8 left-4"
@@ -37,8 +55,12 @@ const SignUpInfoScreen = () => {
         THÊM THÔNG TIN CÁ NHÂN
       </Text>
 
-      <DateInput />
-      <Select className="w-full mt-5">
+      <DateInput value={dateOfBirth} onChange={setDateOfBirth} />
+      <Select
+        className="w-full mt-5"
+        selectedValue={gender}
+        onValueChange={setGender}
+      >
         <SelectTrigger
           variant="outline"
           size="xl"
@@ -53,8 +75,8 @@ const SignUpInfoScreen = () => {
             <SelectDragIndicatorWrapper>
               <SelectDragIndicator />
             </SelectDragIndicatorWrapper>
-            <SelectItem label="Nam" value="nam" />
-            <SelectItem label="Nữ" value="nu" />
+            <SelectItem label="Nam" value="MALE" />
+            <SelectItem label="Nữ" value="FEMALE" />
           </SelectContent>
         </SelectPortal>
       </Select>
