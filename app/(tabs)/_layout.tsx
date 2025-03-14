@@ -7,10 +7,13 @@ import {
   Shapes,
   User,
 } from "lucide-react-native";
-import { Text, View } from "react-native";
+import { Text, View, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const [activeTab, setActiveTab] = useState("index");
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -24,8 +27,15 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "white",
-          height: 55,
+          height: Platform.select({
+            ios: 55 + insets.bottom,
+            android: 60,
+          }),
           paddingTop: 10,
+          paddingBottom: Platform.select({
+            ios: 10,
+            android: 10,
+          }),
         },
       }}
     >

@@ -1,16 +1,15 @@
 // src/store/authStore.ts
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
-import axiosInstance, { axiosPublicInstance } from "../lib/axios";
+import { axiosPublicInstance } from "../lib/axios";
 import { router } from "expo-router";
-
-interface User {
-  fullName: string;
-  email: string;
-}
+import * as device from "expo-device";
+import { User, UserInfo } from "@/types";
+import { getUserInfo } from "@/services/user-service";
 
 interface AuthState {
   user: User | null;
+  userInfo: UserInfo | null;
   isAuthenticated: boolean | null;
   loading: boolean;
   registrationId: string | null;
@@ -27,6 +26,7 @@ interface AuthActions {
     gender: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
+  fetchUserInfo: () => Promise<void>;
 }
 
 if (!process.env.EXPO_PUBLIC_API_URL) {
@@ -42,16 +42,35 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       const accessToken = await SecureStore.getItemAsync("accessToken");
       if (accessToken) {
         const userStr = await SecureStore.getItemAsync("user");
+        const userInfoStr = await SecureStore.getItemAsync("userInfo");
+
         if (userStr) {
           const user = JSON.parse(userStr);
-          set({ isAuthenticated: true, user, loading: false });
+
+          const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
+          console.log("user: ", user);
+          console.log("userInfo: ", userInfo);
+          set({ isAuthenticated: true, user, userInfo, loading: false });
+          if (!userInfo && user) {
+            get().fetchUserInfo();
+          }
           return;
         }
       }
-      set({ isAuthenticated: false, user: null, loading: false });
+      set({
+        isAuthenticated: false,
+        user: null,
+        userInfo: null,
+        loading: false,
+      });
     } catch (error) {
       console.error("Failed to initialize auth:", error);
-      set({ isAuthenticated: false, user: null, loading: false });
+      set({
+        isAuthenticated: false,
+        user: null,
+        userInfo: null,
+        loading: false,
+      });
     }
   };
 
@@ -60,16 +79,57 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
 
   return {
     user: null,
+    userInfo: null,
     isAuthenticated: null,
     loading: true,
     registrationId: null,
 
+    fetchUserInfo: async () => {
+      const { user } = get();
+      if (!user) return;
+
+      try {
+        const { userInfo } = await getUserInfo(user.id);
+        await SecureStore.setItemAsync("userInfo", JSON.stringify(userInfo));
+        set({ userInfo });
+      } catch (error) {
+        console.error("Failed to fetch user info:", error);
+      }
+    },
+
     // Login function
     login: async (email: string, password: string) => {
       try {
+        const deviceName = device.modelName || "UNKNOWN";
+        const deviceTypeS = device.deviceType;
+        const deviceId = "device_id";
+        let deviceType = "";
+        switch (deviceTypeS) {
+          case 0:
+            deviceType = "WEB";
+            break;
+          case 1:
+            deviceType = "MOBILE";
+            break;
+          case 2:
+            deviceType = "TABLET";
+            break;
+          case 3:
+            deviceType = "TV";
+            break;
+          case 4:
+            deviceType = "DESKTOP";
+            break;
+          default:
+            deviceType = "WEB";
+            break;
+        }
         const response = await axiosPublicInstance.post(`${API_URL}/login`, {
           email,
           password,
+          deviceName,
+          deviceType,
+          deviceId,
         });
         const { accessToken, refreshToken, user } = response.data;
 
@@ -77,7 +137,8 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         await SecureStore.setItemAsync("refreshToken", refreshToken);
         await SecureStore.setItemAsync("user", JSON.stringify(user));
 
-        set({ isAuthenticated: true, user });
+        set({ user, isAuthenticated: true });
+        get().fetchUserInfo();
       } catch (error) {
         console.error("Login failed:", error);
         throw error;
@@ -144,7 +205,8 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         await SecureStore.deleteItemAsync("user");
-        set({ isAuthenticated: false, user: null });
+        await SecureStore.deleteItemAsync("userInfo");
+        set({ user: null, userInfo: null, isAuthenticated: false });
         router.replace("/login/loginScreen");
       } catch (error) {
         console.error("Logout failed:", error);

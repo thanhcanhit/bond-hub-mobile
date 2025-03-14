@@ -22,7 +22,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  const isAuthenticated = true; //useAuth();
+  const isAuthenticated = useAuth();
   const router = useRouter();
 
   useEffect(() => {

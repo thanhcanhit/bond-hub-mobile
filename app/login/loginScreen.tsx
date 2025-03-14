@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Modal, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  Alert,
+  Platform,
+} from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, X } from "lucide-react-native";
 import { Input, InputField } from "@/components/ui/input";
 import { Fab } from "@/components/ui/fab";
 import { useAuthStore } from "@/store/authStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const { login, isAuthenticated } = useAuthStore();
-
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     if (isAuthenticated) {
       router.replace("/(tabs)");
@@ -21,7 +29,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-      await login(phoneNumber, password);
+      await login(email, password);
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(
@@ -32,7 +40,7 @@ export default function LoginScreen() {
   };
 
   const clearInput = () => {
-    setPhoneNumber("");
+    setEmail("");
   };
 
   const toggleModal = () => {
@@ -73,7 +81,12 @@ export default function LoginScreen() {
         onRequestClose={toggleModal}
       >
         <View className="bg-white rounded h-full">
-          <View className="bg-blue-500 flex-row items-center mt-8 p-4">
+          <View
+            className="bg-blue-500 flex-row items-center p-4"
+            style={{
+              paddingTop: Platform.OS === "ios" ? insets.top : 10,
+            }}
+          >
             <TouchableOpacity onPress={toggleModal}>
               <ArrowLeft size={24} color={"white"} />
             </TouchableOpacity>
@@ -94,11 +107,11 @@ export default function LoginScreen() {
                 className="mt-2 pl-2 flex-1"
               >
                 <InputField
-                  placeholder="Nhập số điện thoại ..."
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
+                  placeholder="Nhập email ..."
+                  value={email}
+                  onChangeText={setEmail}
                 />
-                {phoneNumber.length > 0 && (
+                {email.length > 0 && (
                   <TouchableOpacity onPress={clearInput} className="ml-2">
                     <X size={24} color={"gray"} />
                   </TouchableOpacity>
