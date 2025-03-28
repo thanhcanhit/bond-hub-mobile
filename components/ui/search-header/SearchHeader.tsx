@@ -9,6 +9,7 @@ import {
   ImagePlus,
   QrCode,
 } from "lucide-react-native";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 type SearchHeaderProps = {
@@ -56,7 +57,10 @@ export default function SearchHeader({
         );
       case "info":
         return (
-          <TouchableOpacity onPress={onActionPress} className="mr-4">
+          <TouchableOpacity
+            onPress={() => router.push("/settings")}
+            className="mr-4"
+          >
             <Settings size={25} color="white" />
           </TouchableOpacity>
         );

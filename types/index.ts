@@ -14,7 +14,8 @@ export interface UserInfo {
   id: string;
   userId: string;
   bio?: string;
-  avatarUrl?: string;
+  profilePictureUrl?: string;
+  coverImgUrl?: string;
   phoneNumber?: string;
   location?: string;
   dateOfBirth?: string;

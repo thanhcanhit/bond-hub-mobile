@@ -54,7 +54,7 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 justify-center items-center bg-white">
       {/* Màn hình chính */}
-      <Text className="text-5xl font-bold mb-4 text-blue-500">Zalo</Text>
+      <Text className="text-5xl font-bold mb-4 text-blue-500">BondHub</Text>
       <Text className="text-xl mb-2 font-bold">Gọi video ổn định</Text>
       <Text className="text-md mb-8 text-gray-400 text-center px-10">
         Trò chuyện thật đã với chất lượng video ổn định mọi lúc, mọi nơi

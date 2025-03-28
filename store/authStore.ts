@@ -48,8 +48,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
           const user = JSON.parse(userStr);
 
           const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
-          console.log("user: ", user);
-          console.log("userInfo: ", userInfo);
           set({ isAuthenticated: true, user, userInfo, loading: false });
           if (!userInfo && user) {
             get().fetchUserInfo();

@@ -1,37 +1,91 @@
+import {
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import { FunctionButton } from "@/components/ui/function-button";
+import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
-import { Alert, Platform, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import {
+  CircleFadingArrowUp,
+  Cloudy,
+  LockKeyhole,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
+import UserChange from "@/assets/svgs/userChange.svg";
+import { router } from "expo-router";
 export default function InfoScreen() {
-  const { user, userInfo, logout } = useAuthStore();
-  const insets = useSafeAreaInsets();
-  const handleLogout = () => {
-    Alert.alert(
-      "Đăng xuất",
-      "Bạn có chắc chắn muốn đăng xuất?",
-      [
-        { text: "Hủy", style: "cancel" },
-        { text: "Đăng xuất", onPress: logout },
-      ],
-      { cancelable: false },
-    );
-  };
+  const { user, userInfo } = useAuthStore();
+
   return (
-    <View className="flex-1 items-center ">
+    <ScrollView className="flex-1  bg-gray-100">
       {user && (
-        <View className="p-8 justify-center items-center">
-          <Text className="text-black text-lg">{user.fullName}</Text>
-          <Text className="text-black text-lg">{user.email}</Text>
-          <Text className="text-black text-lg">{userInfo?.dateOfBirth}</Text>
-          <Text className="text-black text-lg">{userInfo?.gender}</Text>
-        </View>
+        <FunctionButton
+          avatar={
+            <Avatar size="md">
+              <AvatarFallbackText>{user.fullName}</AvatarFallbackText>
+              {userInfo?.profilePictureUrl && (
+                <AvatarImage source={{ uri: userInfo.profilePictureUrl }} />
+              )}
+            </Avatar>
+          }
+          title={user.fullName}
+          description={"Xem trang cá nhân"}
+          onPress={function (): void {
+            router.push("/user-info");
+          }}
+          rightButton={
+            <TouchableOpacity>
+              <UserChange
+                width={30}
+                height={30}
+                stroke={Colors.light.PRIMARY_BLUE}
+                strokeWidth={1.5}
+              />
+            </TouchableOpacity>
+          }
+          height={24}
+        />
       )}
-      <TouchableOpacity
-        onPress={handleLogout}
-        className="bg-blue-500 rounded-xl h-16 w-32 items-center justify-center mt-10"
-      >
-        <Text className="text-white font-bold ">Sign Out</Text>
-      </TouchableOpacity>
-    </View>
+      <View className="h-2.5 w-full"></View>
+      <FunctionButton
+        icon={<Cloudy size={23} color={Colors.light.PRIMARY_BLUE} />}
+        title={"Cloud của tôi"}
+        description={"Lưu các tin nhắn quan trọng"}
+        onPress={() => {}}
+        showBottomBorder={true}
+      />
+      <FunctionButton
+        icon={
+          <CircleFadingArrowUp size={23} color={Colors.light.PRIMARY_BLUE} />
+        }
+        title={"Dữ liệu trên máy"}
+        description={"Quản lý dữ liệu BondHub của bạn"}
+        onPress={() => {}}
+        showBottomBorder={true}
+      />
+      <FunctionButton
+        icon={<Wallet size={23} color={Colors.light.PRIMARY_BLUE} />}
+        title={"Ví QR"}
+        description={"Lưu trữ và xuất trình các mã QR quan trọng"}
+        onPress={() => {}}
+      />
+      <View className="h-2.5 w-full"></View>
+      <FunctionButton
+        icon={<ShieldCheck size={23} color={Colors.light.PRIMARY_BLUE} />}
+        title={"Tài khoản và bảo mật"}
+        height={20}
+        onPress={() => {}}
+        showBottomBorder={true}
+      />
+      <FunctionButton
+        icon={<LockKeyhole size={23} color={Colors.light.PRIMARY_BLUE} />}
+        title={"Quyền riêng tư"}
+        height={20}
+        onPress={() => {}}
+      />
+    </ScrollView>
   );
 }
