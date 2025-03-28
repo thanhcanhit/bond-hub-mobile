@@ -38,6 +38,7 @@
     "@rneui/themed": "^4.0.0-rc.8",
     "axios": "^1.7.9",
     "babel-plugin-module-resolver": "^5.0.2",
+    "clsx": "^2.1.1",
     "expo": "~52.0.23",
     "expo-blur": "~14.0.1",
     "expo-constants": "~17.0.6",
@@ -69,7 +70,8 @@
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "expo-linear-gradient": "~14.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

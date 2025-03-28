@@ -1,14 +1,15 @@
 import { Tabs } from "expo-router";
 import React, { useState } from "react";
-import {
-  BookUser,
-  Clock7,
-  MessageSquareText,
-  Shapes,
-  User,
-} from "lucide-react-native";
-import { Text, View, Platform } from "react-native";
+import clsx from "clsx";
+import { Text, View, Platform, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Contact from "@/assets/svgs/contacts.svg";
+import Discovery from "@/assets/svgs/discovery.svg";
+import Messages from "@/assets/svgs/message.svg";
+import Info from "@/assets/svgs/user.svg";
+import TimeLine from "@/assets/svgs/timeline.svg";
+import SearchHeader from "@/components/ui/search-header/SearchHeader";
+import { Colors } from "@/constants/Colors";
 
 export default function TabLayout() {
   const [activeTab, setActiveTab] = useState("index");
@@ -17,14 +18,22 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#297eff",
+        header: ({ route }) => {
+          return (
+            <SearchHeader
+              screenName={route.name as any}
+              onActionPress={() => {}}
+              onSearch={() => {}}
+            />
+          );
+        },
+        tabBarActiveTintColor: Colors.light.PRIMARY_BLUE,
         tabBarInactiveTintColor: "#ccc",
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: 500,
           display: "none",
         },
-        headerShown: false,
         tabBarStyle: {
           backgroundColor: "white",
           height: Platform.select({
@@ -47,15 +56,21 @@ export default function TabLayout() {
         options={{
           title: "Tin nhắn",
           tabBarIcon: ({ color, focused }) => (
-            <View className="items-center">
-              <MessageSquareText
-                size={28}
-                color={focused ? "#297eff" : color}
+            <View className={clsx("items-center", focused ? "" : "")}>
+              <Messages
+                width={25}
+                height={25}
+                stroke={focused ? Colors.light.PRIMARY_BLUE : color}
+                strokeWidth={1.5}
               />
               {focused && (
                 <Text
-                  style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
-                  className="w-20 text-center pt-1"
+                  style={{
+                    fontSize: 12,
+                    color: Colors.light.PRIMARY_BLUE,
+                    fontWeight: 600,
+                  }}
+                  className="w-20 text-center "
                 >
                   Tin nhắn
                 </Text>
@@ -73,11 +88,20 @@ export default function TabLayout() {
           title: "Danh bạ",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <BookUser size={25} color={focused ? "#297eff" : color} />
+              <Contact
+                width={25}
+                height={25}
+                stroke={focused ? Colors.light.PRIMARY_BLUE : color}
+                strokeWidth={1.5}
+              />
               {focused && (
                 <Text
-                  style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
-                  className="w-20 text-center pt-1 "
+                  style={{
+                    fontSize: 12,
+                    color: Colors.light.PRIMARY_BLUE,
+                    fontWeight: 600,
+                  }}
+                  className="w-20 text-center  "
                 >
                   Danh bạ
                 </Text>
@@ -95,11 +119,20 @@ export default function TabLayout() {
           title: "Khám phá",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <Shapes size={25} color={focused ? "#297eff" : color} />
+              <Discovery
+                width={25}
+                height={25}
+                stroke={focused ? Colors.light.PRIMARY_BLUE : color}
+                strokeWidth={1.5}
+              />
               {focused && (
                 <Text
-                  style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
-                  className="w-20 text-center pt-1 "
+                  style={{
+                    fontSize: 12,
+                    color: Colors.light.PRIMARY_BLUE,
+                    fontWeight: 600,
+                  }}
+                  className="w-20 text-center "
                 >
                   Khám phá
                 </Text>
@@ -117,11 +150,20 @@ export default function TabLayout() {
           title: "Nhật ký",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <Clock7 size={25} color={focused ? "#297eff" : color} />
+              <TimeLine
+                width={25}
+                height={25}
+                stroke={focused ? Colors.light.PRIMARY_BLUE : color}
+                strokeWidth={1.5}
+              />
               {focused && (
                 <Text
-                  style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
-                  className="w-20 text-center pt-1 "
+                  style={{
+                    fontSize: 12,
+                    color: Colors.light.PRIMARY_BLUE,
+                    fontWeight: 600,
+                  }}
+                  className="w-20 text-center "
                 >
                   Nhật ký
                 </Text>
@@ -139,11 +181,20 @@ export default function TabLayout() {
           title: "Cá nhân",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center">
-              <User size={25} color={focused ? "#297eff" : color} />
+              <Info
+                width={25}
+                height={25}
+                stroke={focused ? Colors.light.PRIMARY_BLUE : color}
+                strokeWidth={1.5}
+              />
               {focused && (
                 <Text
-                  style={{ fontSize: 12, color: "#297eff", fontWeight: 600 }}
-                  className="w-20 text-center pt-1 "
+                  style={{
+                    fontSize: 12,
+                    color: Colors.light.PRIMARY_BLUE,
+                    fontWeight: 600,
+                  }}
+                  className="w-20 text-center "
                 >
                   Cá nhân
                 </Text>
