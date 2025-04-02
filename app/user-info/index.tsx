@@ -11,6 +11,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/authStore";
 import { Colors } from "@/constants/Colors";
+import {
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
 export default function UserInfoScreen() {
   const insets = useSafeAreaInsets();
@@ -36,17 +41,19 @@ export default function UserInfoScreen() {
             <ArrowLeft size={28} color="white" />
           </TouchableOpacity>
           <View className="flex-row">
-            <Ellipsis size={28} color="white" />
+            <TouchableOpacity>
+              <Ellipsis size={28} color="white" />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Profile Picture */}
         <View className="absolute -bottom-16 w-full items-center">
-          <Image
-            source={{ uri: userInfo?.profilePictureUrl }}
-            className="w-32 h-32 rounded-full border-4 border-white"
-            resizeMode="cover"
-          />
+          <Avatar size="2xl">
+            <AvatarFallbackText>{user?.fullName}</AvatarFallbackText>
+            {userInfo?.profilePictureUrl && (
+              <AvatarImage source={{ uri: userInfo.profilePictureUrl }} />
+            )}
+          </Avatar>
         </View>
       </View>
 

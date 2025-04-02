@@ -4,6 +4,7 @@ import { Avatar, AvatarFallbackText, AvatarImage } from "./ui/avatar";
 import { Text, TouchableOpacity } from "react-native";
 import { VStack } from "./ui/vstack";
 import { BellOff, CircleIcon } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 interface ChatItemProps {
   id: string;
@@ -18,6 +19,7 @@ interface ChatItemProps {
 }
 
 const ChatItem: React.FC<ChatItemProps> = ({
+  id,
   name,
   lastMessage = "",
   lastMessageTime = "",
@@ -27,6 +29,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
   unreadCount = 0,
   onPress,
 }) => {
+  const router = useRouter();
   // Hàm xử lý hiển thị thời gian
   const formatTime = (timeString: string) => {
     if (!timeString) return "";
@@ -53,7 +56,10 @@ const ChatItem: React.FC<ChatItemProps> = ({
   };
 
   return (
-    <TouchableOpacity onPress={onPress} className="items-center h-20 px-2">
+    <TouchableOpacity
+      onPress={() => router.push(`/chat/${id}`)}
+      className="items-center h-[75px] px-2"
+    >
       <HStack className="w-full items-center justify-between">
         {/* Avatar */}
         <Avatar size="md">
@@ -75,7 +81,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
           </HStack>
 
           <HStack>
-            <Text className="text-gray-500 pt-1" numberOfLines={1}>
+            <Text className="text-gray-500 pt-1 pb-1" numberOfLines={1}>
               {lastMessage}
             </Text>
           </HStack>
