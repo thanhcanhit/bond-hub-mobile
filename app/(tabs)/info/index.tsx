@@ -46,7 +46,7 @@ export default function InfoScreen() {
               />
             </TouchableOpacity>
           }
-          height={24}
+          size={"lg"}
         />
       )}
       <View className="h-2.5 w-full"></View>
@@ -62,7 +62,7 @@ export default function InfoScreen() {
           <CircleFadingArrowUp size={23} color={Colors.light.PRIMARY_BLUE} />
         }
         title={"Dữ liệu trên máy"}
-        description={"Quản lý dữ liệu BondHub của bạn"}
+        description={"Quản lý dữ liệu Vodka của bạn"}
         onPress={() => {}}
         showBottomBorder={true}
       />
@@ -76,14 +76,12 @@ export default function InfoScreen() {
       <FunctionButton
         icon={<ShieldCheck size={23} color={Colors.light.PRIMARY_BLUE} />}
         title={"Tài khoản và bảo mật"}
-        height={20}
         onPress={() => {}}
         showBottomBorder={true}
       />
       <FunctionButton
         icon={<LockKeyhole size={23} color={Colors.light.PRIMARY_BLUE} />}
         title={"Quyền riêng tư"}
-        height={20}
         onPress={() => {}}
       />
     </ScrollView>

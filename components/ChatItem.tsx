@@ -58,18 +58,18 @@ const ChatItem: React.FC<ChatItemProps> = ({
   return (
     <TouchableOpacity
       onPress={() => router.push(`/chat/${id}`)}
-      className="items-center h-[75px] px-2"
+      className="items-center  px-2.5 "
     >
-      <HStack className="w-full items-center justify-between">
+      <HStack className="w-full items-center  justify-between   ">
         {/* Avatar */}
-        <Avatar size="md">
+        <Avatar size="lg">
           <AvatarFallbackText>{name}</AvatarFallbackText>
           {avatarUrl && <AvatarImage source={{ uri: avatarUrl }} />}
         </Avatar>
 
-        <VStack className="w-5/6  py-2.5 border-b-[1px] border-gray-300">
+        <VStack className=" w-5/6 pl-2  py-4 border-b-[1px]  border-gray-300">
           <HStack className="justify-between">
-            <Text className="font-semibold text-lg" numberOfLines={1}>
+            <Text className="font-semibold text-lg " numberOfLines={1}>
               {name}
             </Text>
             <HStack className="items-center ">
@@ -81,7 +81,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
           </HStack>
 
           <HStack>
-            <Text className="text-gray-500 pt-1 pb-1" numberOfLines={1}>
+            <Text className="text-gray-500 pt-1 " numberOfLines={1}>
               {lastMessage}
             </Text>
           </HStack>

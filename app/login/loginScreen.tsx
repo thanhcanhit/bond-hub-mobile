@@ -54,7 +54,7 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 justify-center items-center bg-white">
       {/* Màn hình chính */}
-      <Text className="text-5xl font-bold mb-4 text-blue-500">BondHub</Text>
+      <Text className="text-5xl font-bold mb-4 text-blue-500">Vodka</Text>
       <Text className="text-xl mb-2 font-bold">Gọi video ổn định</Text>
       <Text className="text-md mb-8 text-gray-400 text-center px-10">
         Trò chuyện thật đã với chất lượng video ổn định mọi lúc, mọi nơi
@@ -67,7 +67,7 @@ export default function LoginScreen() {
         <Text className="text-white font-semibold text-xl">ĐĂNG NHẬP</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => router.navigate("/login/signup/signupPhoneScreen")}
+        onPress={() => router.navigate("/login/signup/signupEmailScreen")}
         className="bg-gray-100 py-4 rounded-full w-60 items-center mt-3"
       >
         <Text className="text-black font-semibold text-xl">ĐĂNG KÝ</Text>
@@ -80,11 +80,11 @@ export default function LoginScreen() {
         transparent={true}
         onRequestClose={toggleModal}
       >
-        <View className="bg-white rounded h-full">
+        <View className="bg-white rounded h-full ">
           <View
-            className="bg-blue-500 flex-row items-center p-4"
+            className="bg-blue-500 flex-row items-center p-4 "
             style={{
-              paddingTop: Platform.OS === "ios" ? insets.top : 10,
+              paddingTop: Platform.OS === "ios" ? insets.top : 14,
             }}
           >
             <TouchableOpacity onPress={toggleModal}>
@@ -145,7 +145,13 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Input>
             </View>
-            <TouchableOpacity className="m-2.5 mt-6 w-full items-start">
+            <TouchableOpacity
+              onPress={() => {
+                toggleModal;
+                router.push("/login/forgot-password/forgotPasswordEmailScreen");
+              }}
+              className="m-2.5 mt-6 w-full items-start"
+            >
               <Text className="text-blue-500 text-center">
                 Lấy lại mật khẩu
               </Text>
@@ -157,7 +163,7 @@ export default function LoginScreen() {
             isDisabled={false}
             onPress={handleLogin}
             isPressed={true}
-            className="bg-blue-500 w-16 h-16 rounded-full mb-10 "
+            className="bg-blue-500 w-16 h-16 rounded-full mb-4 mr-4 "
           >
             <ArrowRight size={28} color={"white"} />
           </Fab>

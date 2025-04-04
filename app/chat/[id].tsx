@@ -3,25 +3,18 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
+  KeyboardAvoidingView,
 } from "react-native";
 import { HStack } from "../../components/ui/hstack";
 import { VStack } from "../../components/ui/vstack";
-import {
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage,
-} from "../../components/ui/avatar";
+import { Avatar, AvatarFallbackText } from "../../components/ui/avatar";
 import { Text } from "react-native";
 import {
-  Send,
   ArrowLeft,
   Phone,
   Video,
-  MoreVertical,
-  Smile,
   Image,
   Mic,
   Heart,
@@ -35,6 +28,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
+import { Fab } from "@/components/ui/fab";
 interface Message {
   id: string;
   content: string;
@@ -224,42 +218,49 @@ const ChatScreen = () => {
       </ScrollView>
 
       {/* Input */}
-      <HStack className="px-4 py-2.5 border-t border-gray-200 items-center bg-white">
-        <TouchableOpacity className="mr-2">
-          <Sticker width={25} height={25} />
-        </TouchableOpacity>
-        <TextInput
-          className="flex-1 py-2 text-xl ml-1"
-          placeholder="Tin nhắn"
-          value={message}
-          onChangeText={setMessage}
-          multiline
-        />
-        {!message.trim() ? (
-          <HStack className="ml-2 space-x-2">
-            <TouchableOpacity className="px-2.5">
-              <Ellipsis size={25} color="#c4c4c4" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        <View className="w-full px-5 py-2.5 border-t border-gray-200 bg-white ">
+          <HStack className="items-center pb-3">
+            <TouchableOpacity className="mr-2">
+              <Sticker width={25} height={25} />
             </TouchableOpacity>
-            <TouchableOpacity className="px-2.5">
-              <Mic size={25} color="#c4c4c4" />
-            </TouchableOpacity>
-            <TouchableOpacity className="pl-2.5">
-              <Image size={25} color="#c4c4c4" />
-            </TouchableOpacity>
-          </HStack>
-        ) : (
-          <TouchableOpacity
-            onPress={handleSend}
-            className="rounded-full w-8 h-8 items-center justify-center"
-          >
-            <SendHorizonal
-              size={25}
-              color={Colors.light.PRIMARY_BLUE}
-              fill={Colors.light.PRIMARY_BLUE}
+            <TextInput
+              className="flex-1 py-2.5 ml-1 text-xl"
+              placeholder="Tin nhắn"
+              value={message}
+              onChangeText={setMessage}
+              multiline
             />
-          </TouchableOpacity>
-        )}
-      </HStack>
+            {!message.trim() ? (
+              <HStack className="ml-2 space-x-2">
+                <TouchableOpacity className="px-2.5">
+                  <Ellipsis size={25} color="#c4c4c4" />
+                </TouchableOpacity>
+                <TouchableOpacity className="px-2.5">
+                  <Mic size={25} color="#c4c4c4" />
+                </TouchableOpacity>
+                <TouchableOpacity className="pl-2.5">
+                  <Image size={25} color="#c4c4c4" />
+                </TouchableOpacity>
+              </HStack>
+            ) : (
+              <TouchableOpacity
+                onPress={handleSend}
+                className="rounded-full w-8 h-8 items-center justify-center"
+              >
+                <SendHorizonal
+                  size={25}
+                  color={Colors.light.PRIMARY_BLUE}
+                  fill={Colors.light.PRIMARY_BLUE}
+                />
+              </TouchableOpacity>
+            )}
+          </HStack>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 };

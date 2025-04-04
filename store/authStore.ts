@@ -13,6 +13,7 @@ interface AuthState {
   isAuthenticated: boolean | null;
   loading: boolean;
   registrationId: string | null;
+  resetId: string | null;
 }
 
 interface AuthActions {
@@ -27,6 +28,9 @@ interface AuthActions {
   }) => Promise<void>;
   logout: () => Promise<void>;
   fetchUserInfo: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  verifyForgotPassword: (otp: string) => Promise<void>;
+  resetPassword: (newPassword: string) => Promise<void>;
 }
 
 if (!process.env.EXPO_PUBLIC_API_URL) {
@@ -34,7 +38,6 @@ if (!process.env.EXPO_PUBLIC_API_URL) {
 }
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL + "/auth";
-
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
   // Initialize the auth state
   const initializeAuth = async () => {
@@ -81,6 +84,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     isAuthenticated: null,
     loading: true,
     registrationId: null,
+    resetId: null,
 
     fetchUserInfo: async () => {
       const { user } = get();
@@ -197,14 +201,79 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       }
     },
 
+    // Forgot password
+    forgotPassword: async (email: string) => {
+      try {
+        const response = await axiosPublicInstance.post(
+          `${API_URL}/forgot-password`,
+          {
+            email,
+          },
+        );
+        const { resetId } = response.data;
+        set({ resetId });
+      } catch (error) {
+        console.error("Forgot password request failed:", error);
+        throw error;
+      }
+    },
+
+    // Verify forgot password OTP
+    verifyForgotPassword: async (otp: string) => {
+      try {
+        const resetId = get().resetId;
+        if (!resetId) {
+          throw new Error("Reset ID not found");
+        }
+        await axiosPublicInstance.post(`${API_URL}/forgot-password/verify`, {
+          resetId,
+          otp,
+        });
+      } catch (error) {
+        console.error("OTP verification failed:", error);
+        throw error;
+      }
+    },
+    resetPassword: async (newPassword: string) => {
+      try {
+        const resetId = get().resetId;
+        if (!resetId) {
+          throw new Error("Reset ID not found");
+        }
+        await axiosPublicInstance.post(`${API_URL}/forgot-password/reset`, {
+          resetId,
+          newPassword,
+        });
+      } catch (error) {
+        console.error("Reset password failed:", error);
+        throw error;
+      }
+    },
+
     // Logout function
     logout: async () => {
       try {
+        const refreshToken = await SecureStore.getItemAsync("refreshToken");
+        const accessToken = await SecureStore.getItemAsync("accessToken");
+        if (!refreshToken) {
+          throw new Error("Refresh token is required");
+        }
+        await axiosPublicInstance.post(
+          `${API_URL}/logout`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "refresh-token": refreshToken,
+            },
+          },
+        );
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         await SecureStore.deleteItemAsync("user");
         await SecureStore.deleteItemAsync("userInfo");
         set({ user: null, userInfo: null, isAuthenticated: false });
+
         router.replace("/login/loginScreen");
       } catch (error) {
         console.error("Logout failed:", error);

@@ -10,10 +10,10 @@ export default function LoginLayout() {
         screenOptions={{
           headerShown: false, // Tắt header mặc định cho tất cả màn hình trong Stack
         }}
-        initialRouteName="signupPhoneScreen"
+        initialRouteName="signupEmailScreen"
       >
         <Stack.Screen
-          name="signupPhoneScreen"
+          name="signupEmailScreen"
           options={{
             headerShown: false,
           }}
@@ -31,19 +31,13 @@ export default function LoginLayout() {
           }}
         />
         <Stack.Screen
-          name="signupNameSreen"
+          name="signupNameScreen"
           options={{
             headerShown: false,
           }}
         />
         <Stack.Screen
           name="signupInfoScreen"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="signupAvatarScreen"
           options={{
             headerShown: false,
           }}

@@ -32,7 +32,7 @@ const SignUpPasswordScreen = () => {
     }
 
     router.navigate({
-      pathname: "/login/signup/signupNameSreen",
+      pathname: "/login/signup/signupNameScreen",
       params: { email, password },
     });
   };

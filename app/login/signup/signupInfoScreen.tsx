@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   Select,
@@ -37,7 +37,12 @@ const SignUpInfoScreen = () => {
         dateOfBirth,
         gender,
       });
-      router.replace("/login/loginScreen");
+      Alert.alert("Thành công", "Đăng ký thành công", [
+        {
+          text: "Đăng nhập",
+          onPress: () => router.replace("/login/loginScreen"),
+        },
+      ]);
     } catch (error: any) {
       alert(error.response?.data?.message || "Đã có lỗi xảy ra");
     }

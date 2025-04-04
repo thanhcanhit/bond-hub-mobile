@@ -27,7 +27,7 @@ const SignUpNameScreen = () => {
         <ArrowLeft size={24} color={"black"} />
       </TouchableOpacity>
       <Text className="text-2xl font-bold mb-4 mt-10">
-        NHẬP TÊN ZALO CỦA BẠN
+        NHẬP TÊN VODKA CỦA BẠN
       </Text>
       <Text className="text-gray-500  text-center ">
         Sử dụng tên thật của bạn để dễ dàng kết nối hơn

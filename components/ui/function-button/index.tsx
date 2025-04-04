@@ -1,6 +1,7 @@
 import React from "react";
 import { TouchableOpacity, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
+import clsx from "clsx";
 
 type FunctionButtonProps = {
   icon?: React.ReactNode;
@@ -8,7 +9,7 @@ type FunctionButtonProps = {
   description?: string;
   isExternalLink?: boolean;
   onPress: () => void;
-  height?: number;
+  size?: "md" | "lg";
   avatar?: React.ReactNode;
   rightButton?: React.ReactNode;
   showTopBorder?: boolean;
@@ -21,7 +22,7 @@ export const FunctionButton = ({
   description,
   isExternalLink = false,
   onPress,
-  height = 24,
+  size = "md",
   avatar,
   rightButton,
   showTopBorder = false,
@@ -32,7 +33,10 @@ export const FunctionButton = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`flex-row items-center h-${height} px-4  bg-white`}
+      className={clsx(
+        `flex-row items-center px-4 bg-white`,
+        size === "md" ? "h-20" : "h-24",
+      )}
     >
       <View className="mr-4">{avatar || icon}</View>
       <View

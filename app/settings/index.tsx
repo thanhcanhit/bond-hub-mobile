@@ -82,14 +82,12 @@ const SettingsScreen = () => {
           icon={<ShieldCheck size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Tài khoản và bảo mật"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<LockKeyhole size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Quyền riêng tư"
           onPress={() => {}}
-          height={20}
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
@@ -98,21 +96,18 @@ const SettingsScreen = () => {
           }
           title="Dữ liệu trên máy"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<RefreshCcw size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Sao lưu và khôi phục"
           onPress={() => {}}
-          height={20}
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
           icon={<BellIcon size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Thông báo"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
@@ -121,50 +116,43 @@ const SettingsScreen = () => {
           }
           title="Tin nhắn"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<Phone size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Cuộc gọi"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<Clock size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Nhật ký"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<BookUser size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Danh bạ"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<PaintBucket size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Giao diện và ngôn ngữ"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
           icon={<InfoIcon size={23} color={Colors.light.PRIMARY_BLUE} />}
-          title="Thông tin về BondHub"
+          title="Thông tin về Vodka"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
         <FunctionButton
           icon={<CircleHelp size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Liên hệ hỗ trợ"
           onPress={() => {}}
-          height={20}
           isExternalLink={true}
           showBottomBorder={true}
         />
@@ -180,7 +168,6 @@ const SettingsScreen = () => {
           }
           title="Chuyển tài khoản"
           onPress={() => {}}
-          height={20}
           showBottomBorder={true}
         />
 

@@ -11,13 +11,19 @@ import {
 import { CheckIcon } from "@/components/ui/icon";
 import { useAuthStore } from "@/store/authStore";
 
-const SignUpPhoneScreen = () => {
+const SignUpEmailScreen = () => {
   const [email, setEmail] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [socialTermsAccepted, setSocialTermsAccepted] = useState(false);
   const { initiateRegistration } = useAuthStore();
 
   const handleNext = async () => {
     if (!email) {
       alert("Vui lòng nhập email");
+      return;
+    }
+    if (!termsAccepted || !socialTermsAccepted) {
+      alert("Vui lòng đồng ý với các điều khoản dịch vụ");
       return;
     }
     try {
@@ -57,9 +63,10 @@ const SignUpPhoneScreen = () => {
           size="lg"
           isInvalid={false}
           isDisabled={false}
-          value=""
+          value={termsAccepted.toString()}
           isHovered={true}
           className="my-2 ml-2"
+          onChange={setTermsAccepted}
         >
           <CheckboxIndicator>
             <CheckboxIcon as={CheckIcon} />
@@ -67,7 +74,7 @@ const SignUpPhoneScreen = () => {
           <CheckboxLabel>
             I agree to{" "}
             <Text className="text-blue-500 font-semibold">
-              Zalo Terms Of Service
+              Vodka Terms Of Service
             </Text>
           </CheckboxLabel>
         </Checkbox>
@@ -75,9 +82,10 @@ const SignUpPhoneScreen = () => {
           size="lg"
           isInvalid={false}
           isDisabled={false}
-          value=""
+          value={socialTermsAccepted.toString()}
           isHovered={true}
           className="my-2 ml-2"
+          onChange={setSocialTermsAccepted}
         >
           <CheckboxIndicator>
             <CheckboxIcon as={CheckIcon} />
@@ -85,13 +93,14 @@ const SignUpPhoneScreen = () => {
           <CheckboxLabel>
             I agree to{" "}
             <Text className="text-blue-500 font-semibold">
-              Zalo's Social Terms Of Service
+              Vodka's Social Terms Of Service
             </Text>
           </CheckboxLabel>
         </Checkbox>
         <TouchableOpacity
           onPress={handleNext}
-          className="bg-blue-500 py-4 rounded-full items-center mt-12"
+          disabled={!termsAccepted || !socialTermsAccepted}
+          className={`py-4 rounded-full items-center mt-12 ${!termsAccepted || !socialTermsAccepted ? "bg-gray-400" : "bg-blue-500"}`}
         >
           <Text className="text-white text-xl font-semibold">Tiếp tục</Text>
         </TouchableOpacity>
@@ -110,4 +119,4 @@ const SignUpPhoneScreen = () => {
     </View>
   );
 };
-export default SignUpPhoneScreen;
+export default SignUpEmailScreen;
