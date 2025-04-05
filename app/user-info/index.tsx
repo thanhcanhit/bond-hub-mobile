@@ -1,13 +1,15 @@
-import React from "react";
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
-import { router } from "expo-router";
+import React, { useState } from "react";
 import {
-  ArrowDownLeft,
-  ArrowLeft,
-  ChevronLeft,
-  Ellipsis,
-  Plus,
-} from "lucide-react-native";
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { ArrowLeft, Ellipsis, Image as ImageIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/authStore";
 import { Colors } from "@/constants/Colors";
@@ -16,11 +18,70 @@ import {
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
+import {
+  Menu,
+  MenuItem,
+  MenuItemLabel,
+  MenuSeparator,
+} from "@/components/ui/menu";
+import { Button, ButtonText } from "@/components/ui/button";
+import {
+  updateCoverImage,
+  updateProfilePicture,
+} from "@/services/user-service";
 
 export default function UserInfoScreen() {
   const insets = useSafeAreaInsets();
   const { userInfo, user } = useAuthStore();
   const posts: any[] = [];
+  const [showMenu, setShowMenu] = useState(false);
+
+  const handlePickImage = async (type: "profile" | "cover") => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: type === "profile" ? [1, 1] : [16, 9],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const asset = result.assets[0];
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+
+        if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
+          Alert.alert("Lỗi", "Kích thước ảnh không được vượt quá 10MB");
+          return;
+        }
+
+        const formData = new FormData();
+        const file = {
+          uri: asset.uri,
+          type: asset.type || "image/jpeg",
+          name: asset.fileName || "image.jpg",
+          size: asset.fileSize,
+        };
+        formData.append("file", file as any);
+
+        try {
+          if (type === "profile") {
+            await updateProfilePicture(formData);
+          } else {
+            await updateCoverImage(formData);
+          }
+          Alert.alert("Thành công", "Cập nhật ảnh thành công");
+        } catch (error: any) {
+          if (error.response?.data?.message) {
+            Alert.alert("Lỗi", error.response.data.message);
+          } else {
+            Alert.alert("Lỗi", "Không thể cập nhật ảnh. Vui lòng thử lại sau.");
+          }
+        }
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể chọn ảnh. Vui lòng thử lại sau.");
+    }
+  };
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -41,9 +102,63 @@ export default function UserInfoScreen() {
             <ArrowLeft size={28} color="white" />
           </TouchableOpacity>
           <View className="flex-row">
-            <TouchableOpacity>
-              <Ellipsis size={28} color="white" />
-            </TouchableOpacity>
+            <Menu
+              placement="bottom"
+              selectionMode="single"
+              trigger={({ ...triggerProps }) => {
+                return (
+                  <TouchableOpacity {...triggerProps}>
+                    <Ellipsis size={28} color="white" />
+                  </TouchableOpacity>
+                );
+              }}
+            >
+              <MenuSeparator />
+              <MenuItem
+                key="Profile"
+                textValue="Profile"
+                className="p-2"
+                onPress={() => {
+                  setShowMenu(false);
+                  router.push("/user-info/edit-info");
+                }}
+              >
+                <MenuItemLabel size="sm">Thông tin cá nhân</MenuItemLabel>
+              </MenuItem>
+              <MenuItem
+                key="Avatar"
+                textValue="Avatar"
+                className="p-2"
+                onPress={() => {
+                  setShowMenu(false);
+                  handlePickImage("profile");
+                }}
+              >
+                <MenuItemLabel size="sm">Đổi ảnh đại diện</MenuItemLabel>
+              </MenuItem>
+              <MenuItem
+                key="Cover"
+                textValue="Cover"
+                className="p-2"
+                onPress={() => {
+                  setShowMenu(false);
+                  handlePickImage("cover");
+                }}
+              >
+                <MenuItemLabel size="sm">Đổi ảnh bìa</MenuItemLabel>
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem
+                key="Help Center"
+                textValue="Help Center"
+                className="p-2"
+              >
+                <MenuItemLabel size="sm">Help Center</MenuItemLabel>
+              </MenuItem>
+              <MenuItem key="Logout" textValue="Logout" className="p-2">
+                <MenuItemLabel size="sm">Logout</MenuItemLabel>
+              </MenuItem>
+            </Menu>
           </View>
         </View>
 

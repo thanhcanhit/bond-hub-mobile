@@ -136,7 +136,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         set({ user, isAuthenticated: true });
 
         // Kết nối socket ngay sau khi đăng nhập thành công
-        await socketManager.connect();
+        // await socketManager.connect();
         get().fetchUserInfo();
       } catch (error) {
         console.error("Login failed:", error);
