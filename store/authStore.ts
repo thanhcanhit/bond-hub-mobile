@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import * as device from "expo-device";
 import { User, UserInfo } from "@/types";
 import { getUserInfo } from "@/services/user-service";
+import { socketManager } from "../lib/socket";
 
 interface AuthState {
   user: User | null;
@@ -91,9 +92,9 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       if (!user) return;
 
       try {
-        const { userInfo } = await getUserInfo(user.id);
+        const userInfo = await getUserInfo(user.userId);
         await SecureStore.setItemAsync("userInfo", JSON.stringify(userInfo));
-        set({ userInfo });
+        set(userInfo);
       } catch (error) {
         console.error("Failed to fetch user info:", error);
       }
@@ -104,7 +105,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       try {
         const deviceName = device.modelName || "UNKNOWN";
         const deviceTypeS = device.deviceType;
-        const deviceId = "device_id";
         let deviceType = "";
         switch (deviceTypeS) {
           case 0:
@@ -116,12 +116,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
           case 2:
             deviceType = "TABLET";
             break;
-          case 3:
-            deviceType = "TV";
-            break;
-          case 4:
-            deviceType = "DESKTOP";
-            break;
           default:
             deviceType = "WEB";
             break;
@@ -131,15 +125,18 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
           password,
           deviceName,
           deviceType,
-          deviceId,
         });
-        const { accessToken, refreshToken, user } = response.data;
+        const { accessToken, refreshToken, user, deviceId } = response.data;
 
         await SecureStore.setItemAsync("accessToken", accessToken);
         await SecureStore.setItemAsync("refreshToken", refreshToken);
         await SecureStore.setItemAsync("user", JSON.stringify(user));
+        await SecureStore.setItemAsync("deviceId", deviceId);
 
         set({ user, isAuthenticated: true });
+
+        // Kết nối socket ngay sau khi đăng nhập thành công
+        await socketManager.connect();
         get().fetchUserInfo();
       } catch (error) {
         console.error("Login failed:", error);
@@ -258,22 +255,19 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         if (!refreshToken) {
           throw new Error("Refresh token is required");
         }
-        await axiosPublicInstance.post(
-          `${API_URL}/logout`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "refresh-token": refreshToken,
-            },
+        await axiosPublicInstance.post(`${API_URL}/logout`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "refresh-token": refreshToken,
           },
-        );
+        });
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         await SecureStore.deleteItemAsync("user");
         await SecureStore.deleteItemAsync("userInfo");
         set({ user: null, userInfo: null, isAuthenticated: false });
 
+        socketManager.disconnect();
         router.replace("/login/loginScreen");
       } catch (error) {
         console.error("Logout failed:", error);

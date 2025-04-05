@@ -1,7 +1,7 @@
 // Common interfaces used across the application
 
 export interface User {
-  id: string;
+  userId: string;
   email: string;
   fullName: string;
   dateOfBirth?: string;

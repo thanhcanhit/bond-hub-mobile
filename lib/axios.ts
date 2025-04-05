@@ -89,12 +89,13 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
         try {
           // Try to refresh the token
           const refreshToken = await getRefreshToken();
-          console.log(ApiConfig.BASE_URL);
+          const deviceId = await SecureStore.getItemAsync("deviceId");
           if (refreshToken) {
             const response = await axios.post(
               `${ApiConfig.BASE_URL}/auth/refresh`,
               {
                 refreshToken,
+                deviceId,
               },
             );
 
