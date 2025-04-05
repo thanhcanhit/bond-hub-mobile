@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   TextInput,
@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import { HStack } from "../../components/ui/hstack";
 import { VStack } from "../../components/ui/vstack";
@@ -24,11 +25,14 @@ import {
   SendHorizonal,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { Fab } from "@/components/ui/fab";
+import { useSocket } from "@/hooks/useSocket";
+import { useSocketContext } from "@/components/SocketProvider";
+import { useAuthStore } from "@/store/authStore";
 interface Message {
   id: string;
   content: string;
@@ -42,7 +46,11 @@ interface Message {
 const ChatScreen = () => {
   const insets = useSafeAreaInsets();
   const [message, setMessage] = React.useState("");
+  const params = useLocalSearchParams();
+  const chatId = params.id as string;
   const [isGroup] = React.useState(false);
+  const { messageSocket, isConnected } = useSocketContext();
+  const { user } = useAuthStore();
   const [messages, setMessages] = React.useState<Message[]>([
     {
       id: "1",
@@ -67,17 +75,92 @@ const ChatScreen = () => {
     },
   ]);
 
+  // Effect to listen for new messages
+  useEffect(() => {
+    if (!messageSocket) {
+      console.log("Message socket not available");
+      return;
+    }
+
+    console.log(`Setting up message listeners for chat ${chatId}`);
+
+    // Listen for new messages
+    const handleNewMessage = (data: any) => {
+      console.log("New message received:", data);
+      if (data.message) {
+        const newMsg: Message = {
+          id: data.message.id,
+          content: data.message.content.text,
+          senderId: data.message.senderId,
+          timestamp: data.timestamp,
+          isMe: data.message.senderId === user?.userId,
+        };
+        setMessages((prev) => [...prev, newMsg]);
+      }
+    };
+
+    messageSocket.on("newMessage", handleNewMessage);
+
+    // Cleanup listeners when component unmounts
+    return () => {
+      messageSocket.off("newMessage", handleNewMessage);
+    };
+  }, [messageSocket, chatId, user]);
+
+  // Effect to show connection status
+  useEffect(() => {
+    console.log(
+      "Socket connection status:",
+      isConnected ? "Connected" : "Disconnected",
+    );
+  }, [isConnected]);
+
   const handleSend = () => {
-    if (message.trim()) {
+    if (!message.trim()) return;
+    if (!messageSocket || !messageSocket.connected) {
+      Alert.alert(
+        "Connection Error",
+        "Not connected to chat server. Please try again later.",
+      );
+      return;
+    }
+
+    if (!user) {
+      Alert.alert("Error", "User information not available");
+      return;
+    }
+
+    try {
+      // Create local message object
       const newMessage: Message = {
         id: Date.now().toString(),
         content: message,
-        senderId: "1",
+        senderId: user.userId,
         timestamp: new Date().toISOString(),
         isMe: true,
       };
+
+      // Add to local state immediately for UI responsiveness
       setMessages([...messages, newMessage]);
+
+      // Send to server
+      if (isGroup) {
+        messageSocket.emit("sendGroupMessage", {
+          groupId: chatId,
+          content: { text: message, media: [] },
+        });
+      } else {
+        messageSocket.emit("sendUserMessage", {
+          receiverId: chatId,
+          content: { text: message, media: [] },
+        });
+      }
+
+      // Clear input
       setMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      Alert.alert("Error", "Failed to send message. Please try again.");
     }
   };
 

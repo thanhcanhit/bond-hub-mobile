@@ -128,15 +128,29 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         });
         const { accessToken, refreshToken, user, deviceId } = response.data;
 
+        // Store authentication data
         await SecureStore.setItemAsync("accessToken", accessToken);
         await SecureStore.setItemAsync("refreshToken", refreshToken);
         await SecureStore.setItemAsync("user", JSON.stringify(user));
         await SecureStore.setItemAsync("deviceId", deviceId);
 
+        // Update state
         set({ user, isAuthenticated: true });
 
-        // Kết nối socket ngay sau khi đăng nhập thành công
-        await socketManager.connect();
+        // Connect to socket with retry mechanism
+        try {
+          console.log("Attempting to connect to socket after login");
+          await socketManager.connect();
+          console.log("Socket connection successful after login");
+        } catch (socketError) {
+          console.error(
+            "Failed to connect to socket after login:",
+            socketError,
+          );
+          // Continue even if socket connection fails - don't block the login flow
+        }
+
+        // Fetch user info
         get().fetchUserInfo();
       } catch (error) {
         console.error("Login failed:", error);
@@ -250,17 +264,17 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     // Logout function
     logout: async () => {
       try {
-        const refreshToken = await SecureStore.getItemAsync("refreshToken");
-        const accessToken = await SecureStore.getItemAsync("accessToken");
-        if (!refreshToken) {
-          throw new Error("Refresh token is required");
-        }
-        await axiosPublicInstance.post(`${API_URL}/logout`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "refresh-token": refreshToken,
-          },
-        });
+        // const refreshToken = await SecureStore.getItemAsync("refreshToken");
+        // const accessToken = await SecureStore.getItemAsync("accessToken");
+        // if (!refreshToken) {
+        //   throw new Error("Refresh token is required");
+        // }
+        // await axiosPublicInstance.post(`${API_URL}/logout`, {
+        //   headers: {
+        //     Authorization: `Bearer ${accessToken}`,
+        //     "refresh-token": refreshToken,
+        //   },
+        // });
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         await SecureStore.deleteItemAsync("user");
