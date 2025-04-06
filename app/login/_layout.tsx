@@ -31,6 +31,12 @@ export default function LoginLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="qr-login"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );

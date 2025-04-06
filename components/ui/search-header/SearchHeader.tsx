@@ -24,12 +24,16 @@ export default function SearchHeader({
   onActionPress,
 }: SearchHeaderProps) {
   const insets = useSafeAreaInsets();
+
   const renderActionIcons = () => {
     switch (screenName) {
       case "index":
         return (
           <View className="flex-row items-center">
-            <TouchableOpacity onPress={onActionPress} className="mr-4">
+            <TouchableOpacity
+              onPress={() => router.push("/login/qr-login")}
+              className="mr-4"
+            >
               <QrCode size={25} stroke={"white"} />
             </TouchableOpacity>
             <TouchableOpacity onPress={onActionPress} className="mr-4">
@@ -92,9 +96,7 @@ export default function SearchHeader({
             }}
           >
             <Search size={23} color="white" />
-            <Text className=" text-white pl-6 text-xl opacity-60">
-              Tìm kiếm
-            </Text>
+            <Text className="pl-6 text-xl text-white opacity-60">Tìm kiếm</Text>
           </TouchableOpacity>
         </View>
         {renderActionIcons()}
