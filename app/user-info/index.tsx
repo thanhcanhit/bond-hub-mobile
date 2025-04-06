@@ -37,31 +37,34 @@ export default function UserInfoScreen() {
   const [showMenu, setShowMenu] = useState(false);
 
   const handlePickImage = async (type: "profile" | "cover") => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Lỗi", "Ứng dụng cần quyền truy cập thư viện ảnh!");
+      return;
+    }
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: type === "profile" ? [1, 1] : [16, 9],
-        quality: 1,
+        quality: 0.8,
       });
 
       if (!result.canceled) {
         const asset = result.assets[0];
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
-
-        if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
-          Alert.alert("Lỗi", "Kích thước ảnh không được vượt quá 10MB");
-          return;
-        }
-
         const formData = new FormData();
-        const file = {
+
+        // Xác định MIME type dựa trên phần mở rộng file
+        const extension = asset.uri?.split(".")?.pop()?.toLowerCase() ?? "jpg";
+        const mimeType = extension === "png" ? "image/png" : "image/jpeg";
+        const fileName = `${type === "profile" ? "profile" : "cover"}-image.${extension}`;
+
+        formData.append("file", {
           uri: asset.uri,
-          type: asset.type || "image/jpeg",
-          name: asset.fileName || "image.jpg",
-          size: asset.fileSize,
-        };
-        formData.append("file", file as any);
+          type: mimeType,
+          name: fileName,
+        } as any);
 
         try {
           if (type === "profile") {
@@ -70,11 +73,12 @@ export default function UserInfoScreen() {
             await updateCoverImage(formData);
           }
           Alert.alert("Thành công", "Cập nhật ảnh thành công");
+          await useAuthStore.getState().fetchUserInfo();
         } catch (error: any) {
           if (error.response?.data?.message) {
             Alert.alert("Lỗi", error.response.data.message);
           } else {
-            Alert.alert("Lỗi", "Không thể cập nhật ảnh. Vui lòng thử lại sau.");
+            Alert.alert("Lỗi", `Không thể cập nhật ảnh: ${error.message}`);
           }
         }
       }
@@ -89,7 +93,7 @@ export default function UserInfoScreen() {
         {/* Cover Image */}
         <Image
           source={{ uri: userInfo?.coverImgUrl }}
-          className="w-full h-[230px]"
+          className="w-full h-[250px]"
           resizeMode="cover"
         />
 
@@ -108,55 +112,44 @@ export default function UserInfoScreen() {
               trigger={({ ...triggerProps }) => {
                 return (
                   <TouchableOpacity {...triggerProps}>
-                    <Ellipsis size={28} color="white" />
+                    <Ellipsis size={32} color="white" />
                   </TouchableOpacity>
                 );
               }}
+              className="w-[180px]"
             >
-              <MenuSeparator />
               <MenuItem
                 key="Profile"
                 textValue="Profile"
-                className="p-2"
+                className="px-2.5 py-2"
                 onPress={() => {
                   setShowMenu(false);
                   router.push("/user-info/edit-info");
                 }}
               >
-                <MenuItemLabel size="sm">Thông tin cá nhân</MenuItemLabel>
+                <MenuItemLabel size="lg">Thông tin cá nhân</MenuItemLabel>
               </MenuItem>
               <MenuItem
                 key="Avatar"
                 textValue="Avatar"
-                className="p-2"
+                className="px-2.5 py-2"
                 onPress={() => {
                   setShowMenu(false);
                   handlePickImage("profile");
                 }}
               >
-                <MenuItemLabel size="sm">Đổi ảnh đại diện</MenuItemLabel>
+                <MenuItemLabel size="lg">Đổi ảnh đại diện</MenuItemLabel>
               </MenuItem>
               <MenuItem
                 key="Cover"
                 textValue="Cover"
-                className="p-2"
+                className="px-2.5 py-2"
                 onPress={() => {
                   setShowMenu(false);
                   handlePickImage("cover");
                 }}
               >
-                <MenuItemLabel size="sm">Đổi ảnh bìa</MenuItemLabel>
-              </MenuItem>
-              <MenuSeparator />
-              <MenuItem
-                key="Help Center"
-                textValue="Help Center"
-                className="p-2"
-              >
-                <MenuItemLabel size="sm">Help Center</MenuItemLabel>
-              </MenuItem>
-              <MenuItem key="Logout" textValue="Logout" className="p-2">
-                <MenuItemLabel size="sm">Logout</MenuItemLabel>
+                <MenuItemLabel size="lg">Đổi ảnh bìa</MenuItemLabel>
               </MenuItem>
             </Menu>
           </View>

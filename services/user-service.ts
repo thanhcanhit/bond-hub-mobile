@@ -47,10 +47,10 @@ export const updateProfilePicture = async (
 ): Promise<void> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
-
     await axiosInstance.put("/auth/update-profile-picture", formData, {
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
       },
     });
   } catch (error) {
@@ -65,6 +65,7 @@ export const updateCoverImage = async (formData: FormData): Promise<void> => {
     await axiosInstance.put("/auth/update-cover-image", formData, {
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
       },
     });
   } catch (error) {

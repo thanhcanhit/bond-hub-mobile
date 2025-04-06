@@ -38,7 +38,7 @@ const DateInput = ({ value, onChange }: DateInputProps) => {
         onPress={showDatePicker}
         className="flex-row items-center w-full justify-between"
       >
-        <Text className="text-gray-500 text-lg">
+        <Text className="text-gray-500 text-xl">
           {value ? date.toLocaleDateString() : "Ngày sinh"}
         </Text>
         <DateTimePickerModal

@@ -15,36 +15,89 @@ class SocketManager {
     return SocketManager.instance;
   }
 
+  private connectionAttempts = 0;
+  private maxConnectionAttempts = 5;
+  private baseUrl = "https://api.bondhub.cloud/api/v1";
+
   public async connect() {
-    if (!this.socket) {
+    if (this.socket && this.socket.connected) {
+      console.log("Socket already connected");
+      return this.socket;
+    }
+
+    try {
       const token = await SecureStore.getItemAsync("accessToken");
       const deviceId = await SecureStore.getItemAsync("deviceId");
 
-      // Sửa 1: Sử dụng định dạng URL đúng cho Socket.IO
-      // URL không nên bao gồm tiền tố API vì điều đó được xử lý bởi server
-      this.socket = io("http://192.168.111.78:3000", {
+      if (!token) {
+        console.error("No access token available for socket connection");
+        return null;
+      }
+
+      console.log(
+        "Connecting to socket with token",
+        token ? "[token available]" : "[no token]",
+      );
+
+      // Create socket connection
+      this.socket = io(this.baseUrl, {
         auth: {
           token,
           deviceId,
         },
-        // Sửa 2: Thêm các tùy chọn transport phù hợp
         transports: ["websocket", "polling"],
-        // Sửa 3: Thêm đường dẫn phù hợp để khớp với tiền tố toàn cục của NestJS
-        path: "/api/v1/socket.io",
-        // Sửa 4: Thêm các tùy chọn kết nối bổ sung
+        path: "/socket.io", // Remove the API prefix as it's handled by the server
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 20000,
+        forceNew: true,
       });
 
       this.setupEventListeners();
+
+      // Return a promise that resolves when connected or rejects on error
+      return new Promise((resolve, reject) => {
+        if (!this.socket) return reject("Socket not initialized");
+
+        const connectTimeout = setTimeout(() => {
+          reject("Socket connection timeout");
+        }, 10000);
+
+        this.socket.on("connect", () => {
+          clearTimeout(connectTimeout);
+          this.connectionAttempts = 0;
+          resolve(this.socket);
+        });
+
+        this.socket.on("connect_error", (error) => {
+          clearTimeout(connectTimeout);
+          this.connectionAttempts++;
+          console.error(
+            `Socket connection error (attempt ${this.connectionAttempts}):`,
+            error.message,
+          );
+
+          if (this.connectionAttempts >= this.maxConnectionAttempts) {
+            reject(
+              `Failed to connect after ${this.maxConnectionAttempts} attempts: ${error.message}`,
+            );
+          } else {
+            // Will auto-reconnect due to socket.io settings
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Error in socket connect:", error);
+      return null;
     }
-    return this.socket;
   }
 
   private setupEventListeners() {
-    console.log("Socket connecting...");
+    console.log("Setting up socket event listeners...");
     if (!this.socket) return;
+
+    // Clear any existing listeners to prevent duplicates
+    this.socket.removeAllListeners();
 
     this.socket.on("connect", () => {
       console.log("Socket connected successfully");
@@ -52,15 +105,18 @@ class SocketManager {
 
     this.socket.on("disconnect", (reason) => {
       console.log("Socket disconnected:", reason);
-      if (reason === "io server disconnect") {
-        // Server initiated disconnect, try to reconnect
-        this.socket?.connect();
+      if (reason === "io server disconnect" || reason === "transport close") {
+        // Server initiated disconnect or transport closed, try to reconnect
+        console.log("Attempting to reconnect...");
+        setTimeout(() => {
+          this.socket?.connect();
+        }, 1000);
       }
     });
 
     this.socket.on("connect_error", (error) => {
       console.error("Connection error:", error.message);
-      // Thêm ghi log chi tiết hơn
+      // Add more detailed logging
       console.error("Connection error details:", JSON.stringify(error));
     });
 
@@ -78,9 +134,12 @@ class SocketManager {
 
     this.socket.on("reconnect_failed", () => {
       console.error("Failed to reconnect to socket server");
+      // Try to create a new connection after reconnection fails
+      setTimeout(() => this.connect(), 2000);
     });
 
     this.socket.on("forceLogout", async () => {
+      console.log("Received force logout event");
       const { logout } = useAuthStore.getState();
       await logout();
       this.disconnect();
@@ -90,17 +149,21 @@ class SocketManager {
       console.error("Socket error:", error);
     });
 
-    this.socket.io.on("ping", () => {
-      console.log("Socket ping");
-    });
+    // Debug events
+    if (__DEV__) {
+      this.socket.io.on("ping", () => {
+        console.log("Socket ping");
+      });
 
-    this.socket.io.engine.on("pong", () => {
-      console.log("Socket pong");
-    });
+      this.socket.io.engine.on("pong", () => {
+        console.log("Socket pong");
+      });
+    }
   }
 
   public disconnect() {
     if (this.socket) {
+      console.log("Disconnecting socket");
       this.socket.disconnect();
       this.socket = null;
     }
@@ -110,28 +173,57 @@ class SocketManager {
     return this.socket;
   }
 
-  // Thêm phương thức để kết nối đến namespace cụ thể
+  // Method to connect to a specific namespace
   public async connectToNamespace(namespace: string) {
-    if (!this.socket) {
-      await this.connect();
+    try {
+      // Ensure base connection exists
+      if (!this.socket) {
+        await this.connect();
+      }
+
+      const token = await SecureStore.getItemAsync("accessToken");
+      const deviceId = await SecureStore.getItemAsync("deviceId");
+
+      if (!token) {
+        console.error("No access token available for namespace connection");
+        return null;
+      }
+
+      console.log(`Connecting to namespace: ${namespace}`);
+      const namespaceSocket = io(`${this.baseUrl}/${namespace}`, {
+        auth: {
+          token,
+          deviceId,
+        },
+        transports: ["websocket", "polling"],
+        path: "/socket.io", // Remove the API prefix
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 20000,
+        forceNew: true,
+      });
+
+      // Setup basic event listeners for the namespace socket
+      namespaceSocket.on("connect", () => {
+        console.log(`Connected to namespace: ${namespace}`);
+      });
+
+      namespaceSocket.on("connect_error", (error) => {
+        console.error(
+          `Namespace ${namespace} connection error:`,
+          error.message,
+        );
+      });
+
+      namespaceSocket.on("disconnect", (reason) => {
+        console.log(`Namespace ${namespace} disconnected:`, reason);
+      });
+
+      return namespaceSocket;
+    } catch (error) {
+      console.error(`Error connecting to namespace ${namespace}:`, error);
+      return null;
     }
-
-    const token = await SecureStore.getItemAsync("accessToken");
-    const deviceId = await SecureStore.getItemAsync("deviceId");
-
-    const namespaceSocket = io(`http://192.168.111.78:3000/${namespace}`, {
-      auth: {
-        token,
-        deviceId,
-      },
-      transports: ["websocket", "polling"],
-      path: "/api/v1/socket.io",
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 20000,
-    });
-
-    return namespaceSocket;
   }
 }
 
