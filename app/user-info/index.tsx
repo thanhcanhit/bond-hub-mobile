@@ -24,7 +24,6 @@ import {
   MenuItemLabel,
   MenuSeparator,
 } from "@/components/ui/menu";
-import { Button, ButtonText } from "@/components/ui/button";
 import {
   updateCoverImage,
   updateProfilePicture,
@@ -32,7 +31,8 @@ import {
 
 export default function UserInfoScreen() {
   const insets = useSafeAreaInsets();
-  const { userInfo, user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const userInfo = useAuthStore((state) => state.userInfo);
   const posts: any[] = [];
   const [showMenu, setShowMenu] = useState(false);
 

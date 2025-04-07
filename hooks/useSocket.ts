@@ -32,7 +32,7 @@ export const useSocket = (namespace?: string) => {
           socketInstance = await socketManager.connectToNamespace(namespace);
         } else {
           console.log("Connecting to main socket");
-          socketInstance = await socketManager.connect();
+          socketInstance = ((await socketManager.connect()) as Socket) || null;
         }
 
         if (!socketInstance) {

@@ -11,10 +11,11 @@ import DateInput from "@/components/DateInput";
 
 export default function EditInfoScreen() {
   const insets = useSafeAreaInsets();
-  const { userInfo, user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const userInfo = useAuthStore((state) => state.userInfo);
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [dateOfBirth, setDateOfBirth] = useState(new Date());
-  const [gender, setGender] = useState("MALE");
+  const [gender, setGender] = useState(userInfo?.gender || "OTHER");
   const [bio, setBio] = useState(userInfo?.bio || "");
 
   const handleUpdateInfo = async () => {

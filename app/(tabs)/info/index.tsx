@@ -17,7 +17,8 @@ import { ScrollView, TouchableOpacity, View } from "react-native";
 import UserChange from "@/assets/svgs/userChange.svg";
 import { router } from "expo-router";
 export default function InfoScreen() {
-  const { user, userInfo } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const userInfo = useAuthStore((state) => state.userInfo);
 
   return (
     <ScrollView className="flex-1  bg-gray-100">

@@ -59,6 +59,21 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
       try {
         const token = await getAccessToken();
         if (token && reqConfig.headers) {
+          // Decode token to get expiration time
+          const tokenParts = token.split(".");
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            const expirationTime = new Date(payload.exp * 1000);
+            const currentTime = new Date();
+            const timeLeft =
+              (expirationTime.getTime() - currentTime.getTime()) / 1000;
+
+            console.log("Token Info:", {
+              expirationTime: expirationTime.toISOString(),
+              currentTime: currentTime.toISOString(),
+              timeLeftInSeconds: timeLeft.toFixed(2),
+            });
+          }
           reqConfig.headers.Authorization = `Bearer ${token}`;
         }
         return reqConfig;
@@ -87,10 +102,12 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
         originalRequest._retry = true;
 
         try {
+          console.log("Token expired, attempting to refresh...");
           // Try to refresh the token
           const refreshToken = await getRefreshToken();
           const deviceId = await SecureStore.getItemAsync("deviceId");
           if (refreshToken) {
+            console.log("Refresh token found, sending refresh request...");
             const response = await axios.post(
               `${ApiConfig.BASE_URL}/auth/refresh`,
               {
@@ -100,6 +117,7 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
             );
 
             const { accessToken } = response.data;
+            console.log("Successfully obtained new access token");
 
             // Save the new token
             await SecureStore.setItemAsync("accessToken", accessToken);

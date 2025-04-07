@@ -50,7 +50,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
 
         if (userStr) {
           const user = JSON.parse(userStr);
-
           const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
           set({ isAuthenticated: true, user, userInfo, loading: false });
           if (!userInfo && user) {
@@ -92,10 +91,12 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       if (!user) return;
 
       try {
-        const userInfo = await getUserInfo(user.userId);
-        await SecureStore.setItemAsync("userInfo", JSON.stringify(userInfo));
-        set(userInfo);
-        console.log("User info fetched successfully", userInfo);
+        const userInfoData = await getUserInfo(user.userId);
+        await SecureStore.setItemAsync(
+          "userInfo",
+          JSON.stringify(userInfoData),
+        );
+        set({ userInfo: userInfoData });
       } catch (error) {
         console.error("Failed to fetch user info:", error);
       }
@@ -139,7 +140,17 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         set({ user, isAuthenticated: true });
 
         // Connect to socket with retry mechanism
-        await socketManager.connect();
+        try {
+          console.log("Attempting to connect to socket after login");
+          await socketManager.connect();
+          console.log("Socket connection successful after login");
+        } catch (socketError) {
+          console.error(
+            "Failed to connect to socket after login:",
+            socketError,
+          );
+          // Continue even if socket connection fails - don't block the login flow
+        }
 
         // Fetch user info
         get().fetchUserInfo();
@@ -254,28 +265,33 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
 
     // Logout function
     logout: async () => {
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
+      const accessToken = await SecureStore.getItemAsync("accessToken");
       try {
-        // const refreshToken = await SecureStore.getItemAsync("refreshToken");
-        // const accessToken = await SecureStore.getItemAsync("accessToken");
-        // if (!refreshToken) {
-        //   throw new Error("Refresh token is required");
-        // }
-        // await axiosPublicInstance.post(`${API_URL}/logout`, {
-        //   headers: {
-        //     Authorization: `Bearer ${accessToken}`,
-        //     "refresh-token": refreshToken,
-        //   },
-        // });
+        if (!refreshToken) {
+          throw new Error("Refresh token is required");
+        }
+        await axiosPublicInstance.post(`${API_URL}/logout`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "refresh-token": refreshToken,
+          },
+        });
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
         await SecureStore.deleteItemAsync("user");
         await SecureStore.deleteItemAsync("userInfo");
         set({ user: null, userInfo: null, isAuthenticated: false });
 
-        socketManager.disconnect();
+        // socketManager.disconnect();
         router.replace("/login/loginScreen");
       } catch (error) {
-        console.error("Logout failed:", error);
+        await SecureStore.deleteItemAsync("accessToken");
+        await SecureStore.deleteItemAsync("refreshToken");
+        await SecureStore.deleteItemAsync("user");
+        await SecureStore.deleteItemAsync("userInfo");
+        set({ user: null, userInfo: null, isAuthenticated: false });
+        router.replace("/login/loginScreen");
         throw error;
       }
     },

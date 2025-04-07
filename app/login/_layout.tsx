@@ -26,7 +26,7 @@ export default function LoginLayout() {
           }}
         />
         <Stack.Screen
-          name="(forgot-password)"
+          name="forgot-password"
           options={{
             headerShown: false,
           }}

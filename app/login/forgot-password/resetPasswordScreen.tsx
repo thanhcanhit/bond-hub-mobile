@@ -4,8 +4,10 @@ import { router } from "expo-router";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import { Input, InputField } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ResetPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,9 +46,12 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <View className="flex-1 justify-between items-center bg-white pt-8 pb-8">
+    <View className="flex-1 justify-between items-center bg-white pb-8">
       <View className="w-full ">
-        <View className="p-4 flex-row items-center bg-blue-500  w-full px-2.5">
+        <View
+          className="p-4 flex-row items-center bg-blue-500  w-full px-2.5"
+          style={{ paddingTop: insets.top }}
+        >
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>

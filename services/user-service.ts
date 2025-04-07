@@ -1,10 +1,9 @@
+import { useAuthStore } from "@/store/authStore";
 import axiosInstance from "../lib/axios";
 import { User, UserInfo } from "@/types";
 import * as SecureStore from "expo-secure-store";
 
-export const getUserInfo = async (
-  userId: string,
-): Promise<{ user: User; userInfo: UserInfo }> => {
+export const getUserInfo = async (userId: string): Promise<UserInfo> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
     const response = await axiosInstance.get(`/users/${userId}/basic-info`, {
@@ -12,7 +11,7 @@ export const getUserInfo = async (
         Authorization: `Bearer ${token}`,
       },
     });
-    return response.data;
+    return response.data; // Trả về trực tiếp UserInfo
   } catch (error) {
     console.error("Error fetching user info:", error);
     throw error;
@@ -36,6 +35,22 @@ export const updateBasicInfo = async (
         Authorization: `Bearer ${token}`,
       },
     });
+
+    const userStr = await SecureStore.getItemAsync("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const updatedUserInfo = await getUserInfo(user.userId); // Lấy UserInfo trực tiếp
+
+      // Lưu vào SecureStore
+      await SecureStore.setItemAsync(
+        "userInfo",
+        JSON.stringify(updatedUserInfo),
+      );
+
+      // Cập nhật state
+      useAuthStore.setState({ userInfo: updatedUserInfo });
+      console.log("Updated userInfo in state:", updatedUserInfo);
+    }
   } catch (error) {
     console.error("Error updating basic info:", error);
     throw error;
@@ -53,6 +68,25 @@ export const updateProfilePicture = async (
         "Content-Type": "multipart/form-data",
       },
     });
+
+    const userStr = await SecureStore.getItemAsync("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const updatedUserInfo = await getUserInfo(user.userId); // Lấy UserInfo trực tiếp
+
+      // Lưu vào SecureStore
+      await SecureStore.setItemAsync(
+        "userInfo",
+        JSON.stringify(updatedUserInfo),
+      );
+
+      // Cập nhật state
+      useAuthStore.setState({ userInfo: updatedUserInfo });
+      console.log(
+        "Updated userInfo after profile picture update:",
+        updatedUserInfo,
+      );
+    }
   } catch (error) {
     console.error("Error updating profile picture:", error);
     throw error;
@@ -68,6 +102,25 @@ export const updateCoverImage = async (formData: FormData): Promise<void> => {
         "Content-Type": "multipart/form-data",
       },
     });
+
+    const userStr = await SecureStore.getItemAsync("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const updatedUserInfo = await getUserInfo(user.userId); // Lấy UserInfo trực tiếp
+
+      // Lưu vào SecureStore
+      await SecureStore.setItemAsync(
+        "userInfo",
+        JSON.stringify(updatedUserInfo),
+      );
+
+      // Cập nhật state
+      useAuthStore.setState({ userInfo: updatedUserInfo });
+      console.log(
+        "Updated userInfo after cover image update:",
+        updatedUserInfo,
+      );
+    }
   } catch (error) {
     console.error("Error updating cover image:", error);
     throw error;

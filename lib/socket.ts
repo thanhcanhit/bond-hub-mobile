@@ -17,7 +17,7 @@ class SocketManager {
 
   private connectionAttempts = 0;
   private maxConnectionAttempts = 5;
-  private baseUrl = "https://api.bondhub.cloud/api/v1";
+  private baseUrl = "https://api.bondhub.cloud";
 
   public async connect() {
     if (this.socket && this.socket.connected) {

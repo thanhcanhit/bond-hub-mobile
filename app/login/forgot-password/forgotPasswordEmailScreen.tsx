@@ -4,10 +4,12 @@ import { router } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
 import { Input, InputField } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ForgotPasswordEmailScreen() {
   const [email, setEmail] = useState("");
   const { forgotPassword } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const clearInput = () => {
     setEmail("");
   };
@@ -27,9 +29,12 @@ export default function ForgotPasswordEmailScreen() {
   };
 
   return (
-    <View className="flex-1 justify-between items-center bg-white pt-8 pb-8">
+    <View className="flex-1 justify-between items-center bg-white  pb-8">
       <View className="w-full ">
-        <View className="p-4 flex-row items-center bg-blue-500  w-full px-2.5">
+        <View
+          className="p-4 flex-row items-center bg-blue-500  w-full px-2.5"
+          style={{ paddingTop: insets.top }}
+        >
           <TouchableOpacity
             onPress={() => router.navigate("/login/loginScreen")}
           >

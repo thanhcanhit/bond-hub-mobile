@@ -41,8 +41,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         const socket = await socketManager.connect();
 
         if (socket && isMounted) {
-          setMainSocket(socket);
-          setIsConnected(socket.connected);
+          setMainSocket(socket as Socket);
+          setIsConnected((socket as Socket).connected);
 
           // Also connect to messages namespace
           const msgSocket = await socketManager.connectToNamespace("messages");
