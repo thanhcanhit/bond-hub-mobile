@@ -1,6 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "@/store/authStore";
 import * as SecureStore from "expo-secure-store";
+import axiosInstance from "./axios";
 
 class SocketManager {
   private static instance: SocketManager;
@@ -92,32 +93,80 @@ class SocketManager {
     }
   }
 
-  private setupEventListeners() {
-    console.log("Setting up socket event listeners...");
-    if (!this.socket) return;
+  private async refreshToken(): Promise<string | null> {
+    try {
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
+      const deviceId = await SecureStore.getItemAsync("deviceId");
 
-    // Clear any existing listeners to prevent duplicates
+      if (!refreshToken) {
+        console.error("No refresh token available");
+        return null;
+      }
+
+      console.log("Attempting to refresh token for socket...");
+      const response = await axiosInstance.post(
+        `${this.baseUrl}/api/v1/auth/refresh`,
+        {
+          refreshToken,
+          deviceId,
+        },
+      );
+
+      const { accessToken } = response.data;
+      await SecureStore.setItemAsync("accessToken", accessToken);
+      console.log("Token refreshed successfully");
+      return accessToken;
+    } catch (error) {
+      console.error("Failed to refresh token:", error);
+      return null;
+    }
+  }
+
+  private async handleTokenExpiration(): Promise<boolean> {
+    const newToken = await this.refreshToken();
+    if (newToken && this.socket) {
+      this.socket.auth = {
+        token: newToken,
+        deviceId: await SecureStore.getItemAsync("deviceId"),
+      };
+      this.socket.connect();
+      return true;
+    }
+    return false;
+  }
+
+  private setupEventListeners() {
+    if (!this.socket) return;
     this.socket.removeAllListeners();
 
     this.socket.on("connect", () => {
       console.log("Socket connected successfully");
     });
 
-    this.socket.on("disconnect", (reason) => {
+    this.socket.on("disconnect", async (reason) => {
       console.log("Socket disconnected:", reason);
       if (reason === "io server disconnect" || reason === "transport close") {
-        // Server initiated disconnect or transport closed, try to reconnect
         console.log("Attempting to reconnect...");
-        setTimeout(() => {
-          this.socket?.connect();
-        }, 1000);
+        const reconnected = await this.handleTokenExpiration();
+        if (!reconnected) {
+          console.error("Failed to reconnect after token refresh");
+        }
+        setTimeout(() => this.socket?.connect(), 1000);
       }
     });
 
-    this.socket.on("connect_error", (error) => {
+    this.socket.on("connect_error", async (error) => {
       console.error("Connection error:", error.message);
-      // Add more detailed logging
-      console.error("Connection error details:", JSON.stringify(error));
+      // Nếu lỗi liên quan đến xác thực (token hết hạn), thử refresh token
+      if (
+        error.message.includes("authentication") ||
+        error.message.includes("401")
+      ) {
+        const reconnected = await this.handleTokenExpiration();
+        if (!reconnected) {
+          console.error("Failed to reconnect after token refresh");
+        }
+      }
     });
 
     this.socket.on("reconnect", (attemptNumber) => {

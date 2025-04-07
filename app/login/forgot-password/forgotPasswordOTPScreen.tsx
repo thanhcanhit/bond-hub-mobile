@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, TextInput } from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, CircleHelp } from "lucide-react-native";
-import { Input, InputField } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
 
 export default function ForgotPasswordOTPScreen() {

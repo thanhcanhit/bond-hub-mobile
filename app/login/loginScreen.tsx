@@ -84,7 +84,7 @@ export default function LoginScreen() {
         <Text className="text-white font-semibold text-xl">ĐĂNG NHẬP</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => router.navigate("/login/signup/signupEmailScreen")}
+        onPress={() => router.navigate("/login/signup/signupIdentifierScreen")}
         className="bg-gray-100 py-4 rounded-full w-60 items-center mt-3"
       >
         <Text className="text-black font-semibold text-xl">ĐĂNG KÝ</Text>
@@ -166,7 +166,9 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={() => {
                 toggleModal();
-                router.push("/login/forgot-password/forgotPasswordEmailScreen");
+                router.push(
+                  "/login/forgot-password/forgotPasswordIdentifierScreen",
+                );
               }}
               className="m-2.5 mt-6 w-full items-start"
             >

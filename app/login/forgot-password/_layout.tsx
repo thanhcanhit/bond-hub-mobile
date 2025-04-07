@@ -4,7 +4,7 @@ export default function ForgotPasswordLayout() {
   return (
     <Stack>
       <Stack.Screen
-        name="forgotPasswordEmailScreen"
+        name="forgotPasswordIdentifierScreen"
         options={{
           headerShown: false,
         }}
