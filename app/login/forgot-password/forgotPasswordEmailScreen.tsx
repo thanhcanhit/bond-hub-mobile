@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
@@ -7,21 +7,41 @@ import { useAuthStore } from "@/store/authStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ForgotPasswordEmailScreen() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [isEmail, setIsEmail] = useState(true);
   const { forgotPassword } = useAuthStore();
   const insets = useSafeAreaInsets();
+
   const clearInput = () => {
-    setEmail("");
+    setIdentifier("");
   };
 
+  useEffect(() => {
+    // Kiểm tra xem input là email hay số điện thoại
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\+?[0-9]{10,}$/;
+    setIsEmail(emailRegex.test(identifier));
+  }, [identifier]);
+
   const handleSendOTP = async () => {
-    if (!email) {
-      Alert.alert("Lỗi", "Vui lòng nhập email của bạn");
+    if (!identifier) {
+      Alert.alert("Lỗi", "Vui lòng nhập email hoặc số điện thoại của bạn");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\+?[0-9]{10,}$/;
+
+    if (
+      !emailRegex.test(identifier) &&
+      !phoneRegex.test(identifier.replace(/[\s-]/g, ""))
+    ) {
+      Alert.alert("Lỗi", "Vui lòng nhập email hoặc số điện thoại hợp lệ");
       return;
     }
 
     try {
-      await forgotPassword(email);
+      await forgotPassword(identifier);
       router.push("/login/forgot-password/forgotPasswordOTPScreen");
     } catch (error) {
       Alert.alert("Lỗi", "Không thể gửi mã OTP. Vui lòng thử lại sau.");
@@ -45,7 +65,7 @@ export default function ForgotPasswordEmailScreen() {
 
         <View className="p-5 ">
           <Text className="text-gray-500 mb-6">
-            Nhập email của bạn để nhận mã xác thực
+            Nhập email hoặc số điện thoại của bạn để nhận mã xác thực
           </Text>
 
           <View className="flex-row items-center">
@@ -58,13 +78,13 @@ export default function ForgotPasswordEmailScreen() {
               className="flex-1"
             >
               <InputField
-                placeholder="Nhập email ..."
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                placeholder="Nhập email hoặc số điện thoại..."
+                value={identifier}
+                onChangeText={setIdentifier}
+                keyboardType={isEmail ? "email-address" : "phone-pad"}
                 autoCapitalize="none"
               />
-              {email.length > 0 && (
+              {identifier.length > 0 && (
                 <TouchableOpacity onPress={clearInput} className="ml-2">
                   <X size={24} color="gray" />
                 </TouchableOpacity>

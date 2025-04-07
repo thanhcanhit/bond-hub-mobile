@@ -17,8 +17,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = React.useState("");
+  const [identifier, setIdentifier] = React.useState("");
   const [password, setPassword] = React.useState("");
+
+  const isEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
+  const isPhoneNumber = (value: string) => {
+    return /^[0-9]{10}$/.test(value);
+  };
   const { login, isAuthenticated } = useAuthStore();
   const insets = useSafeAreaInsets();
   useEffect(() => {
@@ -29,18 +37,27 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-      await login(email, password);
+      if (!identifier || !password) {
+        Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+        return;
+      }
+
+      if (!isEmail(identifier) && !isPhoneNumber(identifier)) {
+        Alert.alert("Lỗi", "Vui lòng nhập email hoặc số điện thoại hợp lệ");
+        return;
+      }
+      await login(identifier, password);
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert(
         "Đăng nhập thất bại",
-        "Số điện thoại hoặc mật khẩu không đúng.",
+        "Email/Số điện thoại hoặc mật khẩu không đúng.",
       );
     }
   };
 
   const clearInput = () => {
-    setEmail("");
+    setIdentifier("");
   };
 
   const toggleModal = () => {
@@ -94,7 +111,7 @@ export default function LoginScreen() {
           </View>
 
           <Text className="p-2.5 bg-gray-100 text-gray-700">
-            Vui lòng nhập số điện thoại và mật khẩu để đăng nhập
+            Vui lòng nhập thông tin đăng nhập
           </Text>
           <View className="p-4">
             <View className="flex-row items-center">
@@ -107,11 +124,12 @@ export default function LoginScreen() {
                 className="mt-2 pl-2 flex-1"
               >
                 <InputField
-                  placeholder="Nhập email ..."
-                  value={email}
-                  onChangeText={setEmail}
+                  placeholder="Nhập email hoặc số điện thoại ..."
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  keyboardType="default"
                 />
-                {email.length > 0 && (
+                {identifier.length > 0 && (
                   <TouchableOpacity onPress={clearInput} className="ml-2">
                     <X size={24} color={"gray"} />
                   </TouchableOpacity>

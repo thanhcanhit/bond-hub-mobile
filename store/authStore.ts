@@ -29,7 +29,7 @@ interface AuthActions {
   }) => Promise<void>;
   logout: () => Promise<void>;
   fetchUserInfo: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
+  forgotPassword: (identifier: string) => Promise<void>;
   verifyForgotPassword: (otp: string) => Promise<void>;
   resetPassword: (newPassword: string) => Promise<void>;
 }
@@ -103,7 +103,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     },
 
     // Login function
-    login: async (email: string, password: string) => {
+    login: async (identifier: string, password: string) => {
       try {
         const deviceName = device.modelName || "UNKNOWN";
         const deviceTypeS = device.deviceType;
@@ -122,8 +122,18 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
             deviceType = "WEB";
             break;
         }
+
+        // Kiểm tra xem identifier là email hay số điện thoại
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+        const isPhoneNumber = /^\+?[0-9]{10,}$/.test(
+          identifier.replace(/[\s-]/g, ""),
+        );
+
+        if (!isEmail && !isPhoneNumber) {
+          throw new Error("Vui lòng nhập email hoặc số điện thoại hợp lệ");
+        }
         const response = await axiosPublicInstance.post(`${API_URL}/login`, {
-          email,
+          ...(isEmail ? { email: identifier } : { phoneNumber: identifier }),
           password,
           deviceName,
           deviceType,
@@ -215,12 +225,21 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     },
 
     // Forgot password
-    forgotPassword: async (email: string) => {
+    forgotPassword: async (identifier: string) => {
       try {
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+        const isPhoneNumber = /^\+?[0-9]{10,}$/.test(
+          identifier.replace(/[\s-]/g, ""),
+        );
+
+        if (!isEmail && !isPhoneNumber) {
+          throw new Error("Vui lòng nhập email hoặc số điện thoại hợp lệ");
+        }
+
         const response = await axiosPublicInstance.post(
           `${API_URL}/forgot-password`,
           {
-            email,
+            ...(isEmail ? { email: identifier } : { phoneNumber: identifier }),
           },
         );
         const { resetId } = response.data;
