@@ -147,7 +147,7 @@ export default function LoginScreen() {
             </View>
             <TouchableOpacity
               onPress={() => {
-                toggleModal;
+                toggleModal();
                 router.push("/login/forgot-password/forgotPasswordEmailScreen");
               }}
               className="m-2.5 mt-6 w-full items-start"

@@ -19,7 +19,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
-  initiateRegistration: (email: string) => Promise<void>;
+  initiateRegistration: (email?: string, phoneNumber?: string) => Promise<void>;
   verifyRegistration: (otp: string) => Promise<void>;
   completeRegistration: (params: {
     password: string;
@@ -161,11 +161,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     },
 
     // Step 1: Initiate Registration
-    initiateRegistration: async (email: string) => {
+    initiateRegistration: async (email?: string, phoneNumber?: string) => {
       try {
         const response = await axiosPublicInstance.post(
           `${API_URL}/register/initiate`,
-          { email },
+          { email, phoneNumber },
         );
         const { registrationId } = response.data;
         set({ registrationId });
