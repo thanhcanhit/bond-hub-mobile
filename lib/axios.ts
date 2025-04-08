@@ -106,30 +106,36 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
           // Try to refresh the token
           const refreshToken = await getRefreshToken();
           const deviceId = await SecureStore.getItemAsync("deviceId");
-          if (refreshToken) {
-            console.log("Refresh token found, sending refresh request...");
-            const response = await axios.post(
-              `${ApiConfig.BASE_URL}/auth/refresh`,
-              {
-                refreshToken,
-                deviceId,
-              },
-            );
-
-            const { accessToken } = response.data;
-            console.log("Successfully obtained new access token");
-
-            // Save the new token
-            await SecureStore.setItemAsync("accessToken", accessToken);
-
-            // Update the Authorization header
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            }
-
-            // Retry the original request
-            return instance(originalRequest);
+          if (!refreshToken || !deviceId) {
+            throw new Error("Missing refresh token or device ID");
           }
+
+          console.log("Refresh token found, sending refresh request...");
+          const response = await axios.post(
+            `${ApiConfig.BASE_URL}/auth/refresh`,
+            {
+              refreshToken,
+              deviceId,
+            },
+          );
+
+          const { accessToken } = response.data;
+          if (!accessToken) {
+            throw new Error("No access token received");
+          }
+
+          console.log("Successfully obtained new access token");
+
+          // Save the new token
+          await SecureStore.setItemAsync("accessToken", accessToken);
+
+          // Update the Authorization header
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          }
+
+          // Retry the original request
+          return instance(originalRequest);
         } catch (refreshError) {
           console.error("Error refreshing token:", refreshError);
 
@@ -137,9 +143,12 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
           await SecureStore.deleteItemAsync("accessToken");
           await SecureStore.deleteItemAsync("refreshToken");
           await SecureStore.deleteItemAsync("user");
+          await SecureStore.deleteItemAsync("userInfo");
+          await SecureStore.deleteItemAsync("deviceId");
 
           // Redirect to login
           router.replace("/login/loginScreen");
+          return Promise.reject(refreshError);
         }
       }
 

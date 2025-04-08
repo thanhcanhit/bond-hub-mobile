@@ -30,15 +30,18 @@ class SocketManager {
       const token = await SecureStore.getItemAsync("accessToken");
       const deviceId = await SecureStore.getItemAsync("deviceId");
 
-      if (!token) {
-        console.error("No access token available for socket connection");
+      if (!token || !deviceId) {
+        console.log("Missing credentials for socket connection");
         return null;
       }
 
-      console.log(
-        "Connecting to socket with token",
-        token ? "[token available]" : "[no token]",
-      );
+      console.log("Connecting to socket with token and deviceId");
+
+      // Disconnect existing socket if any
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
 
       // Create socket connection
       this.socket = io(this.baseUrl, {
@@ -47,7 +50,7 @@ class SocketManager {
           deviceId,
         },
         transports: ["websocket", "polling"],
-        path: "/socket.io", // Remove the API prefix as it's handled by the server
+        path: "/socket.io",
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 20000,
@@ -55,40 +58,9 @@ class SocketManager {
       });
 
       this.setupEventListeners();
-
-      // Return a promise that resolves when connected or rejects on error
-      return new Promise((resolve, reject) => {
-        if (!this.socket) return reject("Socket not initialized");
-
-        const connectTimeout = setTimeout(() => {
-          reject("Socket connection timeout");
-        }, 10000);
-
-        this.socket.on("connect", () => {
-          clearTimeout(connectTimeout);
-          this.connectionAttempts = 0;
-          resolve(this.socket);
-        });
-
-        this.socket.on("connect_error", (error) => {
-          clearTimeout(connectTimeout);
-          this.connectionAttempts++;
-          console.error(
-            `Socket connection error (attempt ${this.connectionAttempts}):`,
-            error.message,
-          );
-
-          if (this.connectionAttempts >= this.maxConnectionAttempts) {
-            reject(
-              `Failed to connect after ${this.maxConnectionAttempts} attempts: ${error.message}`,
-            );
-          } else {
-            // Will auto-reconnect due to socket.io settings
-          }
-        });
-      });
+      return this.socket;
     } catch (error) {
-      console.error("Error in socket connect:", error);
+      console.error("Socket connection error:", error);
       return null;
     }
   }
@@ -137,34 +109,36 @@ class SocketManager {
 
   private setupEventListeners() {
     if (!this.socket) return;
+
     this.socket.removeAllListeners();
 
     this.socket.on("connect", () => {
       console.log("Socket connected successfully");
+      this.connectionAttempts = 0;
     });
 
     this.socket.on("disconnect", async (reason) => {
       console.log("Socket disconnected:", reason);
       if (reason === "io server disconnect" || reason === "transport close") {
-        console.log("Attempting to reconnect...");
         const reconnected = await this.handleTokenExpiration();
         if (!reconnected) {
-          console.error("Failed to reconnect after token refresh");
+          console.log("Failed to reconnect, clearing socket instance");
+          this.socket = null;
         }
-        setTimeout(() => this.socket?.connect(), 1000);
       }
     });
 
     this.socket.on("connect_error", async (error) => {
       console.error("Connection error:", error.message);
-      // Nếu lỗi liên quan đến xác thực (token hết hạn), thử refresh token
       if (
         error.message.includes("authentication") ||
         error.message.includes("401")
       ) {
         const reconnected = await this.handleTokenExpiration();
         if (!reconnected) {
-          console.error("Failed to reconnect after token refresh");
+          this.socket = null;
+          const { logout } = useAuthStore.getState();
+          await logout();
         }
       }
     });
@@ -198,16 +172,16 @@ class SocketManager {
       console.error("Socket error:", error);
     });
 
-    // Debug events
-    if (__DEV__) {
-      this.socket.io.on("ping", () => {
-        console.log("Socket ping");
-      });
+    // // Debug events
+    // if (__DEV__) {
+    //   this.socket.io.on("ping", () => {
+    //     console.log("Socket ping");
+    //   });
 
-      this.socket.io.engine.on("pong", () => {
-        console.log("Socket pong");
-      });
-    }
+    //   this.socket.io.engine.on("pong", () => {
+    //     console.log("Socket pong");
+    //   });
+    // }
   }
 
   public disconnect() {
@@ -233,10 +207,10 @@ class SocketManager {
       const token = await SecureStore.getItemAsync("accessToken");
       const deviceId = await SecureStore.getItemAsync("deviceId");
 
-      if (!token) {
-        console.error("No access token available for namespace connection");
-        return null;
-      }
+      // if (!token) {
+      //   console.error("No access token available for namespace connection");
+      //   return null;
+      // }
 
       console.log(`Connecting to namespace: ${namespace}`);
       const namespaceSocket = io(`${this.baseUrl}/${namespace}`, {

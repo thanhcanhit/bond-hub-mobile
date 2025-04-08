@@ -284,34 +284,44 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
 
     // Logout function
     logout: async () => {
-      const refreshToken = await SecureStore.getItemAsync("refreshToken");
-      const accessToken = await SecureStore.getItemAsync("accessToken");
       try {
-        if (!refreshToken) {
-          throw new Error("Refresh token is required");
-        }
-        await axiosPublicInstance.post(`${API_URL}/logout`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "refresh-token": refreshToken,
-          },
-        });
-        await SecureStore.deleteItemAsync("accessToken");
-        await SecureStore.deleteItemAsync("refreshToken");
-        await SecureStore.deleteItemAsync("user");
-        await SecureStore.deleteItemAsync("userInfo");
-        set({ user: null, userInfo: null, isAuthenticated: false });
+        const refreshToken = await SecureStore.getItemAsync("refreshToken");
+        const accessToken = await SecureStore.getItemAsync("accessToken");
+        const deviceId = await SecureStore.getItemAsync("deviceId");
 
-        // socketManager.disconnect();
-        router.replace("/login/loginScreen");
+        if (refreshToken && accessToken) {
+          try {
+            await axiosPublicInstance.post(
+              `${API_URL}/logout`,
+              {
+                refreshToken,
+                deviceId,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              },
+            );
+          } catch (error) {
+            // console.error("Logout API error:", error);
+          }
+        }
       } catch (error) {
-        await SecureStore.deleteItemAsync("accessToken");
-        await SecureStore.deleteItemAsync("refreshToken");
-        await SecureStore.deleteItemAsync("user");
-        await SecureStore.deleteItemAsync("userInfo");
+        // console.error("Logout error:", error);
+      } finally {
+        // Always clean up local storage and state
+        await Promise.all([
+          SecureStore.deleteItemAsync("accessToken"),
+          SecureStore.deleteItemAsync("refreshToken"),
+          SecureStore.deleteItemAsync("user"),
+          SecureStore.deleteItemAsync("userInfo"),
+          SecureStore.deleteItemAsync("deviceId"),
+        ]);
+
+        socketManager.disconnect();
         set({ user: null, userInfo: null, isAuthenticated: false });
         router.replace("/login/loginScreen");
-        throw error;
       }
     },
   };

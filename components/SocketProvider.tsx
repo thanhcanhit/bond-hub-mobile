@@ -33,6 +33,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const connectSockets = async () => {
       if (!isAuthenticated) {
+        setMainSocket(null);
+        setMessageSocket(null);
+        setIsConnected(false);
         return;
       }
 
@@ -42,16 +45,24 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (socket && isMounted) {
           setMainSocket(socket as Socket);
-          setIsConnected((socket as Socket).connected);
+          setIsConnected(socket.connected);
 
-          // Also connect to messages namespace
-          const msgSocket = await socketManager.connectToNamespace("messages");
-          if (msgSocket && isMounted) {
-            setMessageSocket(msgSocket);
+          // Connect to messages namespace only if main connection is successful
+          if (socket.connected) {
+            const msgSocket =
+              await socketManager.connectToNamespace("messages");
+            if (msgSocket && isMounted) {
+              setMessageSocket(msgSocket);
+            }
           }
         }
       } catch (error) {
         console.error("Failed to connect to sockets:", error);
+        if (isMounted) {
+          setMainSocket(null);
+          setMessageSocket(null);
+          setIsConnected(false);
+        }
       }
     };
 
@@ -59,6 +70,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return () => {
       isMounted = false;
+      socketManager.disconnect();
     };
   }, [isAuthenticated]);
 
