@@ -5,8 +5,14 @@ export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   useEffect(() => {
     const checkAuth = async () => {
-      const accessToken = await SecureStore.getItemAsync("accessToken");
-      setIsAuthenticated(!!accessToken);
+      try {
+        const accessToken = await SecureStore.getItemAsync("accessToken");
+        setIsAuthenticated(!!accessToken);
+      } catch (error) {
+        console.error("Error checking authentication status:", error);
+        // If there's an error, assume not authenticated
+        setIsAuthenticated(false);
+      }
     };
 
     checkAuth();

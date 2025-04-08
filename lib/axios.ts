@@ -15,7 +15,8 @@ interface CustomApiConfig extends AxiosRequestConfig {
 
 // Base configuration
 class ApiConfig {
-  static readonly BASE_URL: string = process.env.EXPO_PUBLIC_API_URL || "";
+  static readonly BASE_URL: string =
+    process.env.EXPO_PUBLIC_API_URL || "https://api.bondhub.cloud/api/v1";
   static readonly DEFAULT_TIMEOUT: number = 15000;
 }
 

@@ -14,6 +14,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/hooks/useAuth";
 import { SocketProvider } from "@/components/SocketProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -42,24 +43,24 @@ export default function RootLayout() {
     }
   }, [loaded, isAuthenticated]);
 
-  if (!loaded) {
-    return null;
-  }
-
   return (
-    <GluestackUIProvider mode="light">
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <SocketProvider>
-          <Stack initialRouteName="login">
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
-            <Stack.Screen name="user-info" options={{ headerShown: false }} />
-            <Stack.Screen name="chat" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </SocketProvider>
-      </ThemeProvider>
-    </GluestackUIProvider>
+    <ErrorBoundary>
+      <GluestackUIProvider mode="light">
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <SocketProvider>
+            <Stack initialRouteName="login">
+              <Stack.Screen name="login" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
+              <Stack.Screen name="user-info" options={{ headerShown: false }} />
+              <Stack.Screen name="chat" options={{ headerShown: false }} />
+            </Stack>
+            <StatusBar style="auto" />
+          </SocketProvider>
+        </ThemeProvider>
+      </GluestackUIProvider>
+    </ErrorBoundary>
   );
 }
