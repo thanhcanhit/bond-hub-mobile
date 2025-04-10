@@ -42,7 +42,6 @@
     "axios": "^1.7.9",
     "babel-plugin-module-resolver": "^5.0.2",
     "clsx": "^2.1.1",
-    "emoji-picker-react": "^4.12.2",
     "expo": "~52.0.23",
     "expo-blur": "~14.0.1",
     "expo-camera": "~16.0.18",
@@ -68,6 +67,7 @@
     "react-native": "0.76.5",
     "react-native-css-interop": "^0.1.22",
     "react-native-date-picker": "^5.0.9",
+    "react-native-emoji-selector": "^0.2.0",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-reanimated": "~3.16.1",
@@ -78,7 +78,8 @@
     "react-native-webview": "13.12.5",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "expo-contacts": "~14.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

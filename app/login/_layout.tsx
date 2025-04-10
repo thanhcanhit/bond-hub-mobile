@@ -14,7 +14,7 @@ export default function LoginLayout() {
         }}
       >
         <Stack.Screen
-          name="(signup)"
+          name="signup"
           options={{
             headerShown: false,
           }}

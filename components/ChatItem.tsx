@@ -67,7 +67,7 @@ const ChatItem: React.FC<ChatItemProps> = ({
           {avatarUrl && <AvatarImage source={{ uri: avatarUrl }} />}
         </Avatar>
 
-        <VStack className=" w-5/6 pl-2  py-4 border-b-[1px]  border-gray-300">
+        <VStack className=" w-5/6 pl-2  py-4 border-b-[0.5px]  border-gray-200">
           <HStack className="justify-between">
             <Text className="font-semibold text-lg " numberOfLines={1}>
               {name}

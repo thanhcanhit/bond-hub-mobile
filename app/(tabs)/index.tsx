@@ -93,7 +93,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-1 items-center">
+    <View className="flex-1 items-center bg-white">
       <ListChatItem data={chatListData} />
     </View>
   );

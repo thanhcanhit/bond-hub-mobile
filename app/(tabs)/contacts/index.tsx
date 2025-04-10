@@ -153,7 +153,7 @@ export default function ContactScreen() {
                 />
               }
               title="Danh bạ máy"
-              // onPress={() => router.push("/phone-contacts")}
+              onPress={() => router.push("/friend-contact/phoneContacts")}
             />
             <FunctionButton
               icon={
@@ -187,13 +187,13 @@ export default function ContactScreen() {
             className="flex-row items-center px-4 py-3  bg-white"
             onPress={() => {}}
           >
-            <View className="items-center justify-center w-14 h-14 bg-blue-100 rounded-full">
+            <View className="items-center justify-center w-14 h-14 bg-blue-50 rounded-full">
               <Users size={24} color={Colors.light.PRIMARY_BLUE} />
             </View>
             <Text className="ml-4 text-md text-gray-600">Tạo nhóm mới</Text>
           </TouchableOpacity>
 
-          <View className="mt-1 pt-4 pb-10 h-full bg-white">
+          <View className="mt-1 pb-10 h-full bg-white">
             <ListChatItem data={mockGroups} />
           </View>
         </View>

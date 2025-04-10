@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   TextInput,
@@ -31,6 +31,8 @@ import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useSocketContext } from "@/components/SocketProvider";
 import { useAuthStore } from "@/store/authStore";
+import EmojiSelector, { Categories } from "react-native-emoji-selector";
+
 interface Message {
   id: string;
   content: string;
@@ -43,13 +45,14 @@ interface Message {
 
 const ChatScreen = () => {
   const insets = useSafeAreaInsets();
-  const [message, setMessage] = React.useState("");
+  const [message, setMessage] = useState("");
   const params = useLocalSearchParams();
   const chatId = params.id as string;
-  const [isGroup] = React.useState(false);
+  const [isGroup] = useState(false);
   const { messageSocket, isConnected } = useSocketContext();
   const { user } = useAuthStore();
-  const [messages, setMessages] = React.useState<Message[]>([
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       content: "Xin chào người 9.5 nodeJS! Dao nay ban co khoe khong",
@@ -297,7 +300,16 @@ const ChatScreen = () => {
           ))}
         </VStack>
       </ScrollView>
-
+      {showEmoji && (
+        <EmojiSelector
+          showHistory
+          columns={10}
+          theme="transparent"
+          onEmojiSelected={(emoji) => {
+            setMessage(message + emoji);
+          }}
+        />
+      )}
       {/* Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -305,7 +317,12 @@ const ChatScreen = () => {
       >
         <View className="w-full px-5 py-2.5 border-t border-gray-200 bg-white ">
           <HStack className="items-center pb-3">
-            <TouchableOpacity className="mr-2">
+            <TouchableOpacity
+              className="mr-2"
+              onPress={() => {
+                setShowEmoji(!showEmoji);
+              }}
+            >
               <Sticker width={25} height={25} />
             </TouchableOpacity>
             <TextInput
