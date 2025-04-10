@@ -62,7 +62,7 @@ const SignUpInfoScreen = () => {
 
       <DateInput value={dateOfBirth} onChange={setDateOfBirth} />
       <Select
-        className="w-full mt-5"
+        className="w-full mt-5 "
         selectedValue={gender}
         onValueChange={setGender}
       >
@@ -76,12 +76,13 @@ const SignUpInfoScreen = () => {
         </SelectTrigger>
         <SelectPortal>
           <SelectBackdrop />
-          <SelectContent>
+          <SelectContent className="pb-8">
             <SelectDragIndicatorWrapper>
               <SelectDragIndicator />
             </SelectDragIndicatorWrapper>
             <SelectItem label="Nam" value="MALE" />
             <SelectItem label="Nữ" value="FEMALE" />
+            <SelectItem label="Khác" value="OTHER" />
           </SelectContent>
         </SelectPortal>
       </Select>

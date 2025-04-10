@@ -172,7 +172,7 @@ const SettingsScreen = () => {
         />
 
         <TouchableOpacity
-          className="flex-row justify-center mt-5 mb-5 mx-4 bg-gray-200 rounded-full py-4 items-center"
+          className="flex-row justify-center mt-5 mb-10 mx-4 bg-gray-200 rounded-full py-4 items-center"
           onPress={handleLogout}
         >
           <Text className="text-black text-lg font-medium pr-2.5">
