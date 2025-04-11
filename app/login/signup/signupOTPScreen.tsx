@@ -1,10 +1,18 @@
 import { ArrowLeft, CircleHelp } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "@/store/authStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SignUpOTPScreen = () => {
+  const insets = useSafeAreaInsets();
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
   const { email } = useLocalSearchParams();
   const { verifyRegistration } = useAuthStore();
@@ -49,7 +57,12 @@ const SignUpOTPScreen = () => {
   };
 
   return (
-    <View className="flex-1 justify-between items-center  bg-white pt-8 pb-8 px-4">
+    <View
+      className="flex-1 justify-between items-center  bg-white pt-8 pb-8 px-4"
+      style={{
+        paddingTop: Platform.OS === "ios" ? insets.top : 20,
+      }}
+    >
       <TouchableOpacity
         onPress={() => router.back()}
         className="absolute top-8 left-4"

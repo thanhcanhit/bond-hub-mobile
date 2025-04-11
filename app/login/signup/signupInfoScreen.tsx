@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   Select,
@@ -17,8 +17,10 @@ import {
 import { ChevronDownIcon } from "@/components/ui/icon";
 import DateInput from "@/components/DateInput";
 import { useAuthStore } from "@/store/authStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SignUpInfoScreen = () => {
+  const insets = useSafeAreaInsets();
   const { email, password, fullName } = useLocalSearchParams();
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
@@ -49,16 +51,18 @@ const SignUpInfoScreen = () => {
   };
 
   return (
-    <View className="flex-1 items-center bg-white pt-8 pb-8 px-4">
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="absolute top-8 left-4"
-      >
-        <ArrowLeft size={24} color={"black"} />
-      </TouchableOpacity>
-      <Text className="text-2xl font-bold mb-4 mt-10">
-        THÊM THÔNG TIN CÁ NHÂN
-      </Text>
+    <View
+      className="flex-1 items-center bg-white  pb-8 px-4"
+      style={{
+        paddingTop: Platform.OS === "ios" ? insets.top : 20,
+      }}
+    >
+      <View className="flex-row items-center w-full pb-6">
+        <TouchableOpacity onPress={() => router.back()} className="mr-4">
+          <ArrowLeft size={24} color={"black"} />
+        </TouchableOpacity>
+        <Text className="text-2xl font-bold ">THÊM THÔNG TIN CÁ NHÂN</Text>
+      </View>
 
       <DateInput value={dateOfBirth} onChange={setDateOfBirth} />
       <Select

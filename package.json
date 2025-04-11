@@ -46,6 +46,7 @@
     "expo-blur": "~14.0.1",
     "expo-camera": "~16.0.18",
     "expo-constants": "~17.0.6",
+    "expo-contacts": "~14.0.5",
     "expo-device": "^7.0.2",
     "expo-font": "~13.0.2",
     "expo-haptics": "~14.0.0",
@@ -78,8 +79,7 @@
     "react-native-webview": "13.12.5",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.3",
-    "expo-contacts": "~14.0.5"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

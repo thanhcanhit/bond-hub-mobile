@@ -1,10 +1,12 @@
 import { ArrowLeft } from "lucide-react-native";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Input, InputField } from "@/components/ui/input";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SignUpNameScreen = () => {
+  const insets = useSafeAreaInsets();
   const { email, password } = useLocalSearchParams();
   const [fullName, setFullName] = useState("");
 
@@ -19,16 +21,18 @@ const SignUpNameScreen = () => {
     });
   };
   return (
-    <View className="flex-1  items-center  bg-white pt-8 pb-8 px-4">
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="absolute top-8 left-4"
-      >
-        <ArrowLeft size={24} color={"black"} />
-      </TouchableOpacity>
-      <Text className="text-2xl font-bold mb-4 mt-10">
-        NHẬP TÊN VODKA CỦA BẠN
-      </Text>
+    <View
+      className="flex-1 items-center bg-white  pb-8 px-4"
+      style={{
+        paddingTop: Platform.OS === "ios" ? insets.top : 20,
+      }}
+    >
+      <View className="flex-row items-center w-full pb-6">
+        <TouchableOpacity onPress={() => router.back()} className="mr-4">
+          <ArrowLeft size={24} color={"black"} />
+        </TouchableOpacity>
+        <Text className="text-2xl font-bold ">NHẬP TÊN VODKA CỦA BẠN</Text>
+      </View>
       <Text className="text-gray-500  text-center ">
         Sử dụng tên thật của bạn để dễ dàng kết nối hơn
       </Text>

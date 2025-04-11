@@ -43,7 +43,10 @@ export default function SearchHeader({
         );
       case "contacts":
         return (
-          <TouchableOpacity onPress={onActionPress} className="mr-4">
+          <TouchableOpacity
+            onPress={() => router.push("/friend-contact/search-user")}
+            className="mr-4"
+          >
             <UserPlus size={25} color="white" />
           </TouchableOpacity>
         );

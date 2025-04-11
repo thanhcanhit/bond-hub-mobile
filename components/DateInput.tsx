@@ -1,7 +1,7 @@
-import { CalendarDays } from "lucide-react-native";
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { CalendarDays } from "lucide-react-native";
 
 interface DateInputProps {
   value: string;
@@ -27,6 +27,15 @@ const DateInput = ({ value, onChange }: DateInputProps) => {
   };
 
   const handleConfirm = (selectedDate: Date) => {
+    const currentDate = new Date();
+
+    // Nếu ngày được chọn lớn hơn ngày hiện tại
+    if (selectedDate > currentDate) {
+      alert("Không thể chọn ngày trong tương lai");
+      hideDatePicker();
+      return;
+    }
+
     setDate(selectedDate);
     onChange(selectedDate.toISOString().split("T")[0]);
     hideDatePicker();
@@ -46,6 +55,7 @@ const DateInput = ({ value, onChange }: DateInputProps) => {
           mode="date"
           onConfirm={handleConfirm}
           onCancel={hideDatePicker}
+          maximumDate={new Date()} // Thêm giới hạn ngày tối đa là ngày hiện tại
         />
         <CalendarDays size={24} color={"gray"} />
       </TouchableOpacity>

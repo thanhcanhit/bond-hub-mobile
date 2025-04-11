@@ -13,6 +13,7 @@ import { Input, InputField } from "@/components/ui/input";
 import { Fab } from "@/components/ui/fab";
 import { useAuthStore } from "@/store/authStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -98,17 +99,25 @@ export default function LoginScreen() {
         onRequestClose={toggleModal}
       >
         <View className="bg-white rounded h-full ">
-          <View
-            className="bg-blue-500 flex-row items-center p-4 "
-            style={{
-              paddingTop: Platform.OS === "ios" ? insets.top : 14,
-            }}
+          <LinearGradient
+            start={{ x: 0.03, y: 0 }}
+            end={{ x: 0.99, y: 2.5 }}
+            colors={["#297eff", "#228eff", "#00d4ff"]}
           >
-            <TouchableOpacity onPress={toggleModal}>
-              <ArrowLeft size={24} color={"white"} />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold pl-4 text-white">Đăng nhập</Text>
-          </View>
+            <View
+              className="bg-transparent flex-row items-center p-4 "
+              style={{
+                paddingTop: Platform.OS === "ios" ? insets.top : 14,
+              }}
+            >
+              <TouchableOpacity onPress={toggleModal}>
+                <ArrowLeft size={24} color={"white"} />
+              </TouchableOpacity>
+              <Text className="text-xl font-bold pl-4 text-white">
+                Đăng nhập
+              </Text>
+            </View>
+          </LinearGradient>
 
           <Text className="p-2.5 bg-gray-100 text-gray-700">
             Vui lòng nhập thông tin đăng nhập

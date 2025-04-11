@@ -31,7 +31,7 @@ import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useSocketContext } from "@/components/SocketProvider";
 import { useAuthStore } from "@/store/authStore";
-import EmojiSelector, { Categories } from "react-native-emoji-selector";
+import EmojiSelector from "react-native-emoji-selector";
 
 interface Message {
   id: string;

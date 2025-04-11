@@ -17,6 +17,7 @@ import {
 import { ArrowLeft } from "lucide-react-native";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
+import { LinearGradient } from "expo-linear-gradient";
 
 // Mock data for received friend requests
 const mockReceivedRequests = [
@@ -192,19 +193,25 @@ export default function FriendRequestsScreen() {
   return (
     <View className="flex-1 bg-gray-100">
       {/* Header */}
-      <HStack
-        className="bg-blue-500 flex-row items-center p-4"
-        style={{
-          paddingTop: Platform.OS === "ios" ? insets.top : 14,
-        }}
+      <LinearGradient
+        start={{ x: 0.03, y: 0 }}
+        end={{ x: 0.99, y: 2.5 }}
+        colors={["#297eff", "#228eff", "#00d4ff"]}
       >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={26} color="white" />
-        </TouchableOpacity>
-        <Text className="ml-4 text-lg font-semibold text-white">
-          Lời mời kết bạn
-        </Text>
-      </HStack>
+        <HStack
+          className="bg-transparent flex-row items-center p-4"
+          style={{
+            paddingTop: Platform.OS === "ios" ? insets.top : 14,
+          }}
+        >
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={26} color="white" />
+          </TouchableOpacity>
+          <Text className="ml-4 text-lg font-semibold text-white">
+            Lời mời kết bạn
+          </Text>
+        </HStack>
+      </LinearGradient>
 
       {/* Tabs */}
       <HStack className="bg-white">
