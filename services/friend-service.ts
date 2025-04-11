@@ -149,7 +149,7 @@ export const rejectFriendRequest = async (requestId: string): Promise<void> => {
 export const cancelFriendRequest = async (requestId: string): Promise<void> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
-    await axiosInstance.delete(`/friends/requests/${requestId}`, {
+    await axiosInstance.delete(`/friends/request/${requestId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
