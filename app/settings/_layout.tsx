@@ -9,6 +9,12 @@ export default function SettingsLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="account-security"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

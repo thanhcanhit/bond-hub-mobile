@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Platform,
+} from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, PencilLine } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +15,7 @@ import { useAuthStore } from "@/store/authStore";
 
 import { updateBasicInfo } from "@/services/user-service";
 import DateInput from "@/components/DateInput";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function EditInfoScreen() {
   const insets = useSafeAreaInsets();
@@ -43,17 +51,23 @@ export default function EditInfoScreen() {
 
   return (
     <ScrollView className="flex-1 bg-white">
-      <View
-        className="w-full flex-row items-center p-4 bg-blue-500"
-        style={{ paddingTop: insets.top }}
+      <LinearGradient
+        start={{ x: 0.03, y: 0 }}
+        end={{ x: 0.99, y: 2.5 }}
+        colors={["#297eff", "#228eff", "#00d4ff"]}
       >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color="white" />
-        </TouchableOpacity>
-        <Text className="text-xl font-medium ml-4 text-white">
-          Chỉnh sửa thông tin
-        </Text>
-      </View>
+        <View
+          className="w-full flex-row items-center p-4 bg-transparent"
+          style={{ paddingTop: insets.top }}
+        >
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color="white" />
+          </TouchableOpacity>
+          <Text className="text-xl font-medium ml-4 text-white">
+            Chỉnh sửa thông tin
+          </Text>
+        </View>
+      </LinearGradient>
 
       <View className="p-4 space-y-4">
         <View className="">

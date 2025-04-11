@@ -77,7 +77,7 @@ export default function InfoScreen() {
       <FunctionButton
         icon={<ShieldCheck size={23} color={Colors.light.PRIMARY_BLUE} />}
         title={"Tài khoản và bảo mật"}
-        onPress={() => {}}
+        onPress={() => router.push("/settings/account-security")}
         showBottomBorder={true}
       />
       <FunctionButton

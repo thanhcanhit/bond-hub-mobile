@@ -34,7 +34,6 @@ export default function UserInfoScreen() {
   const user = useAuthStore((state) => state.user);
   const userInfo = useAuthStore((state) => state.userInfo);
   const posts: any[] = [];
-  const [showMenu, setShowMenu] = useState(false);
 
   const handlePickImage = async (type: "profile" | "cover") => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -91,11 +90,15 @@ export default function UserInfoScreen() {
     <ScrollView className="flex-1 bg-white">
       <View className="relative">
         {/* Cover Image */}
-        <Image
-          source={{ uri: userInfo?.coverImgUrl }}
-          className="w-full h-[250px]"
-          resizeMode="cover"
-        />
+        {userInfo?.coverImgUrl ? (
+          <Image
+            source={{ uri: userInfo?.coverImgUrl }}
+            className="w-full h-[280px]"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="w-full h-[280px] bg-gray-300" />
+        )}
 
         {/* Header with transparent background */}
         <View
@@ -123,7 +126,6 @@ export default function UserInfoScreen() {
                 textValue="Profile"
                 className="px-2.5 py-2"
                 onPress={() => {
-                  setShowMenu(false);
                   router.push("/user-info/edit-info");
                 }}
               >
@@ -134,7 +136,6 @@ export default function UserInfoScreen() {
                 textValue="Avatar"
                 className="px-2.5 py-2"
                 onPress={() => {
-                  setShowMenu(false);
                   handlePickImage("profile");
                 }}
               >
@@ -145,7 +146,6 @@ export default function UserInfoScreen() {
                 textValue="Cover"
                 className="px-2.5 py-2"
                 onPress={() => {
-                  setShowMenu(false);
                   handlePickImage("cover");
                 }}
               >

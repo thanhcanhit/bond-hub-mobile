@@ -126,3 +126,24 @@ export const updateCoverImage = async (formData: FormData): Promise<void> => {
     throw error;
   }
 };
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export const changePassword = async (
+  data: ChangePasswordData,
+): Promise<void> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    await axiosInstance.put("/auth/change-password", data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    console.error("Change password failed:", error);
+    throw error;
+  }
+};
