@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import {
@@ -24,7 +24,7 @@ import {
   Cake,
 } from "lucide-react-native";
 import ListChatItem from "@/components/ListChatItem";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { getFriendList } from "@/services/friend-service";
 
 // Interface for friend items in UI
@@ -56,10 +56,19 @@ export default function ContactScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch friend list on component mount
+  // Fetch friend list on component mount and when screen comes into focus
   useEffect(() => {
     fetchFriendList();
   }, []);
+
+  // Refetch friend list when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("Contacts screen focused, refreshing friend list");
+      fetchFriendList();
+      return () => {};
+    }, []),
+  );
 
   const fetchFriendList = async () => {
     try {

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HStack } from "@/components/ui/hstack";
@@ -15,58 +16,16 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { ArrowLeft } from "lucide-react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
-
-// Mock data for received friend requests
-const mockReceivedRequests = [
-  {
-    id: "1",
-    sender: {
-      id: "user1",
-      fullName: "John Doe",
-      avatarUrl: "https://i.pravatar.cc/150?img=1",
-    },
-    description:
-      "Xin chào, tôi là bạn của Alice. Rất vui được kết bạn với bạn!",
-    sentAt: "2024-01-20T10:30:00",
-  },
-  {
-    id: "2",
-    sender: {
-      id: "user2",
-      fullName: "Jane Smith",
-      avatarUrl: "https://i.pravatar.cc/150?img=2",
-    },
-    description: "Chúng ta đã gặp nhau tại sự kiện Tech Conference tuần trước.",
-    sentAt: "2024-01-19T15:45:00",
-  },
-];
-
-// Mock data for sent friend requests
-const mockSentRequests = [
-  {
-    id: "3",
-    receiver: {
-      id: "user3",
-      fullName: "Mike Johnson",
-      avatarUrl: "https://i.pravatar.cc/150?img=3",
-    },
-    description: "Chào bạn, tôi là đồng nghiệp của Bob tại công ty ABC.",
-    sentAt: "2024-01-18T14:20:00",
-  },
-  {
-    id: "4",
-    receiver: {
-      id: "user4",
-      fullName: "Sarah Williams",
-      avatarUrl: "https://i.pravatar.cc/150?img=4",
-    },
-    description: "Rất vui được gặp bạn tại buổi workshop hôm qua.",
-    sentAt: "2024-01-17T09:15:00",
-  },
-];
+import {
+  FriendRequest,
+  getReceivedFriendRequests,
+  getSentFriendRequests,
+  respondToFriendRequest,
+  cancelFriendRequest,
+} from "@/services/friend-service";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -89,48 +48,48 @@ const formatDate = (dateString: string) => {
 
 const ReceivedRequestItem = ({
   request,
+  onAccept,
+  onReject,
 }: {
-  request: (typeof mockReceivedRequests)[0];
+  request: FriendRequest;
+  onAccept: () => void;
+  onReject: () => void;
 }) => {
-  const handleAccept = () => {
-    console.log("Accept friend request:", request.id);
-  };
-
-  const handleReject = () => {
-    console.log("Reject friend request:", request.id);
-  };
-
   return (
     <VStack className="bg-white p-4 mb-2">
       <HStack className="items-center mb-2">
         <HStack className="items-start flex-1">
           <Avatar size="lg">
-            <AvatarFallbackText>{request.sender.fullName}</AvatarFallbackText>
-            {request.sender.avatarUrl && (
-              <AvatarImage source={{ uri: request.sender.avatarUrl }} />
+            <AvatarFallbackText>
+              {request.sender?.userInfo?.fullName || "Không có tên"}
+            </AvatarFallbackText>
+            {request.sender?.userInfo?.profilePictureUrl && (
+              <AvatarImage
+                source={{ uri: request.sender.userInfo.profilePictureUrl }}
+              />
             )}
           </Avatar>
           <VStack className="ml-4 flex-1">
             <Text className="font-semibold text-lg">
-              {request.sender.fullName}
+              {request.sender?.userInfo?.fullName || "Không có tên"}
             </Text>
             <Text className="text-gray-500 text-sm">
-              {formatDate(request.sentAt)}
+              {formatDate(request.createdAt)}
             </Text>
             <Text className="text-gray-600 my-3 border rounded-lg border-gray-300 p-2.5 py-3">
-              {request.description}
+              {request.introduce || "Không có lời giới thiệu"}
             </Text>
 
             <HStack className="space-x-2">
               <TouchableOpacity
-                onPress={handleReject}
+                onPress={onReject}
                 className="flex-1 bg-gray-100 py-2 rounded-full items-center mr-2"
               >
                 <Text className="text-gray-600 font-medium">TỪ CHỐI</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleAccept}
+                onPress={onAccept}
                 className="flex-1 bg-blue-100 py-2 rounded-full items-center ml-2"
               >
                 <Text className="text-blue-500 font-medium">ĐỒNG Ý</Text>
@@ -145,36 +104,38 @@ const ReceivedRequestItem = ({
 
 const SentRequestItem = ({
   request,
+  onCancel,
 }: {
-  request: (typeof mockSentRequests)[0];
+  request: FriendRequest;
+  onCancel: () => void;
 }) => {
-  const handleCancel = () => {
-    console.log("Cancel friend request:", request.id);
-  };
-
   return (
     <VStack className="bg-white p-4 mb-2">
       <HStack className="items-center mb-2">
         <HStack className="items-start flex-1">
           <Avatar size="lg">
-            <AvatarFallbackText>{request.receiver.fullName}</AvatarFallbackText>
-            {request.receiver.avatarUrl && (
-              <AvatarImage source={{ uri: request.receiver.avatarUrl }} />
+            <AvatarFallbackText>
+              {request.receiver?.userInfo?.fullName || "Không có tên"}
+            </AvatarFallbackText>
+            {request.receiver?.userInfo?.profilePictureUrl && (
+              <AvatarImage
+                source={{ uri: request.receiver.userInfo.profilePictureUrl }}
+              />
             )}
           </Avatar>
           <VStack className="ml-4 flex-1">
             <Text className="font-semibold text-lg">
-              {request.receiver.fullName}
+              {request.receiver?.userInfo?.fullName || "Không có tên"}
             </Text>
             <Text className="text-gray-500 text-sm">
-              {formatDate(request.sentAt)}
+              {formatDate(request.createdAt)}
             </Text>
             <Text className="text-gray-600 my-3 border rounded-lg border-gray-300 p-2.5 py-3">
-              {request.description}
+              {request.introduce || "Không có lời giới thiệu"}
             </Text>
 
             <TouchableOpacity
-              onPress={handleCancel}
+              onPress={onCancel}
               className="bg-gray-100 py-2 rounded-full items-center ml-32"
             >
               <Text className="text-gray-600 font-medium ">HỦY LỜI MỜI</Text>
@@ -189,6 +150,86 @@ const SentRequestItem = ({
 export default function FriendRequestsScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
+  const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch friend requests on component mount
+  useEffect(() => {
+    fetchFriendRequests();
+  }, []);
+
+  // Refetch friend requests when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("Friend requests screen focused, refreshing requests");
+      fetchFriendRequests();
+      return () => {};
+    }, []),
+  );
+
+  const fetchFriendRequests = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch both received and sent requests in parallel
+      const [receivedData, sentData] = await Promise.all([
+        getReceivedFriendRequests(),
+        getSentFriendRequests(),
+      ]);
+
+      setReceivedRequests(receivedData);
+      setSentRequests(sentData);
+    } catch (err) {
+      console.error("Failed to fetch friend requests:", err);
+      setError(
+        "Không thể tải danh sách lời mời kết bạn. Vui lòng thử lại sau.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      await respondToFriendRequest(requestId, "ACCEPTED");
+      // Remove the accepted request from the list
+      setReceivedRequests((prevRequests) =>
+        prevRequests.filter((request) => request.id !== requestId),
+      );
+    } catch (err) {
+      console.error("Failed to accept friend request:", err);
+      alert("Không thể chấp nhận lời mời kết bạn. Vui lòng thử lại sau.");
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await respondToFriendRequest(requestId, "DECLINED");
+      // Remove the rejected request from the list
+      setReceivedRequests((prevRequests) =>
+        prevRequests.filter((request) => request.id !== requestId),
+      );
+    } catch (err) {
+      console.error("Failed to reject friend request:", err);
+      alert("Không thể từ chối lời mời kết bạn. Vui lòng thử lại sau.");
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      await cancelFriendRequest(requestId);
+      // Remove the canceled request from the list
+      setSentRequests((prevRequests) =>
+        prevRequests.filter((request) => request.id !== requestId),
+      );
+    } catch (err) {
+      console.error("Failed to cancel friend request:", err);
+      alert("Không thể hủy lời mời kết bạn. Vui lòng thử lại sau.");
+    }
+  };
 
   return (
     <View className="flex-1 bg-gray-100">
@@ -222,7 +263,7 @@ export default function FriendRequestsScreen() {
           <Text
             className={`text-center ${activeTab === "received" ? "text-blue-500" : "text-gray-500"}`}
           >
-            Đã nhận ({mockReceivedRequests.length})
+            Đã nhận ({receivedRequests.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -232,17 +273,37 @@ export default function FriendRequestsScreen() {
           <Text
             className={`text-center ${activeTab === "sent" ? "text-blue-500" : "text-gray-500"}`}
           >
-            Đã gửi ({mockSentRequests.length})
+            Đã gửi ({sentRequests.length})
           </Text>
         </TouchableOpacity>
       </HStack>
 
       {/* Request Lists */}
       <ScrollView className="flex-1 pt-2">
-        {activeTab === "received" ? (
-          mockReceivedRequests.length > 0 ? (
-            mockReceivedRequests.map((request) => (
-              <ReceivedRequestItem key={request.id} request={request} />
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center py-8">
+            <ActivityIndicator size="large" color={Colors.light.PRIMARY_BLUE} />
+            <Text className="text-gray-500 mt-2">Đang tải dữ liệu...</Text>
+          </View>
+        ) : error ? (
+          <View className="flex-1 items-center justify-center py-8">
+            <Text className="text-red-500">{error}</Text>
+            <TouchableOpacity
+              onPress={fetchFriendRequests}
+              className="mt-4 bg-blue-50 px-4 py-2 rounded-full"
+            >
+              <Text className="text-blue-500">Thử lại</Text>
+            </TouchableOpacity>
+          </View>
+        ) : activeTab === "received" ? (
+          receivedRequests.length > 0 ? (
+            receivedRequests.map((request) => (
+              <ReceivedRequestItem
+                key={request.id}
+                request={request}
+                onAccept={() => handleAcceptRequest(request.id)}
+                onReject={() => handleRejectRequest(request.id)}
+              />
             ))
           ) : (
             <View className="flex-1 items-center justify-center py-8">
@@ -251,9 +312,13 @@ export default function FriendRequestsScreen() {
               </Text>
             </View>
           )
-        ) : mockSentRequests.length > 0 ? (
-          mockSentRequests.map((request) => (
-            <SentRequestItem key={request.id} request={request} />
+        ) : sentRequests.length > 0 ? (
+          sentRequests.map((request) => (
+            <SentRequestItem
+              key={request.id}
+              request={request}
+              onCancel={() => handleCancelRequest(request.id)}
+            />
           ))
         ) : (
           <View className="flex-1 items-center justify-center py-8">
