@@ -13,7 +13,6 @@ import { Input, InputField } from "@/components/ui/input";
 import { Fab } from "@/components/ui/fab";
 import { useAuthStore } from "@/store/authStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 
 export default function LoginScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -72,7 +71,7 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 justify-center items-center bg-white">
       {/* Màn hình chính */}
-      <Text className="text-5xl font-bold mb-4 text-blue-500">Vodka</Text>
+      <Text className="text-6xl font-bold mb-4 text-blue-500">Vodka</Text>
       <Text className="text-xl mb-2 font-bold">Gọi video ổn định</Text>
       <Text className="text-md mb-8 text-gray-400 text-center px-10">
         Trò chuyện thật đã với chất lượng video ổn định mọi lúc, mọi nơi
@@ -99,25 +98,17 @@ export default function LoginScreen() {
         onRequestClose={toggleModal}
       >
         <View className="bg-white rounded h-full ">
-          <LinearGradient
-            start={{ x: 0.03, y: 0 }}
-            end={{ x: 0.99, y: 2.5 }}
-            colors={["#297eff", "#228eff", "#00d4ff"]}
+          <View
+            className="bg-blue-500 flex-row items-center p-4 "
+            style={{
+              paddingTop: Platform.OS === "ios" ? insets.top : 14,
+            }}
           >
-            <View
-              className="bg-transparent flex-row items-center p-4 "
-              style={{
-                paddingTop: Platform.OS === "ios" ? insets.top : 14,
-              }}
-            >
-              <TouchableOpacity onPress={toggleModal}>
-                <ArrowLeft size={24} color={"white"} />
-              </TouchableOpacity>
-              <Text className="text-xl font-bold pl-4 text-white">
-                Đăng nhập
-              </Text>
-            </View>
-          </LinearGradient>
+            <TouchableOpacity onPress={toggleModal}>
+              <ArrowLeft size={24} color={"white"} />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold pl-4 text-white">Đăng nhập</Text>
+          </View>
 
           <Text className="p-2.5 bg-gray-100 text-gray-700">
             Vui lòng nhập thông tin đăng nhập

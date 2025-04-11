@@ -16,7 +16,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { SocketProvider } from "@/components/SocketProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -27,21 +26,28 @@ export default function RootLayout() {
   const isAuthenticated = useAuth();
   const router = useRouter();
 
+  // Hide splash screen when fonts are loaded
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
+  // Handle navigation based on authentication status
   useEffect(() => {
-    if (loaded && isAuthenticated !== null) {
-      if (!isAuthenticated) {
-        router.replace("/login/loginScreen");
-      } else {
-        router.replace("/(tabs)");
-      }
+    // Wait until fonts are loaded and auth status is determined
+    if (!loaded || isAuthenticated === null) {
+      return;
     }
-  }, [loaded, isAuthenticated]);
+
+    if (isAuthenticated) {
+      // Navigate to tabs if authenticated
+      router.replace("/(tabs)");
+    } else {
+      // Navigate to login if not authenticated
+      router.replace("/login/loginScreen");
+    }
+  }, [loaded, isAuthenticated, router]);
 
   return (
     <ErrorBoundary>
