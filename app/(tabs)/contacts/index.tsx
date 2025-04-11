@@ -1,12 +1,12 @@
 import {
-  Platform,
   Text,
   View,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import {
@@ -18,30 +18,23 @@ import { Colors } from "@/constants/Colors";
 import {
   Phone,
   Video,
-  UserPlus,
   Users,
-  Gift,
   Contact,
-  Plus,
   UserRoundPlus,
   Cake,
 } from "lucide-react-native";
 import ListChatItem from "@/components/ListChatItem";
 import { router } from "expo-router";
+import { getFriendList } from "@/services/friend-service";
 
-const mockFriends = [
-  {
-    id: "1",
-    fullName: "Alice Johnson",
-    avatarUrl: "https://i.pravatar.cc/150?img=1",
-  },
-  {
-    id: "2",
-    fullName: "Bob Smith",
-    avatarUrl: "https://i.pravatar.cc/150?img=2",
-  },
-  // Add more mock data as needed
-];
+// Interface for friend items in UI
+interface FriendItem {
+  id: string;
+  fullName: string;
+  phoneNumber?: string;
+  avatarUrl: string | null;
+  email?: string;
+}
 
 const mockGroups = [
   {
@@ -56,10 +49,43 @@ const mockGroups = [
 ];
 
 export default function ContactScreen() {
+  // insets được sử dụng trong các phần khác của ứng dụng
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"friends" | "groups">("friends");
+  const [friends, setFriends] = useState<FriendItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const groupedFriends = mockFriends.reduce(
+  // Fetch friend list on component mount
+  useEffect(() => {
+    fetchFriendList();
+  }, []);
+
+  const fetchFriendList = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await getFriendList();
+
+      // Chuyển đổi dữ liệu từ API sang định dạng FriendItem
+      const formattedFriends = response.map((item) => ({
+        id: item.friend.id,
+        fullName: item.friend.userInfo?.fullName || "Không có tên",
+        phoneNumber: item.friend.phoneNumber,
+        avatarUrl: item.friend.userInfo?.profilePictureUrl || null,
+        email: item.friend.email,
+      }));
+
+      setFriends(formattedFriends);
+    } catch (err) {
+      console.error("Failed to fetch friend list:", err);
+      setError("Không thể tải danh sách bạn bè. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const groupedFriends = friends.reduce(
     (acc, friend) => {
       const firstLetter = friend.fullName[0].toUpperCase();
       if (!acc[firstLetter]) {
@@ -68,12 +94,12 @@ export default function ContactScreen() {
       acc[firstLetter].push(friend);
       return acc;
     },
-    {} as Record<string, typeof mockFriends>,
+    {} as Record<string, FriendItem[]>,
   );
 
   const sortedLetters = Object.keys(groupedFriends).sort();
 
-  const FriendItem = ({ friend }: { friend: (typeof mockFriends)[0] }) => (
+  const FriendItem = ({ friend }: { friend: FriendItem }) => (
     <TouchableOpacity className="flex flex-row my-2 items-center justify-between px-4 py-2">
       <HStack className="items-center flex-1">
         <Avatar size="lg">
@@ -168,18 +194,46 @@ export default function ContactScreen() {
             />
           </VStack>
 
-          <VStack className="mt-4 ">
-            {sortedLetters.map((letter) => (
-              <View key={letter}>
-                <Text className="px-4 py-2 text-md text-gray-500 bg-gray-100">
-                  {letter}
-                </Text>
-                {groupedFriends[letter].map((friend) => (
-                  <FriendItem key={friend.id} friend={friend} />
-                ))}
-              </View>
-            ))}
-          </VStack>
+          {isLoading ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <ActivityIndicator
+                size="large"
+                color={Colors.light.PRIMARY_BLUE}
+              />
+              <Text className="text-gray-500 mt-2">
+                Đang tải danh sách bạn bè...
+              </Text>
+            </View>
+          ) : error ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Text className="text-red-500">{error}</Text>
+              <TouchableOpacity
+                onPress={fetchFriendList}
+                className="mt-4 bg-blue-50 px-4 py-2 rounded-full"
+              >
+                <Text className="text-blue-500">Thử lại</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <VStack className="mt-4">
+              {sortedLetters.length > 0 ? (
+                sortedLetters.map((letter) => (
+                  <View key={letter}>
+                    <Text className="px-4 py-2 text-md text-gray-500 bg-gray-100">
+                      {letter}
+                    </Text>
+                    {groupedFriends[letter].map((friend) => (
+                      <FriendItem key={friend.id} friend={friend} />
+                    ))}
+                  </View>
+                ))
+              ) : (
+                <View className="flex-1 items-center justify-center py-8">
+                  <Text className="text-gray-500">Không có bạn bè nào</Text>
+                </View>
+              )}
+            </VStack>
+          )}
         </ScrollView>
       ) : (
         <View>
