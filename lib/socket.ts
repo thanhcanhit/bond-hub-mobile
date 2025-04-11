@@ -18,7 +18,13 @@ class SocketManager {
 
   private connectionAttempts = 0;
   private maxConnectionAttempts = 5;
-  private baseUrl = "https://api.bondhub.cloud";
+  private baseUrl = process.env.EXPO_PUBLIC_API_URL
+    ? process.env.EXPO_PUBLIC_API_URL.split("/api/v1")[0]
+    : "https://api.bondhub.cloud";
+
+  constructor() {
+    console.log("Socket using base URL:", this.baseUrl);
+  }
 
   public async connect() {
     if (this.socket && this.socket.connected) {

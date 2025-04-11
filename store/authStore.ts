@@ -34,11 +34,13 @@ interface AuthActions {
   resetPassword: (newPassword: string) => Promise<void>;
 }
 
-if (!process.env.EXPO_PUBLIC_API_URL) {
-  throw new Error("Missing EXPO_PUBLIC_API_URL in .env file");
-}
+// Use a default API URL if the environment variable is not available
+const BASE_API_URL =
+  process.env.EXPO_PUBLIC_API_URL || "https://api.bondhub.cloud/api/v1";
+const API_URL = BASE_API_URL + "/auth";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL + "/auth";
+// Log the API URL being used
+console.log("Using API URL:", BASE_API_URL);
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
   // Initialize the auth state
   const initializeAuth = async () => {
