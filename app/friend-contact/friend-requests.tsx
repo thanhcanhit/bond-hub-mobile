@@ -55,24 +55,36 @@ const ReceivedRequestItem = ({
   onAccept: () => void;
   onReject: () => void;
 }) => {
+  const handleViewProfile = () => {
+    if (request.sender?.id) {
+      router.push({
+        pathname: "/user-info/[id]",
+        params: { id: request.sender.id },
+      });
+    }
+  };
   return (
     <VStack className="bg-white p-4 mb-2">
       <HStack className="items-center mb-2">
         <HStack className="items-start flex-1">
-          <Avatar size="lg">
-            <AvatarFallbackText>
-              {request.sender?.userInfo?.fullName || "Không có tên"}
-            </AvatarFallbackText>
-            {request.sender?.userInfo?.profilePictureUrl && (
-              <AvatarImage
-                source={{ uri: request.sender.userInfo.profilePictureUrl }}
-              />
-            )}
-          </Avatar>
+          <TouchableOpacity onPress={handleViewProfile}>
+            <Avatar size="lg">
+              <AvatarFallbackText>
+                {request.sender?.userInfo?.fullName || "Không có tên"}
+              </AvatarFallbackText>
+              {request.sender?.userInfo?.profilePictureUrl && (
+                <AvatarImage
+                  source={{ uri: request.sender.userInfo.profilePictureUrl }}
+                />
+              )}
+            </Avatar>
+          </TouchableOpacity>
           <VStack className="ml-4 flex-1">
-            <Text className="font-semibold text-lg">
-              {request.sender?.userInfo?.fullName || "Không có tên"}
-            </Text>
+            <TouchableOpacity onPress={handleViewProfile}>
+              <Text className="font-semibold text-lg">
+                {request.sender?.userInfo?.fullName || "Không có tên"}
+              </Text>
+            </TouchableOpacity>
             <Text className="text-gray-500 text-sm">
               {formatDate(request.createdAt)}
             </Text>
@@ -109,24 +121,36 @@ const SentRequestItem = ({
   request: FriendRequest;
   onCancel: () => void;
 }) => {
+  const handleViewProfile = () => {
+    if (request.receiver?.id) {
+      router.push({
+        pathname: "/user-info/[id]",
+        params: { id: request.receiver.id },
+      });
+    }
+  };
   return (
     <VStack className="bg-white p-4 mb-2">
       <HStack className="items-center mb-2">
         <HStack className="items-start flex-1">
-          <Avatar size="lg">
-            <AvatarFallbackText>
-              {request.receiver?.userInfo?.fullName || "Không có tên"}
-            </AvatarFallbackText>
-            {request.receiver?.userInfo?.profilePictureUrl && (
-              <AvatarImage
-                source={{ uri: request.receiver.userInfo.profilePictureUrl }}
-              />
-            )}
-          </Avatar>
+          <TouchableOpacity onPress={handleViewProfile}>
+            <Avatar size="lg">
+              <AvatarFallbackText>
+                {request.receiver?.userInfo?.fullName || "Không có tên"}
+              </AvatarFallbackText>
+              {request.receiver?.userInfo?.profilePictureUrl && (
+                <AvatarImage
+                  source={{ uri: request.receiver.userInfo.profilePictureUrl }}
+                />
+              )}
+            </Avatar>
+          </TouchableOpacity>
           <VStack className="ml-4 flex-1">
-            <Text className="font-semibold text-lg">
-              {request.receiver?.userInfo?.fullName || "Không có tên"}
-            </Text>
+            <TouchableOpacity onPress={handleViewProfile}>
+              <Text className="font-semibold text-lg">
+                {request.receiver?.userInfo?.fullName || "Không có tên"}
+              </Text>
+            </TouchableOpacity>
             <Text className="text-gray-500 text-sm">
               {formatDate(request.createdAt)}
             </Text>

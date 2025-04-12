@@ -49,20 +49,29 @@ const ContactItem = ({
     console.log("Send friend request to:", contact.id);
   };
 
+  const handleViewProfile = () => {
+    router.push({
+      pathname: "/user-info/[id]",
+      params: { id: contact.id },
+    });
+  };
+
   return (
     <HStack className="items-center justify-between px-4 py-4 bg-white">
-      <HStack className="items-center flex-1">
-        <Avatar size="md">
-          <AvatarFallbackText>{contact.fullName}</AvatarFallbackText>
-          {contact.avatarUrl && (
-            <AvatarImage source={{ uri: contact.avatarUrl }} />
-          )}
-        </Avatar>
-        <VStack className="ml-3 flex-1">
-          <Text className="text-base font-medium">{contact.fullName}</Text>
-          <Text className="text-sm text-gray-500">{contact.phoneNumber}</Text>
-        </VStack>
-      </HStack>
+      <TouchableOpacity onPress={handleViewProfile} className="flex-1">
+        <HStack className="items-center">
+          <Avatar size="md">
+            <AvatarFallbackText>{contact.fullName}</AvatarFallbackText>
+            {contact.avatarUrl && (
+              <AvatarImage source={{ uri: contact.avatarUrl }} />
+            )}
+          </Avatar>
+          <VStack className="ml-3 flex-1">
+            <Text className="text-base font-medium">{contact.fullName}</Text>
+            <Text className="text-sm text-gray-500">{contact.phoneNumber}</Text>
+          </VStack>
+        </HStack>
+      </TouchableOpacity>
       {showAddButton && !contact.isFriend ? (
         <TouchableOpacity
           onPress={handleAddFriend}

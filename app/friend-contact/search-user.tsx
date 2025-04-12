@@ -52,6 +52,15 @@ export default function SearchUserScreen() {
     console.log("Send friend request to:", searchResult.id);
   };
 
+  const handleViewProfile = () => {
+    if (searchResult?.id) {
+      router.push({
+        pathname: "/user-info/[id]",
+        params: { id: searchResult.id },
+      });
+    }
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
@@ -100,21 +109,23 @@ export default function SearchUserScreen() {
         ) : searchResult ? (
           <View className="py-4">
             <HStack className="items-center justify-between">
-              <HStack className="items-center flex-1">
-                <Avatar size="lg">
-                  <AvatarFallbackText>
-                    {searchResult.fullName}
-                  </AvatarFallbackText>
-                  {searchResult.avatarUrl && (
-                    <AvatarImage source={{ uri: searchResult.avatarUrl }} />
-                  )}
-                </Avatar>
-                <VStack className="ml-4">
-                  <Text className="text-lg font-medium">
-                    {searchResult.fullName}
-                  </Text>
-                </VStack>
-              </HStack>
+              <TouchableOpacity onPress={handleViewProfile} className="flex-1">
+                <HStack className="items-center">
+                  <Avatar size="lg">
+                    <AvatarFallbackText>
+                      {searchResult.fullName}
+                    </AvatarFallbackText>
+                    {searchResult.avatarUrl && (
+                      <AvatarImage source={{ uri: searchResult.avatarUrl }} />
+                    )}
+                  </Avatar>
+                  <VStack className="ml-4">
+                    <Text className="text-lg font-medium">
+                      {searchResult.fullName}
+                    </Text>
+                  </VStack>
+                </HStack>
+              </TouchableOpacity>
               {!searchResult.isFriend && (
                 <TouchableOpacity
                   onPress={handleAddFriend}

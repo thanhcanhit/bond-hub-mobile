@@ -108,27 +108,39 @@ export default function ContactScreen() {
 
   const sortedLetters = Object.keys(groupedFriends).sort();
 
-  const FriendItem = ({ friend }: { friend: FriendItem }) => (
-    <TouchableOpacity className="flex flex-row my-2 items-center justify-between px-4 py-2">
-      <HStack className="items-center flex-1">
-        <Avatar size="lg">
-          <AvatarFallbackText>{friend.fullName}</AvatarFallbackText>
-          {friend.avatarUrl && (
-            <AvatarImage source={{ uri: friend.avatarUrl }} />
-          )}
-        </Avatar>
-        <Text className="ml-4 text-lg ">{friend.fullName}</Text>
-      </HStack>
-      <HStack className="space-x-4">
-        <TouchableOpacity className="pr-4">
-          <Phone size={24} color={"gray"} strokeWidth={1.5} />
-        </TouchableOpacity>
-        <TouchableOpacity className="px-2.5">
-          <Video size={26} color={"gray"} strokeWidth={1.5} />
-        </TouchableOpacity>
-      </HStack>
-    </TouchableOpacity>
-  );
+  const FriendItem = ({ friend }: { friend: FriendItem }) => {
+    const handleViewProfile = () => {
+      router.push({
+        pathname: "/user-info/[id]",
+        params: { id: friend.id },
+      });
+    };
+
+    return (
+      <TouchableOpacity
+        className="flex flex-row my-2 items-center justify-between px-4 py-2"
+        onPress={handleViewProfile}
+      >
+        <HStack className="items-center flex-1">
+          <Avatar size="lg">
+            <AvatarFallbackText>{friend.fullName}</AvatarFallbackText>
+            {friend.avatarUrl && (
+              <AvatarImage source={{ uri: friend.avatarUrl }} />
+            )}
+          </Avatar>
+          <Text className="ml-4 text-lg ">{friend.fullName}</Text>
+        </HStack>
+        <HStack className="space-x-4">
+          <TouchableOpacity className="pr-4">
+            <Phone size={24} color={"gray"} strokeWidth={1.5} />
+          </TouchableOpacity>
+          <TouchableOpacity className="px-2.5">
+            <Video size={26} color={"gray"} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </HStack>
+      </TouchableOpacity>
+    );
+  };
 
   const FunctionButton = ({ icon, title, onPress, subtitle }: any) => (
     <TouchableOpacity

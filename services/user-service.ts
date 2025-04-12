@@ -18,6 +18,24 @@ export const getUserInfo = async (userId: string): Promise<UserInfo> => {
   }
 };
 
+// Lấy thông tin chi tiết của người dùng khác
+export const getUserProfile = async (userId: string): Promise<any> => {
+  console.log("Fetching user profile for ID:", userId);
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.get(`/users/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("User profile data:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    throw error;
+  }
+};
+
 interface UpdateBasicInfoData {
   fullName: string;
   dateOfBirth: string;
