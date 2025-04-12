@@ -56,18 +56,96 @@ export const getFriendList = async (): Promise<Friend[]> => {
   }
 };
 
-export const updatePhoneContacts = async (): Promise<void> => {
+// Interface cho contact item
+export interface ContactItem {
+  name: string;
+  phone: string;
+}
+
+// Interface cho contact user
+export interface ContactUser {
+  id: string;
+  userId: string;
+  contactUserId: string;
+  nickname: string;
+  addedAt: string;
+  contactUser: {
+    id: string;
+    phoneNumber: string;
+    userInfo: {
+      fullName: string;
+      profilePictureUrl: string | null;
+      coverImgUrl: string | null;
+      statusMessage: string | null;
+      lastSeen: string;
+    };
+  };
+  relationship: {
+    status: string;
+    message: string;
+    friendshipId: string;
+  };
+}
+
+// Đồng bộ danh bạ điện thoại
+export const syncContacts = async (
+  contacts: ContactItem[],
+): Promise<{ message: string; created: number; deleted: number }> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
-    await axiosInstance.post(
-      `/friends/sync-contacts`,
-      {},
+    const response = await axiosInstance.post(
+      `/contacts/sync`,
+      { contacts },
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       },
     );
+    return response.data;
+  } catch (error) {
+    console.error("Error syncing contacts:", error);
+    throw error;
+  }
+};
+
+// Lấy danh sách người dùng đã được đồng bộ
+export const getContacts = async (): Promise<ContactUser[]> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.get(`/contacts`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching contacts:", error);
+    throw error;
+  }
+};
+
+// Hàm cũ để tương thích ngược
+export const updatePhoneContacts = async (
+  contacts?: ContactItem[],
+): Promise<void> => {
+  try {
+    if (contacts && contacts.length > 0) {
+      await syncContacts(contacts);
+    } else {
+      // Nếu không có danh sách contacts, gọi API cũ để tương thích ngược
+      const token = await SecureStore.getItemAsync("accessToken");
+      await axiosInstance.post(
+        `/friends/sync-contacts`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+    }
   } catch (error) {
     console.error("Error updating phone contacts:", error);
     throw error;

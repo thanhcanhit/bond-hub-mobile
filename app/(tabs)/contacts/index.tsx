@@ -130,13 +130,16 @@ export default function ContactScreen() {
     </TouchableOpacity>
   );
 
-  const FunctionButton = ({ icon, title, onPress }: any) => (
+  const FunctionButton = ({ icon, title, onPress, subtitle }: any) => (
     <TouchableOpacity
       className="flex-row items-center px-4 py-4 bg-white"
       onPress={onPress}
     >
       {icon}
-      <Text className="ml-4 text-lg text-gray-600">{title}</Text>
+      <View className="ml-4">
+        <Text className="text-lg text-gray-600">{title}</Text>
+        {subtitle && <Text className="text-sm text-gray-400">{subtitle}</Text>}
+      </View>
     </TouchableOpacity>
   );
 
@@ -188,6 +191,7 @@ export default function ContactScreen() {
                 />
               }
               title="Danh bạ máy"
+              subtitle="Liên hệ có dùng Vodka"
               onPress={() => router.push("/friend-contact/phoneContacts")}
             />
             <FunctionButton
