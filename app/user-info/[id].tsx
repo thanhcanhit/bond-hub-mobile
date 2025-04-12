@@ -23,6 +23,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import * as userService from "@/services/user-service";
+import * as friendService from "@/services/friend-service";
 import { HStack } from "@/components/ui/hstack";
 
 export default function UserProfileScreen() {
@@ -32,7 +33,10 @@ export default function UserProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFriend, setIsFriend] = useState(false);
-  const [isPendingRequest, setIsPendingRequest] = useState(false);
+  const [isPendingSent, setIsPendingSent] = useState(false);
+  const [isPendingReceived, setIsPendingReceived] = useState(false);
+  const [friendRequestId, setFriendRequestId] = useState<string | null>(null);
+  const [notRelated, setNotRelated] = useState(false);
 
   useEffect(() => {
     fetchUserInfo();
@@ -54,10 +58,19 @@ export default function UserProfileScreen() {
 
       // Kiểm tra trạng thái bạn bè và lời mời kết bạn từ dữ liệu API
       console.log("User profile data:", JSON.stringify(userData));
-      // Kiểm tra nếu có relationship và status là FRIEND
+
+      // Kiểm tra các trạng thái mối quan hệ
       setIsFriend(userData.relationship?.status === "FRIEND");
-      // Kiểm tra nếu có relationship và status là PENDING
-      setIsPendingRequest(userData.relationship?.status === "PENDING");
+      setIsPendingSent(userData.relationship?.status === "PENDING_SENT");
+      setIsPendingReceived(
+        userData.relationship?.status === "PENDING_RECEIVED",
+      );
+      setNotRelated(userData.relationship?.status === "NONE");
+
+      // Lưu friendRequestId nếu có
+      if (userData.relationship?.friendshipId) {
+        setFriendRequestId(userData.relationship.friendshipId);
+      }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       setError("Không thể tải thông tin người dùng. Vui lòng thử lại sau.");
@@ -78,34 +91,60 @@ export default function UserProfileScreen() {
   const handleAddFriend = () => {
     if (!userProfile?.id) return;
 
-    // Implement send friend request with introduce
-    Alert.prompt(
-      "Lời giới thiệu",
-      "Nhập lời giới thiệu để gửi lời mời kết bạn",
-      [
-        {
-          text: "Hủy",
-          style: "cancel",
-        },
-        {
-          text: "Gửi",
-          onPress: (introduce) => {
-            console.log(
-              "Send friend request to:",
-              userProfile.id,
-              "with introduce:",
-              introduce,
-            );
-            // TODO: Call API to send friend request
-            // API endpoint: POST /friends/request
-            // Body: { receiverId: userProfile.id, introduce: introduce }
-            // Trong trường hợp thực tế, bạn sẽ gọi API để gửi lời mời kết bạn
-            setIsPendingRequest(true);
-          },
-        },
-      ],
-      "plain-text",
-    );
+    // Điều hướng đến màn hình gửi lời mời kết bạn
+    router.push({
+      pathname: "/friend-request/[id]",
+      params: { id: userProfile.id },
+    });
+  };
+
+  const handleCancelFriendRequest = async () => {
+    if (!friendRequestId) return;
+
+    try {
+      setIsLoading(true);
+      await friendService.cancelFriendRequest(friendRequestId);
+      // Cập nhật trạng thái
+      setIsPendingSent(false);
+      setFriendRequestId(null);
+    } catch (error) {
+      console.error("Error canceling friend request:", error);
+      Alert.alert(
+        "Lỗi",
+        "Không thể hủy lời mời kết bạn. Vui lòng thử lại sau.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRespondToFriendRequest = async (
+    status: "ACCEPTED" | "DECLINED",
+  ) => {
+    if (!friendRequestId) return;
+
+    try {
+      setIsLoading(true);
+      await friendService.respondToFriendRequest(friendRequestId, status);
+
+      // Cập nhật trạng thái
+      if (status === "ACCEPTED") {
+        setIsFriend(true);
+      }
+      setIsPendingReceived(false);
+      setFriendRequestId(null);
+    } catch (error) {
+      console.error(
+        `Error ${status === "ACCEPTED" ? "accepting" : "rejecting"} friend request:`,
+        error,
+      );
+      Alert.alert(
+        "Lỗi",
+        `Không thể ${status === "ACCEPTED" ? "đồng ý" : "từ chối"} lời mời kết bạn. Vui lòng thử lại sau.`,
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -183,11 +222,24 @@ export default function UserProfileScreen() {
 
           {/* Status message */}
           <View className="mt-4 items-center">
-            <Text className="text-gray-500 text-center px-8">
-              Bạn chưa thể xem nhật ký của{" "}
-              {userProfile?.userInfo?.fullName || "người dùng này"} khi chưa là
-              bạn bè
-            </Text>
+            {isPendingSent ? (
+              <Text className="text-gray-500 text-center px-8">
+                Lời mời kết bạn đã được gửi đi. Hãy để lại tin nhắn cho{" "}
+                {userProfile?.userInfo?.fullName || "người dùng này"} trong lúc
+                chờ đợi nhé!
+              </Text>
+            ) : isPendingReceived ? (
+              <Text className="text-gray-500 text-center px-8">
+                {userProfile?.userInfo?.fullName || "Người dùng này"} đã gửi cho
+                bạn lời mời kết bạn
+              </Text>
+            ) : notRelated ? (
+              <Text className="text-gray-500 text-center px-8">
+                Bạn chưa thể xem nhật ký của{" "}
+                {userProfile?.userInfo?.fullName || "người dùng này"} khi chưa
+                là bạn bè
+              </Text>
+            ) : null}
           </View>
 
           {/* Action Buttons */}
@@ -197,32 +249,52 @@ export default function UserProfileScreen() {
                 className="flex-1 bg-blue-500 py-2.5 rounded-full items-center"
                 onPress={handleSendMessage}
               >
-                <HStack className="items-center space-x-2">
+                <HStack className="items-center" space="xs">
                   <MessageCircle size={24} color="white" />
                   <Text className="text-white font-medium">Nhắn tin</Text>
                 </HStack>
               </TouchableOpacity>
-            ) : isPendingRequest ? (
+            ) : isPendingSent ? (
               <TouchableOpacity
                 className="flex-1 bg-gray-200 py-2.5 rounded-full items-center"
-                disabled={true}
+                onPress={handleCancelFriendRequest}
               >
-                <HStack className="items-center space-x-2">
+                <HStack className="items-center space-x-2" space="xs">
                   <UserCheck size={24} color="gray" />
                   <Text className="text-gray-500 font-medium">
-                    Đã gửi lời mời
+                    Hủy lời mời kết bạn
                   </Text>
                 </HStack>
               </TouchableOpacity>
+            ) : isPendingReceived ? (
+              <HStack className="w-full justify-center space-x-2" space="xs">
+                {/* Nút đồng ý */}
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  className="bg-blue-500 py-2.5 rounded-full items-center justify-center"
+                  onPress={() => handleRespondToFriendRequest("ACCEPTED")}
+                >
+                  <Text className="text-white font-medium">Đồng ý</Text>
+                </TouchableOpacity>
+
+                {/* Nút từ chối */}
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  className="bg-gray-200 py-2.5 rounded-full items-center justify-center"
+                  onPress={() => handleRespondToFriendRequest("DECLINED")}
+                >
+                  <Text className="text-gray-500 font-medium">Từ chối</Text>
+                </TouchableOpacity>
+              </HStack>
             ) : (
-              <HStack className="w-full justify-center space-x-2">
+              <HStack className="w-full justify-center space-x-2" space="xs">
                 {/* Nút nhắn tin - chiếm 8 phần */}
                 <TouchableOpacity
                   style={{ flex: 9 }}
                   className="bg-blue-100 py-2.5 rounded-full items-center justify-center"
                   onPress={handleSendMessage}
                 >
-                  <HStack className="items-center space-x-2 mx-5">
+                  <HStack className="items-center" space="xs">
                     <MessageCircle size={24} color="#3B82F6" />
                     <Text className="text-blue-500 font-medium">Nhắn tin</Text>
                   </HStack>

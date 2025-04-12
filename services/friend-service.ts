@@ -237,3 +237,30 @@ export const cancelFriendRequest = async (requestId: string): Promise<void> => {
     throw error;
   }
 };
+
+// Gửi lời mời kết bạn
+export const sendFriendRequest = async (
+  receiverId: string,
+  introduce: string,
+): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.post(
+      `/friends/request`,
+      {
+        receiverId,
+        introduce,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+    throw error;
+  }
+};
