@@ -1,0 +1,124 @@
+import axiosInstance from "@/lib/axios";
+import { Message, SendMessageRequest } from "@/types";
+
+const handleError = (error: any, context: string) => {
+  console.error(`Error in ${context}:`, error);
+  throw error;
+};
+
+export const messageService = {
+  // Gửi tin nhắn văn bản
+  async sendMessage(data: SendMessageRequest): Promise<Message | undefined> {
+    try {
+      const response = await axiosInstance.post("/messages/user", data);
+      return response.data;
+    } catch (error) {
+      handleError(error, "sendMessage");
+    }
+  },
+
+  // Lấy lịch sử tin nhắn
+  async getMessageHistory(
+    receiverId: string,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<Message[] | undefined> {
+    try {
+      const response = await axiosInstance.get(`/messages/user/${receiverId}`, {
+        params: { page, limit },
+      });
+      return response.data;
+    } catch (error) {
+      handleError(error, "getMessageHistory");
+    }
+  },
+
+  // Tìm kiếm tin nhắn
+  async searchMessages(
+    receiverId: string,
+    query: string,
+    page: number = 1,
+  ): Promise<Message[] | undefined> {
+    try {
+      const response = await axiosInstance.get(
+        `/messages/user/${receiverId}/search`,
+        {
+          params: { query, page },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      handleError(error, "searchMessages");
+    }
+  },
+
+  // Đánh dấu đã đọc
+  async markAsRead(messageId: string): Promise<void> {
+    try {
+      await axiosInstance.patch(`/messages/${messageId}/read`);
+    } catch (error) {
+      handleError(error, "markAsRead");
+    }
+  },
+
+  async markAsUnread(messageId: string): Promise<void> {
+    try {
+      await axiosInstance.patch(`/messages/${messageId}/unread`);
+    } catch (error) {
+      handleError(error, "markAsUnread");
+    }
+  },
+
+  // Thêm reaction
+  async addReaction(messageId: string, reactionType: string): Promise<void> {
+    try {
+      await axiosInstance.post(`/messages/reaction`, {
+        messageId,
+        reaction: reactionType,
+      });
+    } catch (error) {
+      handleError(error, "addReaction");
+    }
+  },
+
+  // Xóa reaction
+  async removeReaction(messageId: string): Promise<void> {
+    try {
+      await axiosInstance.delete(`/messages/${messageId}/reactions`);
+    } catch (error) {
+      handleError(error, "removeReaction");
+    }
+  },
+
+  // Thu hồi tin nhắn
+  async recallMessage(messageId: string): Promise<void> {
+    try {
+      await axiosInstance.patch(`/messages/recall/${messageId}`);
+    } catch (error) {
+      handleError(error, "recallMessage");
+    }
+  },
+
+  // Xóa tin nhắn (phía người dùng)
+  async deleteMessage(messageId: string): Promise<void> {
+    try {
+      await axiosInstance.delete(`/messages/deleted-self-side/${messageId}`);
+    } catch (error) {
+      handleError(error, "deleteMessage");
+    }
+  },
+
+  async sendMediaMessage(formData: FormData): Promise<Message | undefined> {
+    try {
+      const response = await axiosInstance.post("/messages/user", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("Senmediamessage", response.data); // In dữ liệu phản hồi để kiểm tra nội dung và trạng thái
+      return response.data;
+    } catch (error) {
+      handleError(error, "sendMediaMessage");
+    }
+  },
+};

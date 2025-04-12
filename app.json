@@ -49,6 +49,19 @@
           "microphonePermission": "Cho phép $(PRODUCT_NAME) truy cập microphone của bạn",
           "recordAudioAndroid": true
         }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "expo-file-system",
+        {
+          "filePermission": "Cho phép ứng dụng truy cập files"
+        }
       ]
     ],
     "experiments": {
