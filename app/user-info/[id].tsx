@@ -28,7 +28,7 @@ import { HStack } from "@/components/ui/hstack";
 
 export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams();
+  const { id, introduce } = useLocalSearchParams();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,11 @@ export default function UserProfileScreen() {
     // Điều hướng đến màn hình gửi lời mời kết bạn
     router.push({
       pathname: "/friend-request/[id]",
-      params: { id: userProfile.id },
+      params: {
+        id: userProfile.id,
+        // Sử dụng introduce từ params nếu có, nếu không thì dùng mặc định
+        introduce: introduce || "Xin chào, mình muốn kết bạn với bạn.",
+      },
     });
   };
 

@@ -71,6 +71,7 @@
     "react-native-emoji-selector": "^0.2.0",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-modal-datetime-picker": "^18.0.0",
+    "react-native-qrcode-svg": "^6.3.15",
     "react-native-reanimated": "~3.16.1",
     "react-native-safe-area-context": "^5.0.0",
     "react-native-screens": "~4.4.0",

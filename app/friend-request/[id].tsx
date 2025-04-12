@@ -26,13 +26,15 @@ import { LinearGradient } from "expo-linear-gradient";
 
 export default function FriendRequestScreen() {
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams();
+  const { id, introduce: initialIntroduce } = useLocalSearchParams();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [introduce, setIntroduce] = useState(
-    "Xin chào, mình muốn kết bạn với bạn.",
+    initialIntroduce
+      ? String(initialIntroduce)
+      : "Xin chào, mình muốn kết bạn với bạn.",
   );
   const [characterCount, setCharacterCount] = useState(0);
   const MAX_CHARACTERS = 150;

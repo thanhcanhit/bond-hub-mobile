@@ -165,3 +165,24 @@ export const changePassword = async (
     throw error;
   }
 };
+
+// Tìm kiếm người dùng bằng email hoặc số điện thoại
+export const searchUser = async (searchData: {
+  email?: string;
+  phoneNumber?: string;
+}): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.post("/users/search", searchData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    console.log("Search user data:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error searching user:", error);
+    throw error;
+  }
+};
