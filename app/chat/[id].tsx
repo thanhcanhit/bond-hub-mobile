@@ -122,7 +122,7 @@ const ChatScreen = () => {
             mediaType: mediaType,
           } as any);
         });
-        console.log("formdata", formData);
+
         try {
           const response = await messageService.sendMediaMessage(formData);
           setMessages((prev) =>
@@ -299,89 +299,91 @@ const ChatScreen = () => {
     }
   };
 
-  const ALLOWED_TYPES = {
-    IMAGE: ["image/jpeg", "image/png"],
-    VIDEO: ["video/mp4"],
-    DOCUMENT: ["application/pdf", "application/msword", "text/plain"],
+  const handleDocumentPick = async () => {
+    if (!user) return;
+    const tempId = uuid.v4();
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "application/msword", "text/plain"],
+        multiple: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        setIsLoadingMedia(true);
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const invalidFiles = result.assets.filter(
+          (asset) => asset.size && asset.size > MAX_FILE_SIZE,
+        );
+
+        if (invalidFiles.length > 0) {
+          Alert.alert("File Too Large", "Documents must be under 5MB.");
+          return;
+        }
+
+        const tempMessage: Message = {
+          id: tempId,
+          content: {
+            text: message,
+            media: result.assets.map((asset) => ({
+              type: "DOCUMENT",
+              url: asset.uri,
+              name: asset.name,
+              loading: true,
+            })),
+          },
+          senderId: user.userId,
+          receiverId: chatId,
+          readBy: [],
+          deletedBy: [],
+          reactions: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isMe: true,
+        };
+
+        setMessages((prev) => [...prev, tempMessage]);
+        scrollToBottom();
+        setMessage("");
+        const formData = new FormData();
+        formData.append("receiverId", chatId);
+        formData.append("content[text]", message);
+        result.assets.map((asset) => {
+          formData.append("mediaType", "DOCUMENT");
+          formData.append("files", {
+            uri: asset.uri,
+            type: asset.mimeType || "application/octet-stream",
+            name: asset.name,
+            mediaType: "DOCUMENT",
+          } as any);
+        });
+
+        try {
+          const response = await messageService.sendMediaMessage(formData);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === tempId
+                ? ({ ...response, isMe: true } as Message)
+                : msg,
+            ),
+          );
+
+          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+        } catch (error: any) {
+          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+          Alert.alert("Error", "Failed to upload document. Please try again.");
+          console.error("Document upload error:", error);
+        }
+      }
+    } catch (error: any) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      Alert.alert("Error", "Failed to upload document. Please try again.");
+      console.error("Document upload error:", error);
+    } finally {
+      setIsLoadingMedia(false);
+    }
   };
-
-  // const handleDocumentPick = async () => {
-  //   if (!user) return;
-  //   const tempId = uuid.v4();
-
-  //   try {
-  //     const result = await DocumentPicker.getDocumentAsync({
-  //       type: ["application/pdf", "application/msword", "text/plain"],
-  //       multiple: true,
-  //     });
-
-  //     if (!result.canceled && result.assets.length > 0) {
-  //       setIsLoadingMedia(true);
-
-  //       const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  //       const invalidFiles = result.assets.filter(
-  //         (asset) => asset.size && asset.size > MAX_FILE_SIZE
-  //       );
-
-  //       if (invalidFiles.length > 0) {
-  //         Alert.alert("File Too Large", "Documents must be under 5MB.");
-  //         return;
-  //       }
-
-  //       const tempMessage: Message = {
-  //         id: tempId,
-  //         content: {
-  //           text: message,
-  //           media: result.assets.map((asset) => ({
-  //             type: "DOCUMENT",
-  //             url: asset.uri,
-  //             name: asset.name,
-  //             loading: true,
-  //           })),
-  //         },
-  //         senderId: user.userId,
-  //         receiverId: chatId,
-  //         readBy: [],
-  //         deletedBy: [],
-  //         reactions: [],
-  //         createdAt: new Date().toISOString(),
-  //         updatedAt: new Date().toISOString(),
-  //         isMe: true,
-  //       };
-
-  //       setMessages((prev) => [...prev, tempMessage]);
-  //       scrollToBottom();
-  //       setMessage("");
-
-  //       const files: MediaUploadFile[] = result.assets.map((asset) => ({
-  //         uri: asset.uri,
-  //         type: asset.mimeType || "application/octet-stream",
-  //         name: asset.name,
-  //         mediaType: 'DOCUMENT'
-  //       }));
-
-  //       try {
-  //         const response = await messageService.sendMediaMessage({
-  //           files,
-  //         });
-
-  //         setMessages((prev) =>
-  //           prev.map((msg) => (msg.id === tempId ? { ...response, isMe: true } : msg))
-  //         );
-  //       } catch (error: any) {
-  //         setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-  //         Alert.alert("Error", "Failed to upload document. Please try again.");
-  //         console.error("Document upload error:", error);
-  //       }
-  //     }
-  //   } catch (error: any) {
-  //     setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-  //     Alert.alert("Error", "Failed to upload document. Please try again.");
-  //     console.error("Document upload error:", error);
-  //   } finally {
-  //     setIsLoadingMedia(false);
-  //   }
-  // };
   const handleReaction = async (messageId: string, reactionType: string) => {
     try {
       await messageService.addReaction(messageId, reactionType);
@@ -498,7 +500,7 @@ const ChatScreen = () => {
 
               <TouchableOpacity
                 className="mx-2"
-                // onPress={handleDocumentPick}
+                onPress={handleDocumentPick}
                 disabled={isLoadingMedia}
               >
                 <Ellipsis
