@@ -371,6 +371,14 @@ const ChatScreen = () => {
       Alert.alert("Error", "Failed to delete message");
     }
   };
+  const handleUnReaction = async (messageId: string) => {
+    try {
+      await messageService.removeReaction(messageId);
+    } catch (error) {
+      console.error("Error removing reaction:", error);
+      Alert.alert("Error", "Failed to remove reaction");
+    }
+  };
 
   const handleSendMediaMessage = async () => {
     if (!user || selectedMedia.length === 0) return;
@@ -464,6 +472,7 @@ const ChatScreen = () => {
               onReaction={handleReaction}
               onRecall={handleRecall}
               onDelete={handleDelete}
+              onUnReaction={handleUnReaction}
             />
           ))}
         </VStack>

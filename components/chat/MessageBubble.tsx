@@ -7,7 +7,14 @@ import {
   Alert,
 } from "react-native";
 import { Avatar, AvatarFallbackText } from "@/components/ui/avatar";
-import { ThumbsUp, RotateCcw, Trash2, Smile } from "lucide-react-native";
+import {
+  ThumbsUp,
+  RotateCcw,
+  Trash2,
+  Smile,
+  Heart,
+  X,
+} from "lucide-react-native";
 import { Image } from "expo-image";
 import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
@@ -18,13 +25,12 @@ import clsx from "clsx";
 import { MediaGrid } from "@/components/chat/MediaGrid";
 import { HStack } from "../ui/hstack";
 
-const { width: screenWidth } = Dimensions.get("window");
-
 interface MessageBubbleProps {
   message: Message;
   onReaction: (messageId: string, type: ReactionType) => void;
   onRecall: (messageId: string) => void;
   onDelete: (messageId: string) => void;
+  onUnReaction: (messageId: string) => void;
 }
 
 interface ReactionOption {
@@ -46,6 +52,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReaction,
   onRecall,
   onDelete,
+  onUnReaction,
 }) => {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -76,15 +83,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       [],
     );
   }, [message.reactions]);
-
-  // Memoize image URLs to avoid recalculating
-  const imageUrls = useMemo(
-    () =>
-      mediaItems
-        .filter((media) => media.type === "IMAGE")
-        .map((media) => media.url),
-    [mediaItems],
-  );
 
   // Render media content (images, videos, documents)
   const renderMediaContent = () => {
@@ -132,6 +130,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       ],
     );
   };
+  const handleUnReaction = () => {
+    onUnReaction(message.id);
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -152,7 +153,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     <>
       <View
         className={clsx(
-          "flex-row mb-2.5 w-full",
+          "flex-row mb-3 w-full",
           isMyMessage ? "justify-end" : "justify-start",
         )}
       >
@@ -220,71 +221,59 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </View>
 
-          {/* Reaction button */}
-          {!message.recalled && (
-            <TouchableOpacity
-              onPress={() => setShowReactionPicker(!showReactionPicker)}
-              className={clsx(
-                "absolute bottom-0",
-                isMyMessage ? "left-0 -translate-x-6" : "right-0 translate-x-6",
-              )}
-            >
-              <View className="bg-white rounded-full p-1 shadow">
-                <Smile size={16} color="#666666" />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* Reaction picker */}
           {showReactionPicker && (
-            <View
-              className={clsx(
-                "absolute bottom-8 bg-white rounded-full shadow-lg p-2",
-                isMyMessage ? "right-0" : "left-0",
-              )}
-            >
-              <HStack space="sm">
-                {reactionOptions.map((reaction) => (
-                  <TouchableOpacity
-                    key={reaction.type}
-                    onPress={() => {
-                      onReaction(message.id, reaction.type);
-                      setShowReactionPicker(false);
-                    }}
-                    className="px-1"
-                  >
-                    <RNText className="text-xl">{reaction.emoji}</RNText>
-                  </TouchableOpacity>
-                ))}
-              </HStack>
+            <View className="absolute items-center bottom-4 bg-white rounded-full shadow-lg p-2 flex-row justify-between">
+              <View>
+                <HStack space="sm">
+                  {reactionOptions.map((reaction) => (
+                    <TouchableOpacity
+                      key={reaction.type}
+                      onPress={() => {
+                        onReaction(message.id, reaction.type);
+                        setShowReactionPicker(false);
+                      }}
+                      className="px-1"
+                    >
+                      <RNText className="text-xl">{reaction.emoji}</RNText>
+                    </TouchableOpacity>
+                  ))}
+                </HStack>
+              </View>
+              <TouchableOpacity onPress={handleUnReaction} className="">
+                <X size={18} color="#c4c4c4" />
+              </TouchableOpacity>
             </View>
           )}
 
           {/* Display reactions */}
-          {groupedReactions.length > 0 && (
-            <View
+          {!message.recalled && (
+            <TouchableOpacity
+              onPress={() => setShowReactionPicker(!showReactionPicker)}
               className={clsx(
-                "absolute -bottom-4 bg-white rounded-full shadow px-2 py-1",
-                isMyMessage ? "right-2" : "left-2",
+                "absolute -bottom-4 bg-white rounded-full shadow p-1.5 right-1",
               )}
             >
-              <HStack space="xs">
-                {groupedReactions.map((reaction, index) => (
-                  <View key={index} className="flex-row items-center">
-                    <RNText className="text-xs">
-                      {
-                        reactionOptions.find(
-                          (opt) => opt.type === reaction.type,
-                        )?.emoji
-                      }
-                    </RNText>
-                    <RNText className="text-xs text-gray-500 ml-1">
-                      {reaction.count}
-                    </RNText>
-                  </View>
-                ))}
-              </HStack>
-            </View>
+              {groupedReactions.length > 0 ? (
+                <HStack space="xs">
+                  {groupedReactions.map((reaction, index) => (
+                    <View key={index} className="flex-row items-center">
+                      <RNText className="text-xs text-gray-500 mr-1">
+                        {reaction.count}
+                      </RNText>
+                      <RNText className="text-xs">
+                        {
+                          reactionOptions.find(
+                            (opt) => opt.type === reaction.type,
+                          )?.emoji
+                        }
+                      </RNText>
+                    </View>
+                  ))}
+                </HStack>
+              ) : (
+                <Heart size={12} color="#c4c4c4" strokeWidth={1.5} />
+              )}
+            </TouchableOpacity>
           )}
         </TouchableOpacity>
       </View>
