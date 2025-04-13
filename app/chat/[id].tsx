@@ -67,6 +67,14 @@ const ChatScreen = () => {
 
   const shouldAutoScroll = useRef(true);
 
+  // Hàm để xác định tin nhắn cuối cùng của mỗi người dùng
+  const getIsLastMessageOfUser = (message: Message, index: number) => {
+    if (index === messages.length - 1) return true;
+
+    const nextMessage = messages[index + 1];
+    return message.senderId !== nextMessage.senderId;
+  };
+
   const handleMediaUpload = async () => {
     if (!user) return;
 
@@ -465,7 +473,7 @@ const ChatScreen = () => {
       >
         {loading && <ActivityIndicator className="py-4" />}
         <VStack className="py-4">
-          {messages.map((msg) => (
+          {messages.map((msg, index) => (
             <MessageBubble
               key={msg.id}
               message={msg}
@@ -473,6 +481,7 @@ const ChatScreen = () => {
               onRecall={handleRecall}
               onDelete={handleDelete}
               onUnReaction={handleUnReaction}
+              isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
             />
           ))}
         </VStack>

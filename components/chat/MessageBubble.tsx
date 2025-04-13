@@ -31,6 +31,7 @@ interface MessageBubbleProps {
   onRecall: (messageId: string) => void;
   onDelete: (messageId: string) => void;
   onUnReaction: (messageId: string) => void;
+  isLastMessageOfUser: boolean; // Thêm prop mới
 }
 
 interface ReactionOption {
@@ -53,10 +54,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onRecall,
   onDelete,
   onUnReaction,
+  isLastMessageOfUser,
 }) => {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showLongPressReaction, setShowLongPressReaction] = useState(false);
   const { user } = useAuthStore();
   const isMyMessage = message.senderId === user?.userId;
   const mediaItems = message.content.media || [];
@@ -66,17 +69,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     return null;
   }
 
+  const hasReactions = message.reactions && message.reactions.length > 0;
+  const shouldShowReactionButton =
+    isLastMessageOfUser || hasReactions || showLongPressReaction;
+
   // Group reactions by type and count them
   const groupedReactions = useMemo(() => {
     if (!message.reactions) return [];
-
     return message.reactions.reduce(
       (acc: { type: ReactionType; count: number }[], curr) => {
         const existing = acc.find((r) => r.type === curr.reaction);
         if (existing) {
-          existing.count = curr.count;
+          existing.count += 1;
         } else {
-          acc.push({ type: curr.reaction as ReactionType, count: curr.count });
+          acc.push({ type: curr.reaction as ReactionType, count: 1 });
         }
         return acc;
       },
@@ -149,6 +155,46 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   };
 
+  const handleLongPress = () => {
+    if (message.recalled) return;
+
+    if (isMyMessage) {
+      Alert.alert("Tùy chọn tin nhắn", "", [
+        {
+          text: "Thả cảm xúc",
+          onPress: () => setShowLongPressReaction(true),
+        },
+        { text: "Thu hồi", onPress: handleRecall },
+        { text: "Xóa", onPress: handleDelete },
+        {
+          text: "Hủy",
+          style: "cancel",
+          onPress: () => setShowLongPressReaction(false),
+        },
+      ]);
+    } else {
+      Alert.alert("Tùy chọn tin nhắn", "", [
+        {
+          text: "Thả cảm xúc",
+          onPress: () => setShowLongPressReaction(true),
+        },
+        { text: "Xóa", onPress: handleDelete },
+        {
+          text: "Hủy",
+          style: "cancel",
+          onPress: () => setShowLongPressReaction(false),
+        },
+      ]);
+    }
+  };
+
+  // Đóng reaction picker sau khi đã chọn reaction
+  const handleReactionSelect = (type: ReactionType) => {
+    onReaction(message.id, type);
+    setShowReactionPicker(false);
+    setShowLongPressReaction(false);
+  };
+
   return (
     <>
       <View
@@ -168,15 +214,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
 
         <TouchableOpacity
-          onLongPress={() => {
-            if (isMyMessage && !message.recalled) {
-              Alert.alert("Tùy chọn tin nhắn", "", [
-                { text: "Thu hồi", onPress: handleRecall },
-                { text: "Xóa", onPress: handleDelete },
-                { text: "Hủy", style: "cancel" },
-              ]);
-            }
-          }}
+          onLongPress={handleLongPress}
           activeOpacity={0.8}
           className={clsx(
             "rounded-2xl max-w-[80%]",
@@ -221,59 +259,64 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </View>
 
-          {showReactionPicker && (
-            <View className="absolute items-center bottom-4 bg-white rounded-full shadow-lg p-2 flex-row justify-between">
-              <View>
-                <HStack space="sm">
-                  {reactionOptions.map((reaction) => (
-                    <TouchableOpacity
-                      key={reaction.type}
-                      onPress={() => {
-                        onReaction(message.id, reaction.type);
-                        setShowReactionPicker(false);
-                      }}
-                      className="px-1"
-                    >
-                      <RNText className="text-xl">{reaction.emoji}</RNText>
-                    </TouchableOpacity>
-                  ))}
-                </HStack>
-              </View>
-              <TouchableOpacity onPress={handleUnReaction} className="">
-                <X size={18} color="#c4c4c4" />
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* Chỉ hiển thị reaction picker và nút reaction khi thỏa điều kiện */}
+          {shouldShowReactionButton && !message.recalled && (
+            <>
+              {(showReactionPicker || showLongPressReaction) && (
+                <View className="absolute items-center bottom-4 bg-white rounded-full shadow-lg p-2 flex-row justify-between">
+                  <View>
+                    <HStack space="sm">
+                      {reactionOptions.map((reaction) => (
+                        <TouchableOpacity
+                          key={reaction.type}
+                          onPress={() => handleReactionSelect(reaction.type)}
+                          className="px-1"
+                        >
+                          <RNText className="text-xl">{reaction.emoji}</RNText>
+                        </TouchableOpacity>
+                      ))}
+                    </HStack>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      handleUnReaction();
+                      setShowLongPressReaction(false);
+                    }}
+                    className=""
+                  >
+                    <X size={18} color="#c4c4c4" />
+                  </TouchableOpacity>
+                </View>
+              )}
 
-          {/* Display reactions */}
-          {!message.recalled && (
-            <TouchableOpacity
-              onPress={() => setShowReactionPicker(!showReactionPicker)}
-              className={clsx(
-                "absolute -bottom-4 bg-white rounded-full shadow p-1.5 right-1",
-              )}
-            >
-              {groupedReactions.length > 0 ? (
-                <HStack space="xs">
-                  {groupedReactions.map((reaction, index) => (
-                    <View key={index} className="flex-row items-center">
-                      <RNText className="text-xs text-gray-500 mr-1">
-                        {reaction.count}
-                      </RNText>
-                      <RNText className="text-xs">
-                        {
-                          reactionOptions.find(
-                            (opt) => opt.type === reaction.type,
-                          )?.emoji
-                        }
-                      </RNText>
-                    </View>
-                  ))}
-                </HStack>
-              ) : (
-                <Heart size={12} color="#c4c4c4" strokeWidth={1.5} />
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowReactionPicker(!showReactionPicker)}
+                className={clsx(
+                  "absolute -bottom-4 bg-white rounded-full shadow p-1.5 right-1",
+                )}
+              >
+                {groupedReactions.length > 0 ? (
+                  <HStack space="xs">
+                    {groupedReactions.map((reaction, index) => (
+                      <View key={index} className="flex-row items-center">
+                        <RNText className="text-xs text-gray-500 mr-1">
+                          {reaction.count}
+                        </RNText>
+                        <RNText className="text-xs">
+                          {
+                            reactionOptions.find(
+                              (opt) => opt.type === reaction.type,
+                            )?.emoji
+                          }
+                        </RNText>
+                      </View>
+                    ))}
+                  </HStack>
+                ) : (
+                  <Heart size={12} color="#c4c4c4" strokeWidth={1.5} />
+                )}
+              </TouchableOpacity>
+            </>
           )}
         </TouchableOpacity>
       </View>
