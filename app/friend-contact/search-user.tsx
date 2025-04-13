@@ -11,10 +11,11 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, ArrowRight, X } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, X, QrCode, Users } from "lucide-react-native";
 import { HStack } from "@/components/ui/hstack";
 import { LinearGradient } from "expo-linear-gradient";
 import QRCode from "react-native-qrcode-svg";
+
 import { searchUser } from "@/services/user-service";
 import { useAuthStore } from "@/store/authStore";
 
@@ -125,6 +126,11 @@ export default function SearchUserScreen() {
 
   // Không cần hàm handleViewProfile nữa vì đã xử lý trực tiếp trong handleSearch
 
+  const handleStartScan = () => {
+    // Điều hướng đến trang quét QR mới
+    router.push("/friend-contact/qr-scan");
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
@@ -154,7 +160,7 @@ export default function SearchUserScreen() {
         <View className="p-3 bg-white rounded-lg shadow-sm">
           <QRCode
             value={myQrValue}
-            size={120}
+            size={200}
             color="black"
             backgroundColor="white"
           />
@@ -207,6 +213,38 @@ export default function SearchUserScreen() {
             Nhập email hoặc số điện thoại để tìm kiếm
           </Text>
         )}
+
+        {/* QR Code Scanner Section */}
+        <View className="mt-8 border-t border-gray-200 pt-6">
+          <TouchableOpacity
+            onPress={handleStartScan}
+            className="flex-row items-center justify-center bg-gray-100 py-4 px-6 rounded-lg"
+          >
+            <QrCode size={24} color="#3B82F6" />
+            <Text className="ml-3 text-lg font-medium text-gray-800">
+              Quét mã QR để kết bạn
+            </Text>
+          </TouchableOpacity>
+          <Text className="text-center text-gray-500 mt-2 px-4">
+            Quét mã QR của bạn bè để kết nối nhanh chóng
+          </Text>
+        </View>
+
+        {/* Phone Contacts Section */}
+        <View className="mt-6 mb-8">
+          <TouchableOpacity
+            onPress={() => router.push("/friend-contact/phoneContacts")}
+            className="flex-row items-center justify-center bg-gray-100 py-4 px-6 rounded-lg"
+          >
+            <Users size={24} color="#3B82F6" />
+            <Text className="ml-3 text-lg font-medium text-gray-800">
+              Tìm bạn từ danh bạ điện thoại
+            </Text>
+          </TouchableOpacity>
+          <Text className="text-center text-gray-500 mt-2 px-4">
+            Tìm bạn bè đã đăng ký tài khoản từ danh bạ của bạn
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );

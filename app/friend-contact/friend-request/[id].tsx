@@ -77,7 +77,15 @@ export default function FriendRequestScreen() {
       // Gọi API gửi lời mời kết bạn
       await sendFriendRequest(userProfile.id, introduce);
 
-      // Quay lại màn hình profile
+      // Đặt một biến toàn cục để báo hiệu cần cập nhật màn hình profile
+      // Biến này sẽ được kiểm tra trong useEffect của màn hình profile
+      // @ts-ignore - Bỏ qua cảnh báo TypeScript về biến toàn cục
+      global.FRIEND_REQUEST_SENT = {
+        userId: userProfile.id,
+        timestamp: Date.now(),
+      };
+
+      // Đơn giản chỉ cần quay lại màn hình trước đó
       router.back();
     } catch (error) {
       console.error("Error sending friend request:", error);

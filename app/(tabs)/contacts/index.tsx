@@ -192,7 +192,7 @@ export default function ContactScreen() {
                 />
               }
               title="Lời mời kết bạn"
-              onPress={() => router.push("/friend-contact/friend-requests")}
+              onPress={() => router.push("/friend-contact/friend-request")}
             />
             <FunctionButton
               icon={

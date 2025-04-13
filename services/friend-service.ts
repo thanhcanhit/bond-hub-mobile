@@ -264,3 +264,18 @@ export const sendFriendRequest = async (
     throw error;
   }
 };
+
+// Hủy kết bạn
+export const unfriend = async (userId: string): Promise<void> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    await axiosInstance.delete(`/friends/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    console.error("Error unfriending:", error);
+    throw error;
+  }
+};
