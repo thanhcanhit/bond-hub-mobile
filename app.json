@@ -50,7 +50,20 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-barcode-scanner"
+      "expo-barcode-scanner",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "expo-file-system",
+        {
+          "filePermission": "Cho phép ứng dụng truy cập files"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

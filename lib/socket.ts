@@ -7,8 +7,6 @@ class SocketManager {
   private static instance: SocketManager;
   private socket: Socket | null = null;
 
-  private constructor() {}
-
   public static getInstance(): SocketManager {
     if (!SocketManager.instance) {
       SocketManager.instance = new SocketManager();

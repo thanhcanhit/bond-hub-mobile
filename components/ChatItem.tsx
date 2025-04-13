@@ -6,6 +6,8 @@ import { VStack } from "./ui/vstack";
 import { BellOff, CircleIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
+// Comment interface cũ
+/*
 interface ChatItemProps {
   id: string;
   name: string;
@@ -17,35 +19,42 @@ interface ChatItemProps {
   unreadCount?: number;
   onPress?: () => void;
 }
+*/
+
+// Interface mới theo dữ liệu getAllUsers
+interface ChatItemProps {
+  id: string;
+  email: string | null;
+  phoneNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
+  infoId: string | null;
+  onPress?: () => void;
+}
 
 const ChatItem: React.FC<ChatItemProps> = ({
   id,
-  name,
-  lastMessage = "",
-  lastMessageTime = "",
-  avatarUrl,
-  isGroup = false,
-  isMuted = false,
-  unreadCount = 0,
+  email,
+  phoneNumber,
+  createdAt,
+  updatedAt,
+  infoId,
   onPress,
 }) => {
   const router = useRouter();
-  // Hàm xử lý hiển thị thời gian
+
+  // Comment hàm cũ
+  /*
   const formatTime = (timeString: string) => {
     if (!timeString) return "";
-
     const date = new Date(timeString);
     const now = new Date();
-
-    // Nếu cùng ngày
     if (date.toDateString() === now.toDateString()) {
       return date.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       });
     }
-
-    // Nếu trong cùng tuần
     const daysDiff = Math.floor(
       (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
     );
@@ -54,35 +63,35 @@ const ChatItem: React.FC<ChatItemProps> = ({
     }
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
+  */
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
 
   return (
     <TouchableOpacity
       onPress={() => router.push(`/chat/${id}`)}
-      className="items-center  px-2.5 "
+      className="items-center px-2.5"
     >
-      <HStack className="w-full items-center  justify-between   ">
-        {/* Avatar */}
+      <HStack className="w-full items-center justify-between">
         <Avatar size="lg">
-          <AvatarFallbackText>{name}</AvatarFallbackText>
-          {avatarUrl && <AvatarImage source={{ uri: avatarUrl }} />}
+          <AvatarFallbackText>
+            {email || phoneNumber || "User"}
+          </AvatarFallbackText>
         </Avatar>
 
-        <VStack className=" w-5/6 pl-2  py-4 border-b-[0.5px]  border-gray-200">
+        <VStack className="w-5/6 pl-2 py-4 border-b-[0.5px] border-gray-200">
           <HStack className="justify-between">
-            <Text className="font-semibold text-lg " numberOfLines={1}>
-              {name}
+            <Text className="font-semibold text-lg" numberOfLines={1}>
+              {email || phoneNumber || "Unknown User"}
             </Text>
-            <HStack className="items-center ">
-              {isMuted && <BellOff size={16} color="gray" />}
-              <Text className="text-gray-500 pl-2">
-                {formatTime(lastMessageTime)}
-              </Text>
-            </HStack>
+            <Text className="text-gray-500">{formatDate(createdAt)}</Text>
           </HStack>
 
           <HStack>
-            <Text className="text-gray-500 pt-1 " numberOfLines={1}>
-              {lastMessage}
+            <Text className="text-gray-500 pt-1" numberOfLines={1}>
+              ID: {id.slice(0, 8)}...
             </Text>
           </HStack>
         </VStack>

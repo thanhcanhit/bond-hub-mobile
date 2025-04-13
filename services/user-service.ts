@@ -1,7 +1,28 @@
 import { useAuthStore } from "@/store/authStore";
 import axiosInstance from "../lib/axios";
-import { User, UserInfo } from "@/types";
+import {
+  ChangePasswordData,
+  ChatItemData,
+  UpdateBasicInfoData,
+  User,
+  UserInfo,
+} from "@/types";
 import * as SecureStore from "expo-secure-store";
+
+export const getAllUsers = async (): Promise<ChatItemData[]> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.get("/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error in getAllUsers:", error);
+    throw error;
+  }
+};
 
 export const getUserInfo = async (userId: string): Promise<UserInfo> => {
   try {
@@ -18,7 +39,6 @@ export const getUserInfo = async (userId: string): Promise<UserInfo> => {
   }
 };
 
-// Lấy thông tin chi tiết của người dùng khác
 export const getUserProfile = async (userId: string): Promise<any> => {
   console.log("Fetching user profile for ID:", userId);
   try {
@@ -35,13 +55,6 @@ export const getUserProfile = async (userId: string): Promise<any> => {
     throw error;
   }
 };
-
-interface UpdateBasicInfoData {
-  fullName: string;
-  dateOfBirth: string;
-  gender: string;
-  bio: string;
-}
 
 export const updateBasicInfo = async (
   data: UpdateBasicInfoData,
@@ -144,11 +157,6 @@ export const updateCoverImage = async (formData: FormData): Promise<void> => {
     throw error;
   }
 };
-
-export interface ChangePasswordData {
-  currentPassword: string;
-  newPassword: string;
-}
 
 export const changePassword = async (
   data: ChangePasswordData,
