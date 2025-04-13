@@ -1,6 +1,14 @@
 import axiosInstance from "@/lib/axios";
 import { Message, ReactionType, SendMessageRequest } from "@/types";
 
+interface ForwardMessageRequest {
+  messageId: string;
+  targets: Array<{
+    // Đổi
+    userId: string;
+  }>;
+}
+
 const handleError = (error: any, context: string) => {
   console.error(`Error in ${context}:`, error);
   throw error;
@@ -99,6 +107,18 @@ export const messageService = {
       await axiosInstance.patch(`/messages/recall/${messageId}`);
     } catch (error) {
       handleError(error, "recallMessage");
+    }
+  },
+
+  // Chuyển tiếp tin nhắn
+  async forwardMessage(data: ForwardMessageRequest): Promise<void> {
+    try {
+      await axiosInstance.post("/messages/forward", {
+        messageId: data.messageId,
+        targets: data.targets, // Đảm bảo gửi đúng tên field là 'targets'
+      });
+    } catch (error) {
+      handleError(error, "forwardMessage");
     }
   },
 

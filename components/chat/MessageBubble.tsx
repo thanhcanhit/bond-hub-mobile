@@ -2,20 +2,12 @@ import React, { useState, useMemo } from "react";
 import {
   View,
   TouchableOpacity,
-  Dimensions,
   Text as RNText,
   Alert,
+  Pressable,
 } from "react-native";
 import { Avatar, AvatarFallbackText } from "@/components/ui/avatar";
-import {
-  ThumbsUp,
-  RotateCcw,
-  Trash2,
-  Smile,
-  Heart,
-  X,
-} from "lucide-react-native";
-import { Image } from "expo-image";
+import { Heart, X } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
 import { VideoMessage } from "@/components/chat/VideoMessage";
@@ -24,6 +16,8 @@ import { Message, ReactionType } from "@/types";
 import clsx from "clsx";
 import { MediaGrid } from "@/components/chat/MediaGrid";
 import { HStack } from "../ui/hstack";
+import { MessageActions } from "./MessageActions";
+import { MessageForwardModal } from "./MessageForwardModal";
 
 interface MessageBubbleProps {
   message: Message;
@@ -60,6 +54,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showLongPressReaction, setShowLongPressReaction] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [showForwardModal, setShowForwardModal] = useState(false);
   const { user } = useAuthStore();
   const isMyMessage = message.senderId === user?.userId;
   const mediaItems = message.content.media || [];
@@ -161,35 +157,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const handleLongPress = () => {
     if (message.recalled) return;
+    setShowActions(true);
+  };
 
-    if (isMyMessage) {
-      Alert.alert("Tùy chọn tin nhắn", "", [
-        {
-          text: "Thả cảm xúc",
-          onPress: () => setShowLongPressReaction(true),
-        },
-        { text: "Thu hồi", onPress: handleRecall },
-        { text: "Xóa", onPress: handleDelete },
-        {
-          text: "Hủy",
-          style: "cancel",
-          onPress: () => setShowLongPressReaction(false),
-        },
-      ]);
-    } else {
-      Alert.alert("Tùy chọn tin nhắn", "", [
-        {
-          text: "Thả cảm xúc",
-          onPress: () => setShowLongPressReaction(true),
-        },
-        { text: "Xóa", onPress: handleDelete },
-        {
-          text: "Hủy",
-          style: "cancel",
-          onPress: () => setShowLongPressReaction(false),
-        },
-      ]);
-    }
+  const handleForward = () => {
+    setShowActions(false);
+    setShowForwardModal(true);
+  };
+
+  const handleCloseActions = () => {
+    setShowActions(false);
+  };
+
+  const handleCloseReactionPicker = () => {
+    setShowReactionPicker(false);
+    setShowLongPressReaction(false);
   };
 
   // Đóng reaction picker sau khi đã chọn reaction
@@ -203,7 +185,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     <>
       <View
         className={clsx(
-          "flex-row mb-3 w-full",
+          "flex-row mb-3 w-full relative",
           isMyMessage ? "justify-end" : "justify-start",
           shouldShowReactionButton ? "mb-6" : "mb-0.5",
         )}
@@ -222,10 +204,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           onLongPress={handleLongPress}
           activeOpacity={0.8}
           className={clsx(
-            "rounded-2xl max-w-[80%]",
+            "rounded-2xl max-w-[80%] relative",
             isMyMessage ? "bg-blue-100" : "bg-white",
           )}
         >
+          <MessageActions
+            isVisible={showActions}
+            isMyMessage={isMyMessage}
+            onReaction={() => {
+              setShowActions(false);
+              setShowLongPressReaction(true);
+            }}
+            onRecall={() => {
+              setShowActions(false);
+              handleRecall();
+            }}
+            onDelete={() => {
+              setShowActions(false);
+              handleDelete();
+            }}
+            onForward={handleForward}
+            onClose={handleCloseActions}
+            position={isMyMessage ? "right" : "left"}
+          />
+
           <View className="p-2.5 px-4">
             {message.recalled ? (
               <RNText className="text-typography-500 italic">
@@ -268,36 +270,51 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {shouldShowReactionButton && !message.recalled && (
             <>
               {(showReactionPicker || showLongPressReaction) && (
-                <View className="absolute items-center bottom-4 bg-white rounded-full shadow-lg p-2 flex-row justify-between ">
-                  <View>
-                    <HStack space="sm">
-                      {reactionOptions.map((reaction) => (
-                        <TouchableOpacity
-                          key={reaction.type}
-                          onPress={() => handleReactionSelect(reaction.type)}
-                          className="px-1"
-                        >
-                          <RNText className="text-xl">{reaction.emoji}</RNText>
-                        </TouchableOpacity>
-                      ))}
-                    </HStack>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      handleUnReaction();
-                      setShowLongPressReaction(false);
-                    }}
-                    className=""
+                <>
+                  {/* Overlay để xử lý click outside */}
+                  <Pressable
+                    onPress={handleCloseReactionPicker}
+                    className="absolute inset-0 w-full h-screen z-10"
+                  />
+
+                  <View
+                    className={clsx(
+                      "absolute -top-0 bg-white rounded-full shadow-md py-2 px-3 z-20 flex-row items-center",
+                      isMyMessage ? "right-0" : "left-0",
+                    )}
                   >
-                    <X size={18} color="#c4c4c4" />
-                  </TouchableOpacity>
-                </View>
+                    <View>
+                      <HStack space="sm">
+                        {reactionOptions.map((reaction) => (
+                          <TouchableOpacity
+                            key={reaction.type}
+                            onPress={() => handleReactionSelect(reaction.type)}
+                            className="px-1"
+                          >
+                            <RNText className="text-xl">
+                              {reaction.emoji}
+                            </RNText>
+                          </TouchableOpacity>
+                        ))}
+                      </HStack>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleUnReaction();
+                        handleCloseReactionPicker();
+                      }}
+                      className=""
+                    >
+                      <X size={18} color="#c4c4c4" />
+                    </TouchableOpacity>
+                  </View>
+                </>
               )}
 
               <TouchableOpacity
                 onPress={() => setShowReactionPicker(!showReactionPicker)}
                 className={clsx(
-                  "absolute -bottom-4 bg-white rounded-full shadow p-1.5 right-1",
+                  "absolute -bottom-4 bg-white rounded-full shadow p-1.5 right-1 z-20",
                 )}
               >
                 {groupedReactions.length > 0 ? (
@@ -334,6 +351,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         visible={showImageViewer}
         onClose={() => setShowImageViewer(false)}
         initialIndex={selectedImageIndex}
+      />
+
+      {/* MessageForwardModal */}
+      <MessageForwardModal
+        isOpen={showForwardModal}
+        onClose={() => setShowForwardModal(false)}
+        messageId={message.id}
       />
     </>
   );
