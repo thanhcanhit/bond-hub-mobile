@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axios";
-import { Message, SendMessageRequest } from "@/types";
+import { Message, ReactionType, SendMessageRequest } from "@/types";
 
 const handleError = (error: any, context: string) => {
   console.error(`Error in ${context}:`, error);
@@ -70,7 +70,10 @@ export const messageService = {
   },
 
   // Thêm reaction
-  async addReaction(messageId: string, reactionType: string): Promise<void> {
+  async addReaction(
+    messageId: string,
+    reactionType: ReactionType,
+  ): Promise<void> {
     try {
       await axiosInstance.post(`/messages/reaction`, {
         messageId,
@@ -84,7 +87,7 @@ export const messageService = {
   // Xóa reaction
   async removeReaction(messageId: string): Promise<void> {
     try {
-      await axiosInstance.delete(`/messages/${messageId}/reactions`);
+      await axiosInstance.delete(`/messages/reaction/${messageId}`);
     } catch (error) {
       handleError(error, "removeReaction");
     }

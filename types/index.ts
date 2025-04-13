@@ -85,26 +85,50 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
+
+export interface MessageMedia {
+  url: string;
+  type: "IMAGE" | "VIDEO" | "DOCUMENT";
+  fileId?: string;
+  fileName?: string;
+  thumbnailUrl?: string;
+  metadata?: {
+    path: string;
+    size: number;
+    mimeType: string;
+    extension: string;
+    bucketName: string;
+    uploadedAt: string;
+    sizeFormatted: string;
+  };
+}
+
 export interface MessageReaction {
-  type: string;
+  count: number;
   userId: string;
+  reaction: ReactionType;
 }
 
 export interface Message {
   id: string;
   content: {
     text?: string;
-    media?: MediaItem[];
+    media?: MessageMedia[];
   };
   senderId: string;
   receiverId: string;
-  readBy: string[];
-  deletedBy: string[];
-  reactions: MessageReaction[];
-  createdAt: string;
-  updatedAt: string;
-  isMe: boolean;
+  groupId?: string;
   recalled?: boolean;
+  deletedBy?: string[];
+  repliedTo?: string | null;
+  reactions?: MessageReaction[];
+  readBy?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  messageType: "USER" | "GROUP";
+  forwardedFrom?: string | null;
+  isMe?: boolean;
 }
 
 export interface SendMessageRequest {

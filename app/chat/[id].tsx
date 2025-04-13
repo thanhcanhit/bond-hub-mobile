@@ -28,11 +28,17 @@ import { useSocketContext } from "@/components/SocketProvider";
 import { useAuthStore } from "@/store/authStore";
 import EmojiSelector from "react-native-emoji-selector";
 import { messageService } from "@/services/message-service";
-import { MediaUploadFile, Message, MessageReaction } from "@/types";
+import {
+  MediaUploadFile,
+  Message,
+  MessageReaction,
+  ReactionType,
+} from "@/types";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
+import { MediaPreview } from "@/components/chat/MediaPreview";
 
 const ChatScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
@@ -50,12 +56,19 @@ const ChatScreen = () => {
   const [isGroup] = useState(false);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const insets = useSafeAreaInsets();
+  const [selectedMedia, setSelectedMedia] = useState<
+    Array<{
+      uri: string;
+      type: "IMAGE" | "VIDEO";
+      width?: number;
+      height?: number;
+    }>
+  >([]);
 
   const shouldAutoScroll = useRef(true);
 
   const handleMediaUpload = async () => {
     if (!user) return;
-    const tempId = uuid.v4();
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -66,8 +79,6 @@ const ChatScreen = () => {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        setIsLoadingMedia(true);
-
         // Kiểm tra kích thước file
         const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         const invalidFiles = result.assets.filter(
@@ -79,70 +90,19 @@ const ChatScreen = () => {
           return;
         }
 
-        // Tạo tin nhắn tạm thời để hiển thị ngay
-        const tempMessage: Message = {
-          id: tempId,
-          content: {
-            text: message,
-            media: result.assets.map((asset) => ({
-              type: asset.type === "video" ? "VIDEO" : "IMAGE",
-              url: asset.uri,
-              loading: true,
-              width: asset.width,
-              height: asset.height,
-            })),
-          },
-          senderId: user.userId,
-          receiverId: chatId,
-          readBy: [],
-          deletedBy: [],
-          reactions: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isMe: true,
-        };
-
-        setMessages((prev) => [...prev, tempMessage]);
-        scrollToBottom();
-        setMessage("");
-
-        // Create FormData with message details and files
-        const formData = new FormData();
-        formData.append("receiverId", chatId);
-        formData.append("content[text]", message);
-
-        result.assets.forEach((asset) => {
-          const fileType = asset.type === "video" ? "video/mp4" : "image/jpeg";
-          const mediaType = asset.type === "video" ? "VIDEO" : "IMAGE";
-          formData.append("mediaType", mediaType);
-          formData.append("files", {
+        // Add selected media to preview
+        setSelectedMedia(
+          result.assets.map((asset) => ({
             uri: asset.uri,
-            type: fileType,
-            name: `${asset.type === "video" ? "video" : "image"}_${Date.now()}.${asset.type === "video" ? "mp4" : "jpg"}`,
-            mediaType: mediaType,
-          } as any);
-        });
-
-        try {
-          const response = await messageService.sendMediaMessage(formData);
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === tempId
-                ? ({ ...response, isMe: true } as Message)
-                : msg,
-            ),
-          );
-        } catch (error: any) {
-          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-          Alert.alert("Lỗi", "Không thể gửi file. Vui lòng thử lại.");
-          console.error("Media upload error:", error);
-        }
+            type: asset.type === "video" ? "VIDEO" : "IMAGE",
+            width: asset.width,
+            height: asset.height,
+          })),
+        );
       }
     } catch (error: any) {
       Alert.alert("Lỗi", "Không thể chọn file. Vui lòng thử lại.");
       console.error("Media picker error:", error);
-    } finally {
-      setIsLoadingMedia(false);
     }
   };
 
@@ -271,8 +231,7 @@ const ChatScreen = () => {
         readBy: [],
         deletedBy: [],
         reactions: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        messageType: "USER",
         isMe: true,
       };
 
@@ -338,8 +297,7 @@ const ChatScreen = () => {
           readBy: [],
           deletedBy: [],
           reactions: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          messageType: "USER",
           isMe: true,
         };
 
@@ -384,7 +342,10 @@ const ChatScreen = () => {
       setIsLoadingMedia(false);
     }
   };
-  const handleReaction = async (messageId: string, reactionType: string) => {
+  const handleReaction = async (
+    messageId: string,
+    reactionType: ReactionType,
+  ) => {
     try {
       await messageService.addReaction(messageId, reactionType);
     } catch (error) {
@@ -408,6 +369,72 @@ const ChatScreen = () => {
     } catch (error) {
       console.error("Error deleting message:", error);
       Alert.alert("Error", "Failed to delete message");
+    }
+  };
+
+  const handleSendMediaMessage = async () => {
+    if (!user || selectedMedia.length === 0) return;
+    const tempId = uuid.v4();
+    setIsLoadingMedia(true);
+
+    try {
+      // Tạo tin nhắn tạm thời để hiển thị ngay
+      const tempMessage: Message = {
+        id: tempId,
+        content: {
+          text: message,
+          media: selectedMedia.map((media) => ({
+            type: media.type,
+            url: media.uri,
+            loading: true,
+            width: media.width,
+            height: media.height,
+          })),
+        },
+        senderId: user.userId,
+        receiverId: chatId,
+        readBy: [],
+        deletedBy: [],
+        reactions: [],
+        messageType: "USER",
+        isMe: true,
+      };
+
+      setMessages((prev) => [...prev, tempMessage]);
+      scrollToBottom();
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("receiverId", chatId);
+      formData.append("content[text]", message);
+
+      selectedMedia.forEach((media) => {
+        const fileType = media.type === "VIDEO" ? "video/mp4" : "image/jpeg";
+        formData.append("mediaType", media.type);
+        formData.append("files", {
+          uri: media.uri,
+          type: fileType,
+          name: `${media.type.toLowerCase()}_${Date.now()}.${media.type === "VIDEO" ? "mp4" : "jpg"}`,
+          mediaType: media.type,
+        } as any);
+      });
+
+      const response = await messageService.sendMediaMessage(formData);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId ? ({ ...response, isMe: true } as Message) : msg,
+        ),
+      );
+
+      // Clear media preview and message input
+      setSelectedMedia([]);
+      setMessage("");
+    } catch (error: any) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      Alert.alert("Lỗi", "Không thể gửi file. Vui lòng thử lại.");
+      console.error("Media upload error:", error);
+    } finally {
+      setIsLoadingMedia(false);
     }
   };
 
@@ -452,13 +479,20 @@ const ChatScreen = () => {
           }}
         />
       )}
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
+        {selectedMedia.length > 0 && (
+          <MediaPreview
+            mediaItems={selectedMedia}
+            onRemove={(index) => {
+              setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
+            }}
+          />
+        )}
         <View
-          className="flex-row justify-center items-center bg-white px-4 pt-4 "
+          className="flex-row justify-center items-center bg-white px-4 pt-4"
           style={{ paddingBottom: insets.bottom }}
         >
           <TouchableOpacity
@@ -470,14 +504,14 @@ const ChatScreen = () => {
           </TouchableOpacity>
 
           <TextInput
-            className="flex-1 ml-2.5 p-1 h-full bg-transparent justify-center text-gray-700 text-base "
+            className="flex-1 ml-2.5 p-1 h-full bg-transparent justify-center text-gray-700 text-base"
             placeholder="Nhập tin nhắn..."
             value={message}
             onChangeText={setMessage}
             multiline
             maxLength={1000}
           />
-          {!message.trim() ? (
+          {!message.trim() && selectedMedia.length === 0 ? (
             <View className="flex-row">
               <TouchableOpacity className="mx-2" disabled={isLoadingMedia}>
                 <Mic
@@ -497,7 +531,6 @@ const ChatScreen = () => {
                   strokeWidth={1.5}
                 />
               </TouchableOpacity>
-
               <TouchableOpacity
                 className="mx-2"
                 onPress={handleDocumentPick}
@@ -512,8 +545,13 @@ const ChatScreen = () => {
             </View>
           ) : (
             <TouchableOpacity
-              onPress={handleSend}
-              disabled={!message.trim() || isLoadingMedia}
+              onPress={
+                selectedMedia.length > 0 ? handleSendMediaMessage : handleSend
+              }
+              disabled={
+                (!message.trim() && selectedMedia.length === 0) ||
+                isLoadingMedia
+              }
             >
               <SendHorizonal size={28} fill={Colors.light.PRIMARY_BLUE} />
             </TouchableOpacity>
