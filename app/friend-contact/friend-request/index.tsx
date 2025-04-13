@@ -266,7 +266,7 @@ export default function FriendRequestsScreen() {
         <HStack
           className="bg-transparent flex-row items-center p-4"
           style={{
-            paddingTop: Platform.OS === "ios" ? insets.top : 14,
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top,
           }}
         >
           <TouchableOpacity onPress={() => router.back()}>

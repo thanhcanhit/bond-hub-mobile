@@ -105,6 +105,9 @@ export default function FriendRequestScreen() {
           start={{ x: 0.03, y: 0 }}
           end={{ x: 0.99, y: 2.5 }}
           colors={["#297eff", "#228eff", "#00d4ff"]}
+          style={{
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top,
+          }}
         >
           <View style={{ paddingTop: insets.top }} className="pb-4 px-4">
             <HStack className="items-center">

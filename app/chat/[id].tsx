@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import uuid from "react-native-uuid";
 import { VStack } from "@/components/ui/vstack";
+import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
 import {
   Image as ImageIcon,
   Mic,
@@ -488,18 +489,24 @@ const ChatScreen = () => {
       </ScrollView>
 
       {showEmoji && (
-        <EmojiSelector
-          showHistory
-          columns={10}
-          theme="transparent"
-          onEmojiSelected={(emoji) => {
-            setMessage((prev) => prev + emoji);
-          }}
+        <EmojiPicker
+          onEmojiSelected={(emoji: EmojiType) =>
+            setMessage(message + emoji.emoji)
+          }
+          categoryPosition="top"
+          enableRecentlyUsed
+          open={showEmoji}
+          onClose={() => setShowEmoji(!showEmoji)}
         />
       )}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        style={
+          Platform.OS === "ios"
+            ? { paddingBottom: 0 }
+            : { paddingBottom: insets.bottom }
+        }
       >
         {selectedMedia.length > 0 && (
           <MediaPreview
@@ -511,7 +518,11 @@ const ChatScreen = () => {
         )}
         <View
           className="flex-row justify-center items-center bg-white px-4 pt-4"
-          style={{ paddingBottom: insets.bottom }}
+          style={
+            Platform.OS === "ios"
+              ? { paddingBottom: 25 }
+              : { paddingBottom: 10 }
+          }
         >
           <TouchableOpacity
             className="ml-2.5"

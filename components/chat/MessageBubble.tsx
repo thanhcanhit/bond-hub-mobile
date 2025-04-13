@@ -116,7 +116,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {mediaItems
           .filter((media) => media.type === "DOCUMENT")
           .map((media, index) => (
-            <DocumentPreview key={`doc-${index}`} url={media.url} />
+            <DocumentPreview
+              key={`doc-${index}`}
+              url={media.url}
+              fileName={media.fileName || ""}
+            />
           ))}
       </>
     );
@@ -201,6 +205,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         className={clsx(
           "flex-row mb-3 w-full",
           isMyMessage ? "justify-end" : "justify-start",
+          shouldShowReactionButton ? "mb-6" : "mb-1",
         )}
       >
         {!isMyMessage && (
@@ -263,7 +268,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {shouldShowReactionButton && !message.recalled && (
             <>
               {(showReactionPicker || showLongPressReaction) && (
-                <View className="absolute items-center bottom-4 bg-white rounded-full shadow-lg p-2 flex-row justify-between">
+                <View className="absolute items-center bottom-4 bg-white rounded-full shadow-lg p-2 flex-row justify-between ">
                   <View>
                     <HStack space="sm">
                       {reactionOptions.map((reaction) => (

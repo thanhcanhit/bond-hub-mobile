@@ -178,4 +178,5 @@ export interface VideoMessageProps {
 
 export interface DocumentPreviewProps {
   url: string;
+  fileName: string;
 }

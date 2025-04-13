@@ -21,8 +21,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       colors={["#297eff", "#228eff", "#00d4ff"]}
     >
       <View
-        className="flex-row items-center justify-between px-2.5 py-2"
-        style={{ paddingTop: Platform.OS === "ios" ? insets.top : 20 }}
+        className="flex-row items-center justify-between px-4 py-2"
+        style={{
+          paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 5,
+        }}
       >
         <HStack className="items-center justify-between w-full">
           <HStack className="items-center flex-1">
