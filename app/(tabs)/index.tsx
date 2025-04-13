@@ -2,13 +2,12 @@ import { View, Text } from "react-native";
 import { useState, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ListChatItem from "@/components/ListChatItem";
-import { getAllUsers } from "@/services/user-service";
-import { ChatItemData } from "@/types";
 import { ActivityIndicator } from "react-native";
+import { Friend, getFriendList } from "@/services/friend-service";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [users, setUsers] = useState<ChatItemData[]>([]);
+  const [users, setUsers] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +15,7 @@ export default function HomeScreen() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await getAllUsers();
+        const response = await getFriendList();
         setUsers(response);
       } catch (err) {
         console.error("Error fetching users:", err);

@@ -48,12 +48,19 @@ export interface Friend {
 //   unreadCount: number;
 // }
 export interface ChatItemData {
-  id: string;
-  email: string | null;
-  phoneNumber: string | null;
-  createdAt: string;
-  updatedAt: string;
-  infoId: string | null;
+  friendshipId: string;
+  friend: {
+    id: string;
+    email: string;
+    phoneNumber: string;
+    userInfo: {
+      fullName: string;
+      profilePictureUrl: string;
+      statusMessage: string;
+      lastSeen: string;
+    };
+  };
+  since: string;
 }
 export interface UserSetting {
   id: string;
@@ -154,6 +161,8 @@ export interface MediaUploadFile {
 // Thêm các interfaces mới
 export interface ChatHeaderProps {
   chatId: string;
+  name: string;
+  avatarUrl?: string;
   isGroup: boolean;
   onBack: () => void;
 }

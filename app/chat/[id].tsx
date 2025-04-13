@@ -27,14 +27,8 @@ import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useSocketContext } from "@/components/SocketProvider";
 import { useAuthStore } from "@/store/authStore";
-import EmojiSelector from "react-native-emoji-selector";
 import { messageService } from "@/services/message-service";
-import {
-  MediaUploadFile,
-  Message,
-  MessageReaction,
-  ReactionType,
-} from "@/types";
+import { Message, MessageReaction, ReactionType } from "@/types";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -45,6 +39,8 @@ const ChatScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const params = useLocalSearchParams();
   const chatId = params.id as string;
+  const profilePictureUrl = params.profilePictureUrl as string;
+  const fullName = params.fullName as string;
   const { messageSocket } = useSocketContext();
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -459,6 +455,8 @@ const ChatScreen = () => {
     <View className="flex-1 bg-gray-100">
       <ChatHeader
         chatId={chatId}
+        name={fullName}
+        avatarUrl={profilePictureUrl}
         isGroup={isGroup}
         onBack={() => router.back()}
       />

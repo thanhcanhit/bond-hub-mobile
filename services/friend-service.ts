@@ -4,6 +4,12 @@ import * as SecureStore from "expo-secure-store";
 export interface UserInfo {
   id?: string;
   fullName?: string;
+  statusMessage?: string;
+  location?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  coverImgUrl?: string;
+  lastSeen?: string;
   profilePictureUrl?: string;
 }
 

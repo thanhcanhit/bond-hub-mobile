@@ -205,7 +205,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         className={clsx(
           "flex-row mb-3 w-full",
           isMyMessage ? "justify-end" : "justify-start",
-          shouldShowReactionButton ? "mb-6" : "mb-1",
+          shouldShowReactionButton ? "mb-6" : "mb-0.5",
         )}
       >
         {!isMyMessage && (
