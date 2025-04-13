@@ -35,6 +35,7 @@ import {
   ActionsheetDragIndicatorWrapper,
 } from "@/components/ui/select/select-actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
+import { useSocket } from "@/hooks/useSocket";
 
 export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -49,15 +50,48 @@ export default function UserProfileScreen() {
   const [notRelated, setNotRelated] = useState(false);
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
 
+  // Connect to the friends namespace for real-time updates
+  const { socket, isConnected, error: socketError } = useSocket("friends");
+
+  // Log socket connection status changes
   useEffect(() => {
-    fetchUserInfo();
+    if (isConnected) {
+      console.log(`Socket connected to friends namespace for user ${id}`);
+    } else if (socketError) {
+      console.error(`Socket connection error for user ${id}:`, socketError);
+    }
+  }, [isConnected, socketError, id]);
+
+  useEffect(() => {
+    fetchUserInfo("mount");
   }, [id]);
+
+  // Listen for reload events from the WebSocket server
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    console.log(`Connected to friends socket for user ${id}`);
+
+    // Listen for reload events
+    const handleReload = () => {
+      console.log("Received reload event from server, refreshing profile");
+      fetchUserInfo("websocket");
+    };
+
+    socket.on("reload", handleReload);
+
+    // Cleanup listener when component unmounts or socket changes
+    return () => {
+      console.log(`Removing reload listener for user ${id}`);
+      socket.off("reload", handleReload);
+    };
+  }, [socket, isConnected, id]);
 
   // Cập nhật dữ liệu khi tham số refresh thay đổi
   useEffect(() => {
     if (refresh === "true") {
       console.log("Refreshing user profile due to refresh parameter");
-      fetchUserInfo();
+      fetchUserInfo("refresh-param");
     }
   }, [refresh]);
 
@@ -69,7 +103,7 @@ export default function UserProfileScreen() {
 
       if (friendRequestSent && friendRequestSent.userId === id) {
         console.log("Detected friend request sent, refreshing profile");
-        fetchUserInfo();
+        fetchUserInfo("focus");
         // Xóa biến toàn cục sau khi đã sử dụng
         // @ts-ignore
         global.FRIEND_REQUEST_SENT = null;
@@ -79,7 +113,7 @@ export default function UserProfileScreen() {
     }, [id]),
   );
 
-  const fetchUserInfo = async () => {
+  const fetchUserInfo = async (source: string = "manual") => {
     if (!id || typeof id !== "string") {
       setError("ID người dùng không hợp lệ");
       setIsLoading(false);
@@ -87,14 +121,17 @@ export default function UserProfileScreen() {
     }
 
     try {
-      console.log("Fetching user profile for ID:", id);
+      console.log(`Fetching user profile for ID: ${id} (source: ${source})`);
       setIsLoading(true);
       setError(null);
       const userData = await userService.getUserProfile(id);
       setUserProfile(userData);
 
-      // Kiểm tra trạng thái bạn bè và lời mời kết bạn từ dữ liệu API
-      console.log("User profile data:", JSON.stringify(userData));
+      // Kiểm tra trạng thái bạn bè và lời mời kết bạn từ dữ liệu API in ra đúng cấu trúc json format
+
+      console.log("User profile data:", JSON.stringify(userData, null, 2));
+
+      // console.log("User profile data:", JSON.stringify(userData));
 
       // Kiểm tra các trạng thái mối quan hệ
       setIsFriend(userData.relationship?.status === "FRIEND");
@@ -227,7 +264,7 @@ export default function UserProfileScreen() {
           <View className="flex-1 items-center justify-center py-20">
             <Text className="text-red-500">{error}</Text>
             <TouchableOpacity
-              onPress={fetchUserInfo}
+              onPress={() => fetchUserInfo("retry")}
               style={{
                 marginTop: 16, // mt-4
                 backgroundColor: "#EBF5FF", // bg-blue-50 equivalent
@@ -258,6 +295,34 @@ export default function UserProfileScreen() {
                 className="absolute w-full flex-row justify-between p-4"
                 style={{ paddingTop: insets.top }}
               >
+                {/* WebSocket connection status indicator */}
+                {/* {isConnected && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: insets.top + 4,
+                      right: 16,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      zIndex: 10
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: '#4CAF50',
+                        marginRight: 4
+                      }}
+                    />
+                    <Text style={{ color: 'white', fontSize: 10 }}>Live</Text>
+                  </View>
+                )} */}
                 <TouchableOpacity onPress={() => router.back()}>
                   <ArrowLeft size={28} color="white" />
                 </TouchableOpacity>

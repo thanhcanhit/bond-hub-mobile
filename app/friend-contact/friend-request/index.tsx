@@ -7,6 +7,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { useSocket } from "@/hooks/useSocket";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
@@ -179,22 +180,63 @@ export default function FriendRequestsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Kết nối đến namespace friends của WebSocket
+  const { socket, isConnected, error: socketError } = useSocket("friends");
+
   // Fetch friend requests on component mount
   useEffect(() => {
-    fetchFriendRequests();
+    fetchFriendRequests("mount");
   }, []);
 
   // Refetch friend requests when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       console.log("Friend requests screen focused, refreshing requests");
-      fetchFriendRequests();
+      fetchFriendRequests("focus");
       return () => {};
     }, []),
   );
 
-  const fetchFriendRequests = async () => {
+  // Theo dõi trạng thái kết nối WebSocket
+  useEffect(() => {
+    if (isConnected) {
+      console.log(
+        "Socket connected to friends namespace in friend requests screen",
+      );
+    } else if (socketError) {
+      console.error(
+        "Socket connection error in friend requests screen:",
+        socketError,
+      );
+    }
+  }, [isConnected, socketError]);
+
+  // Lắng nghe sự kiện reload từ WebSocket
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    console.log("Setting up reload listener in friend requests screen");
+
+    // Lắng nghe sự kiện reload
+    const handleReload = () => {
+      console.log(
+        "Received reload event from server, refreshing friend requests",
+      );
+      fetchFriendRequests("websocket");
+    };
+
+    socket.on("reload", handleReload);
+
+    // Dọn dẹp listener khi component unmount hoặc socket thay đổi
+    return () => {
+      console.log("Removing reload listener from friend requests screen");
+      socket.off("reload", handleReload);
+    };
+  }, [socket, isConnected]);
+
+  const fetchFriendRequests = async (source: string = "manual") => {
     try {
+      console.log(`Fetching friend requests (source: ${source})`);
       setIsLoading(true);
       setError(null);
 
@@ -263,6 +305,34 @@ export default function FriendRequestsScreen() {
         end={{ x: 0.99, y: 2.5 }}
         colors={["#297eff", "#228eff", "#00d4ff"]}
       >
+        {/* WebSocket connection indicator */}
+        {isConnected && (
+          <View
+            style={{
+              position: "absolute",
+              top: Platform.OS === "ios" ? insets.top + 4 : 18,
+              right: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "rgba(0,0,0,0.3)",
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 12,
+              zIndex: 10,
+            }}
+          >
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: "#4CAF50",
+                marginRight: 4,
+              }}
+            />
+            <Text style={{ color: "white", fontSize: 10 }}>Live</Text>
+          </View>
+        )}
         <HStack
           className="bg-transparent flex-row items-center p-4"
           style={{
@@ -313,7 +383,7 @@ export default function FriendRequestsScreen() {
           <View className="flex-1 items-center justify-center py-8">
             <Text className="text-red-500">{error}</Text>
             <TouchableOpacity
-              onPress={fetchFriendRequests}
+              onPress={() => fetchFriendRequests("retry")}
               className="mt-4 bg-blue-50 px-4 py-2 rounded-full"
             >
               <Text className="text-blue-500">Thử lại</Text>
