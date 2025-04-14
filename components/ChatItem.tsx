@@ -24,21 +24,24 @@ interface ChatItemProps {
 // Interface mới theo dữ liệu getAllUsers
 interface ChatItemProps {
   id: string;
-  email: string | null;
-  phoneNumber: string | null;
-  createdAt: string;
-  updatedAt: string;
-  infoId: string | null;
+  email: string;
+  phoneNumber: string;
+  fullName: string;
+  profilePictureUrl: string;
+  statusMessage: string;
+  lastSeen: string;
+  since: string;
+  isGroup?: boolean;
   onPress?: () => void;
 }
 
 const ChatItem: React.FC<ChatItemProps> = ({
   id,
-  email,
-  phoneNumber,
-  createdAt,
-  updatedAt,
-  infoId,
+  fullName,
+  profilePictureUrl,
+  statusMessage,
+  lastSeen,
+  since,
   onPress,
 }) => {
   const router = useRouter();
@@ -65,33 +68,61 @@ const ChatItem: React.FC<ChatItemProps> = ({
   };
   */
 
+  const formatLastSeen = (lastSeenDate: string) => {
+    const date = new Date(lastSeenDate);
+    const now = new Date();
+    const diffMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60),
+    );
+
+    if (diffMinutes < 1) return "Vừa mới truy cập";
+    if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+
+    return date.toLocaleDateString();
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/chat/${id}`)}
+      onPress={() => {
+        router.push({
+          pathname: `../chat/${id}`,
+          params: { fullName, profilePictureUrl },
+        });
+      }}
       className="items-center px-2.5"
     >
       <HStack className="w-full items-center justify-between">
         <Avatar size="lg">
-          <AvatarFallbackText>
-            {email || phoneNumber || "User"}
-          </AvatarFallbackText>
+          {profilePictureUrl ? (
+            <AvatarImage source={{ uri: profilePictureUrl }} />
+          ) : (
+            <AvatarFallbackText>{fullName}</AvatarFallbackText>
+          )}
         </Avatar>
 
         <VStack className="w-5/6 pl-2 py-4 border-b-[0.5px] border-gray-200">
           <HStack className="justify-between">
             <Text className="font-semibold text-lg" numberOfLines={1}>
-              {email || phoneNumber || "Unknown User"}
+              {fullName}
             </Text>
-            <Text className="text-gray-500">{formatDate(createdAt)}</Text>
+            <VStack>
+              {/* <Text className="text-gray-500">{formatDate(since)}</Text> /* Đã gửi tin nhắn */}
+              <Text className="text-xs text-gray-400 ml-2">
+                {formatLastSeen(lastSeen)}
+              </Text>
+            </VStack>
           </HStack>
 
           <HStack>
             <Text className="text-gray-500 pt-1" numberOfLines={1}>
-              ID: {id.slice(0, 8)}...
+              {statusMessage}
             </Text>
           </HStack>
         </VStack>

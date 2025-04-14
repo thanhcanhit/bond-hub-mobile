@@ -1,27 +1,29 @@
 import React from "react";
 import { FlatList, ListRenderItem, View } from "react-native";
 import ChatItem from "./ChatItem";
-import { ChatItemData } from "@/types";
+import { Friend } from "@/services/friend-service";
 
 interface ListChatItemProps {
-  data: ChatItemData[];
+  data: Friend[];
   onChatPress?: (chatId: string) => void;
 }
 
 const ListChatItem: React.FC<ListChatItemProps> = ({ data, onChatPress }) => {
-  const renderItem: ListRenderItem<ChatItemData> = ({ item }) => (
+  const renderItem: ListRenderItem<Friend> = ({ item }) => (
     <ChatItem
-      id={item.id}
-      email={item.email}
-      phoneNumber={item.phoneNumber}
-      createdAt={item.createdAt}
-      updatedAt={item.updatedAt}
-      infoId={item.infoId}
-      onPress={() => onChatPress?.(item.id)}
+      id={item.friend.id}
+      email={item.friend.email}
+      phoneNumber={item.friend.phoneNumber}
+      fullName={item.friend.userInfo.fullName || ""}
+      profilePictureUrl={item.friend.userInfo.profilePictureUrl || ""}
+      statusMessage={item.friend.userInfo.statusMessage || ""}
+      lastSeen={item.friend.userInfo.lastSeen || ""}
+      since={item.since}
+      onPress={() => onChatPress?.(item.friendshipId)}
     />
   );
 
-  const keyExtractor = (item: ChatItemData) => item.id;
+  const keyExtractor = (item: Friend) => item.friend.id;
 
   return (
     <FlatList

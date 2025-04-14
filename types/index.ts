@@ -48,12 +48,19 @@ export interface Friend {
 //   unreadCount: number;
 // }
 export interface ChatItemData {
-  id: string;
-  email: string | null;
-  phoneNumber: string | null;
-  createdAt: string;
-  updatedAt: string;
-  infoId: string | null;
+  friendshipId: string;
+  friend: {
+    id: string;
+    email: string;
+    phoneNumber: string;
+    userInfo: {
+      fullName: string;
+      profilePictureUrl: string;
+      statusMessage: string;
+      lastSeen: string;
+    };
+  };
+  since: string;
 }
 export interface UserSetting {
   id: string;
@@ -85,26 +92,52 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
+
+export interface MessageMedia {
+  url: string;
+  type: "IMAGE" | "VIDEO" | "DOCUMENT";
+  fileId?: string;
+  fileName?: string;
+  thumbnailUrl?: string;
+  metadata?: {
+    path: string;
+    size: number;
+    mimeType: string;
+    extension: string;
+    bucketName: string;
+    uploadedAt: string;
+    sizeFormatted: string;
+  };
+}
+
 export interface MessageReaction {
-  type: string;
+  count?: number;
   userId: string;
+  reaction: ReactionType;
 }
 
 export interface Message {
   id: string;
   content: {
     text?: string;
-    media?: MediaItem[];
+    image?: string;
+    video?: string;
+    media?: MessageMedia[];
   };
   senderId: string;
   receiverId: string;
-  readBy: string[];
-  deletedBy: string[];
-  reactions: MessageReaction[];
-  createdAt: string;
-  updatedAt: string;
-  isMe: boolean;
+  groupId?: string;
   recalled?: boolean;
+  deletedBy?: string[];
+  repliedTo?: string | null;
+  reactions?: MessageReaction[];
+  readBy?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  messageType: "USER" | "GROUP";
+  forwardedFrom?: string | null;
+  isMe?: boolean;
 }
 
 export interface SendMessageRequest {
@@ -130,7 +163,9 @@ export interface MediaUploadFile {
 // Thêm các interfaces mới
 export interface ChatHeaderProps {
   chatId: string;
-  isGroup: boolean;
+  name: string;
+  avatarUrl?: string;
+  isGroup?: boolean;
   onBack: () => void;
 }
 
@@ -154,4 +189,5 @@ export interface VideoMessageProps {
 
 export interface DocumentPreviewProps {
   url: string;
+  fileName: string;
 }

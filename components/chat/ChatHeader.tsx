@@ -6,9 +6,11 @@ import { ArrowLeft, Phone, Video, Search, Logs } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatHeaderProps } from "@/types";
+import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
-  chatId,
+  name,
+  avatarUrl,
   isGroup,
   onBack,
 }) => {
@@ -21,20 +23,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       colors={["#297eff", "#228eff", "#00d4ff"]}
     >
       <View
-        className="flex-row items-center justify-between px-2.5 py-2"
-        style={{ paddingTop: Platform.OS === "ios" ? insets.top : 20 }}
+        className="flex-row items-center justify-between px-4 py-2"
+        style={{
+          paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 5,
+        }}
       >
         <HStack className="items-center justify-between w-full">
           <HStack className="items-center flex-1">
             <TouchableOpacity onPress={onBack}>
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
+
             <VStack className="pl-2.5">
               <Text
-                className="text-lg font-semibold text-white mr-2"
+                className="text-lg font-semibold text-white mr-2.5"
                 numberOfLines={1}
               >
-                {chatId}
+                {name}
               </Text>
               <Text className="text-xs text-gray-200">Online</Text>
             </VStack>

@@ -37,18 +37,6 @@ interface FriendItem {
   email?: string;
 }
 
-const mockGroups = [
-  {
-    id: "1",
-    name: "Project Team",
-    lastMessage: "Meeting tomorrow at 10 AM",
-    lastMessageTime: "2024-01-20T10:30:00",
-    isGroup: true,
-    unreadCount: 2,
-  },
-  // Add more mock groups as needed
-];
-
 export default function ContactScreen() {
   // insets được sử dụng trong các phần khác của ứng dụng
   const insets = useSafeAreaInsets();
@@ -308,9 +296,7 @@ export default function ContactScreen() {
             <Text className="ml-4 text-md text-gray-600">Tạo nhóm mới</Text>
           </TouchableOpacity>
 
-          <View className="mt-1 pb-10 h-full bg-white">
-            <ListChatItem data={mockGroups} />
-          </View>
+          <View className="mt-1 pb-10 h-full bg-white"></View>
         </View>
       )}
     </View>

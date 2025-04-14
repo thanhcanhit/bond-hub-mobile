@@ -140,7 +140,9 @@ export default function SearchUserScreen() {
         colors={["#297eff", "#228eff", "#00d4ff"]}
       >
         <View
-          style={{ paddingTop: Platform.OS === "ios" ? insets.top : 16 }}
+          style={{
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top,
+          }}
           className="pb-4 px-4"
         >
           <HStack className="items-center">

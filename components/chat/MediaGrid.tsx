@@ -87,7 +87,7 @@ export const MediaGrid: React.FC<MediaGridProps> = ({
             <Image
               source={media.url}
               style={styles.gridImage}
-              contentFit="contain"
+              contentFit="cover"
             />
             {extraCount > 0 && idx === 3 && (
               <View style={styles.overlay}>

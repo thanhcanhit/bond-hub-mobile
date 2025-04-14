@@ -1,5 +1,13 @@
 import axiosInstance from "@/lib/axios";
-import { Message, SendMessageRequest } from "@/types";
+import { Message, ReactionType, SendMessageRequest } from "@/types";
+
+interface ForwardMessageRequest {
+  messageId: string;
+  targets: Array<{
+    // Đổi
+    userId: string;
+  }>;
+}
 
 const handleError = (error: any, context: string) => {
   console.error(`Error in ${context}:`, error);
@@ -70,7 +78,10 @@ export const messageService = {
   },
 
   // Thêm reaction
-  async addReaction(messageId: string, reactionType: string): Promise<void> {
+  async addReaction(
+    messageId: string,
+    reactionType: ReactionType,
+  ): Promise<void> {
     try {
       await axiosInstance.post(`/messages/reaction`, {
         messageId,
@@ -84,7 +95,7 @@ export const messageService = {
   // Xóa reaction
   async removeReaction(messageId: string): Promise<void> {
     try {
-      await axiosInstance.delete(`/messages/${messageId}/reactions`);
+      await axiosInstance.delete(`/messages/reaction/${messageId}`);
     } catch (error) {
       handleError(error, "removeReaction");
     }
@@ -96,6 +107,18 @@ export const messageService = {
       await axiosInstance.patch(`/messages/recall/${messageId}`);
     } catch (error) {
       handleError(error, "recallMessage");
+    }
+  },
+
+  // Chuyển tiếp tin nhắn
+  async forwardMessage(data: ForwardMessageRequest): Promise<void> {
+    try {
+      await axiosInstance.post("/messages/forward", {
+        messageId: data.messageId,
+        targets: data.targets, // Đảm bảo gửi đúng tên field là 'targets'
+      });
+    } catch (error) {
+      handleError(error, "forwardMessage");
     }
   },
 

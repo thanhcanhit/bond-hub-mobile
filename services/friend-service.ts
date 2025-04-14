@@ -4,6 +4,12 @@ import * as SecureStore from "expo-secure-store";
 export interface UserInfo {
   id?: string;
   fullName?: string;
+  statusMessage?: string;
+  location?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  coverImgUrl?: string;
+  lastSeen?: string;
   profilePictureUrl?: string;
 }
 
@@ -48,7 +54,6 @@ export const getFriendList = async (): Promise<Friend[]> => {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching friend list:", error);
