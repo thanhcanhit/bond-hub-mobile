@@ -6,7 +6,11 @@ import {
   Alert,
   Pressable,
 } from "react-native";
-import { Avatar, AvatarFallbackText } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { Heart, X } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
@@ -193,6 +197,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {!isMyMessage && (
           <View className="mr-2">
             <Avatar size="sm">
+              <AvatarImage source={{}} />
               <AvatarFallbackText>
                 {message.senderId.slice(0, 2).toUpperCase()}
               </AvatarFallbackText>
@@ -208,26 +213,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             isMyMessage ? "bg-blue-100" : "bg-white",
           )}
         >
-          <MessageActions
-            isVisible={showActions}
-            isMyMessage={isMyMessage}
-            onReaction={() => {
-              setShowActions(false);
-              setShowLongPressReaction(true);
-            }}
-            onRecall={() => {
-              setShowActions(false);
-              handleRecall();
-            }}
-            onDelete={() => {
-              setShowActions(false);
-              handleDelete();
-            }}
-            onForward={handleForward}
-            onClose={handleCloseActions}
-            position={isMyMessage ? "right" : "left"}
-          />
-
           <View className="p-2.5 px-4">
             {message.recalled ? (
               <RNText className="text-typography-500 italic">
@@ -265,6 +250,25 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </>
             )}
           </View>
+          <MessageActions
+            isVisible={showActions}
+            isMyMessage={isMyMessage}
+            onReaction={() => {
+              setShowActions(false);
+              setShowLongPressReaction(true);
+            }}
+            onRecall={() => {
+              setShowActions(false);
+              handleRecall();
+            }}
+            onDelete={() => {
+              setShowActions(false);
+              handleDelete();
+            }}
+            onForward={handleForward}
+            onClose={handleCloseActions}
+            position={isMyMessage ? "right" : "left"}
+          />
 
           {/* Chỉ hiển thị reaction picker và nút reaction khi thỏa điều kiện */}
           {shouldShowReactionButton && !message.recalled && (

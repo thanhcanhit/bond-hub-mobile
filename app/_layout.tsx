@@ -13,8 +13,8 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAuth } from "@/hooks/useAuth";
-import { SocketProvider } from "@/components/SocketProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { SocketProvider } from "@/providers/SocketProvider";
 
 SplashScreen.preventAutoHideAsync();
 

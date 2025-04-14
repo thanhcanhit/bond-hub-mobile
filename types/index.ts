@@ -112,7 +112,7 @@ export interface MessageMedia {
 }
 
 export interface MessageReaction {
-  count: number;
+  count?: number;
   userId: string;
   reaction: ReactionType;
 }

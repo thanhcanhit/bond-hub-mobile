@@ -54,7 +54,6 @@ export const getFriendList = async (): Promise<Friend[]> => {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching friend list:", error);

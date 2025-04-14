@@ -11,6 +11,7 @@ import {
   RefreshControl,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Text,
 } from "react-native";
 import uuid from "react-native-uuid";
 import { VStack } from "@/components/ui/vstack";
@@ -36,14 +37,15 @@ import { useChatStore } from "@/store/chatStore";
 
 const ChatScreen = () => {
   const {
-    messages,
     loading,
+    messages,
+    loadMessages,
     refreshing,
+    typingUsers,
     page,
     hasMore,
     isLoadingMedia,
     selectedMedia,
-    loadMessages,
     sendMessage,
     sendMediaMessage,
     handleReaction,
@@ -67,6 +69,10 @@ const ChatScreen = () => {
     loadMessages(chatId as string);
     console.log(chatId, name);
   }, [chatId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = (animated = true) => {
     if (scrollViewRef.current) {
@@ -208,6 +214,15 @@ const ChatScreen = () => {
     return message.senderId !== nextMessage.senderId;
   };
 
+  // Render typing indicator
+  const renderTypingIndicator = () => {
+    const typingUsersArray = Array.from(typingUsers.values());
+    if (typingUsersArray.length > 0) {
+      return <Text className="text-gray-500 text-2xl">đang nhập...</Text>;
+    }
+    return null;
+  };
+
   return (
     <View className="flex-1 bg-gray-100">
       <ChatHeader
@@ -252,6 +267,7 @@ const ChatScreen = () => {
           onClose={() => setShowEmoji(!showEmoji)}
         />
       )}
+      {renderTypingIndicator()}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}

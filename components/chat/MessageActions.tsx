@@ -38,12 +38,12 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       {/* Overlay để xử lý click outside */}
       <Pressable
         onPress={onClose}
-        className="absolute inset-0 w-full h-full z-20"
+        className="absolute inset-0 w-full h-screen z-10"
       />
 
       <View
         className={clsx(
-          "absolute -bottom-12 bg-white rounded-full shadow-lg py-2 px-3 z-[9999]  ",
+          "absolute  bg-white rounded-full shadow-md py-2 px-3 z-50 flex-row items-center ",
           position === "left" ? "left-0" : "right-0",
         )}
       >

@@ -15,12 +15,15 @@ interface ChatState {
     width?: number;
     height?: number;
   }>;
+  typingUsers: Map<string, { timestamp: Date; userId: string }>;
 
   // Actions
   setMessages: (messages: Message[]) => void;
   addMessage: (message: Message) => void;
-  updateMessage: (messageId: string, updatedMessage: Partial<Message>) => void;
-  removeMessage: (messageId: string) => void;
+  updateMessage: (messageId: string, updates: Partial<Message>) => void;
+  deleteMessage: (messageId: string) => void;
+  setTypingUsers: (data: { userId: string; timestamp: Date }) => void;
+  removeTypingUser: (userId: string) => void;
   setLoading: (loading: boolean) => void;
   setRefreshing: (refreshing: boolean) => void;
   setPage: (page: number) => void;
@@ -58,23 +61,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
   hasMore: true,
   isLoadingMedia: false,
   selectedMedia: [],
+  typingUsers: new Map(),
 
-  // Basic actions
   setMessages: (messages) => set({ messages }),
   addMessage: (message) =>
     set((state) => ({
       messages: [...state.messages, message],
     })),
-  updateMessage: (messageId, updatedMessage) =>
+  updateMessage: (messageId, updates) =>
     set((state) => ({
       messages: state.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, ...updatedMessage } : msg,
+        msg.id === messageId ? { ...msg, ...updates } : msg,
       ),
     })),
-  removeMessage: (messageId) =>
+  deleteMessage: (messageId) =>
     set((state) => ({
       messages: state.messages.filter((msg) => msg.id !== messageId),
     })),
+  setTypingUsers: (data) =>
+    set((state) => {
+      const newTypingUsers = new Map(state.typingUsers);
+      newTypingUsers.set(data.userId, {
+        timestamp: data.timestamp,
+        userId: data.userId,
+      });
+      return { typingUsers: newTypingUsers };
+    }),
+  removeTypingUser: (userId) =>
+    set((state) => {
+      const newTypingUsers = new Map(state.typingUsers);
+      newTypingUsers.delete(userId);
+      return { typingUsers: newTypingUsers };
+    }),
   setLoading: (loading) => set({ loading }),
   setRefreshing: (refreshing) => set({ refreshing }),
   setPage: (page) => set({ page }),
@@ -107,33 +125,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sendMessage: async (chatId, text, userId) => {
-    const state = get();
-    const tempId = uuid.v4();
-    const tempMessage: Message = {
-      id: tempId,
-      content: { text },
-      senderId: userId,
-      receiverId: chatId,
-      readBy: [],
-      deletedBy: [],
-      reactions: [],
-      messageType: "USER",
-      isMe: true,
-    };
-
-    state.addMessage(tempMessage);
-
+  sendMessage: async (chatId, text) => {
     try {
-      const response = await messageService.sendMessage({
+      await messageService.sendMessage({
         receiverId: chatId,
         content: { text },
       });
-
-      state.updateMessage(tempId, { ...response, isMe: true });
     } catch (error) {
       console.error("Error sending message:", error);
-      state.removeMessage(tempId);
     }
   },
 
@@ -143,27 +142,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     try {
       state.setIsLoadingMedia(true);
-
-      const tempMessage: Message = {
-        id: tempId,
-        content: {
-          text,
-          media: media.map((m) => ({
-            type: m.type,
-            url: m.uri,
-            loading: true,
-          })),
-        },
-        senderId: userId,
-        receiverId: chatId,
-        readBy: [],
-        deletedBy: [],
-        reactions: [],
-        messageType: "USER",
-        isMe: true,
-      };
-
-      state.addMessage(tempMessage);
 
       const formData = new FormData();
       formData.append("receiverId", chatId);
@@ -185,7 +163,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       state.setSelectedMedia([]);
     } catch (error) {
       console.error("Media upload error:", error);
-      state.removeMessage(tempId);
+      state.deleteMessage(tempId);
     } finally {
       state.setIsLoadingMedia(false);
     }
@@ -242,7 +220,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       await messageService.deleteMessage(messageId);
-      state.removeMessage(messageId);
+      state.deleteMessage(messageId);
     } catch (error) {
       console.error("Error deleting message:", error);
     }
