@@ -21,55 +21,129 @@ import {
   Ellipsis,
   SendHorizonal,
 } from "lucide-react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
-import { useSocketContext } from "@/components/SocketProvider";
 import { useAuthStore } from "@/store/authStore";
-import { messageService } from "@/services/message-service";
-import { Message, MessageReaction, ReactionType } from "@/types";
+import { Message } from "@/types";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { MediaPreview } from "@/components/chat/MediaPreview";
+import { useChatStore } from "@/store/chatStore";
 
 const ChatScreen = () => {
+  const {
+    messages,
+    loading,
+    refreshing,
+    page,
+    hasMore,
+    isLoadingMedia,
+    selectedMedia,
+    loadMessages,
+    sendMessage,
+    sendMediaMessage,
+    handleReaction,
+    handleUnReaction,
+    handleRecall,
+    handleDelete,
+    setRefreshing,
+    setSelectedMedia,
+  } = useChatStore();
+
   const scrollViewRef = useRef<ScrollView>(null);
-  const params = useLocalSearchParams();
-  const chatId = params.id as string;
-  const profilePictureUrl = params.profilePictureUrl as string;
-  const fullName = params.fullName as string;
-  const { messageSocket } = useSocketContext();
-  const { user } = useAuthStore();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const shouldAutoScroll = useRef<boolean>(true);
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isGroup] = useState(false);
-  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const insets = useSafeAreaInsets();
-  const [selectedMedia, setSelectedMedia] = useState<
-    Array<{
-      uri: string;
-      type: "IMAGE" | "VIDEO";
-      width?: number;
-      height?: number;
-    }>
-  >([]);
+  const { user } = useAuthStore();
+  const router = useRouter();
+  const { id: chatId, fullName: name } = useLocalSearchParams();
 
-  const shouldAutoScroll = useRef(true);
+  useEffect(() => {
+    loadMessages(chatId as string);
+    console.log(chatId, name);
+  }, [chatId]);
 
-  // Hàm để xác định tin nhắn cuối cùng của mỗi người dùng
-  const getIsLastMessageOfUser = (message: Message, index: number) => {
-    if (index === messages.length - 1) return true;
+  const scrollToBottom = (animated = true) => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated });
+    }
+  };
 
-    const nextMessage = messages[index + 1];
-    return message.senderId !== nextMessage.senderId;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadMessages(chatId as string, 1);
+    setRefreshing(false);
+  };
+
+  const handleLoadMore = async () => {
+    if (!hasMore || loading) return;
+    await loadMessages(chatId as string, page + 1);
+  };
+
+  const handleSend = async () => {
+    if (!message.trim() || !user) return;
+    await sendMessage(chatId as string, message, user.userId);
+    setMessage("");
+    scrollToBottom();
+  };
+
+  const handleSendMediaMessage = async () => {
+    if (!user || selectedMedia.length === 0) return;
+    await sendMediaMessage(
+      chatId as string,
+      message,
+      user.userId,
+      selectedMedia,
+    );
+    setMessage("");
+    setSelectedMedia([]);
+    scrollToBottom();
+  };
+
+  const handleDocumentPick = async () => {
+    if (!user) return;
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "application/msword", "text/plain"],
+        multiple: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const invalidFiles = result.assets.filter(
+          (asset) => asset.size && asset.size > MAX_FILE_SIZE,
+        );
+
+        if (invalidFiles.length > 0) {
+          Alert.alert("File Too Large", "Documents must be under 5MB.");
+          return;
+        }
+
+        const mediaFiles = result.assets.map((asset) => ({
+          uri: asset.uri,
+          type: "DOCUMENT" as const,
+          name: asset.name,
+          mimeType: asset.mimeType,
+        }));
+
+        await sendMediaMessage(
+          chatId as string,
+          message,
+          user.userId,
+          mediaFiles,
+        );
+        setMessage("");
+      }
+    } catch (error) {
+      console.error("Document upload error:", error);
+      Alert.alert("Error", "Failed to upload document. Please try again.");
+    }
   };
 
   const handleMediaUpload = async () => {
@@ -111,353 +185,34 @@ const ChatScreen = () => {
     }
   };
 
-  const scrollToBottom = (animated = true) => {
-    setTimeout(() => {
-      if (shouldAutoScroll.current && scrollViewRef.current) {
-        scrollViewRef.current.scrollToEnd({ animated });
-      }
-    }, 100);
-  };
-
   // Xử lý khi scroll manually
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
 
-    // Nếu scroll gần cuối (trong khoảng 20px) thì cho phép auto scroll
+    // Check if scroll is near bottom
     const isCloseToBottom =
       layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
     shouldAutoScroll.current = isCloseToBottom;
 
-    // Load more khi scroll lên trên
+    // Load more when scrolling up
     if (contentOffset.y <= 20 && hasMore && !loading) {
       handleLoadMore();
     }
   };
 
-  useEffect(() => {
-    loadMessages();
-    setupSocketListeners();
-    return () => cleanupSocketListeners();
-  }, [chatId]);
+  // Hàm để xác định tin nhắn cuối cùng của mỗi người dùng
+  const getIsLastMessageOfUser = (message: Message, index: number) => {
+    if (index === messages.length - 1) return true;
 
-  const setupSocketListeners = () => {
-    if (!messageSocket) return;
-
-    messageSocket.on("new_message", handleNewMessage);
-    messageSocket.on("message_reaction", handleMessageReaction);
-    messageSocket.on("message_recall", handleMessageRecall);
-    messageSocket.on("message_delete", handleMessageDelete);
-  };
-
-  const cleanupSocketListeners = () => {
-    if (!messageSocket) return;
-
-    messageSocket.off("new_message");
-    messageSocket.off("message_reaction");
-    messageSocket.off("message_recall");
-    messageSocket.off("message_delete");
-  };
-
-  const handleNewMessage = (newMessage: Message) => {
-    setMessages((prev) => [...prev, newMessage]); // Thêm tin nhắn mới vào cuối
-    scrollToBottom(); // Scroll to bottom when new message arrives
-  };
-
-  const handleMessageReaction = (data: {
-    messageId: string;
-    reaction: MessageReaction;
-  }) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === data.messageId
-          ? {
-              ...msg,
-              reactions: [...(msg.reactions || []), data.reaction],
-            }
-          : msg,
-      ),
-    );
-  };
-
-  const handleMessageRecall = (messageId: string) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, recalled: true } : msg,
-      ),
-    );
-  };
-
-  const handleMessageDelete = (messageId: string) => {
-    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-  };
-
-  const loadMessages = async (pageNum = 1) => {
-    try {
-      setLoading(true);
-      const data = await messageService.getMessageHistory(chatId, pageNum);
-      if (!data || data.length < 20) {
-        setHasMore(false);
-      }
-      if (pageNum === 1) {
-        setMessages(data?.reverse() || []);
-        scrollToBottom(false); // Scroll to bottom without animation on first load
-      } else {
-        setMessages((prev) => [...(data?.reverse() || []), ...prev]);
-      }
-      setPage(pageNum);
-    } catch (error) {
-      console.error("Error loading messages:", error);
-      Alert.alert("Error", "Failed to load messages");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadMessages(1);
-    setRefreshing(false);
-  };
-
-  const handleLoadMore = async () => {
-    if (!hasMore || loading) return;
-    await loadMessages(page + 1);
-  };
-
-  const handleSend = async () => {
-    if (!message.trim() || !user) return;
-    const tempId = uuid.v4();
-    try {
-      const tempMessage: Message = {
-        id: tempId,
-        content: { text: message },
-        senderId: user.userId,
-        receiverId: chatId,
-        readBy: [],
-        deletedBy: [],
-        reactions: [],
-        messageType: "USER",
-        isMe: true,
-      };
-
-      setMessages((prev) => [...prev, tempMessage]);
-      setMessage("");
-      scrollToBottom();
-
-      const response = await messageService.sendMessage({
-        receiverId: chatId,
-        content: { text: message },
-      });
-
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === tempMessage.id
-            ? ({ ...response, isMe: true } as Message)
-            : msg,
-        ),
-      );
-    } catch (error) {
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      console.error("Error sending message:", error);
-      Alert.alert("Error", "Failed to send message");
-    }
-  };
-
-  const handleDocumentPick = async () => {
-    if (!user) return;
-    const tempId = uuid.v4();
-
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "application/msword", "text/plain"],
-        multiple: true,
-      });
-
-      if (!result.canceled && result.assets.length > 0) {
-        setIsLoadingMedia(true);
-
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-        const invalidFiles = result.assets.filter(
-          (asset) => asset.size && asset.size > MAX_FILE_SIZE,
-        );
-
-        if (invalidFiles.length > 0) {
-          Alert.alert("File Too Large", "Documents must be under 5MB.");
-          return;
-        }
-
-        const tempMessage: Message = {
-          id: tempId,
-          content: {
-            text: message,
-            media: result.assets.map((asset) => ({
-              type: "DOCUMENT",
-              url: asset.uri,
-              name: asset.name,
-              loading: true,
-            })),
-          },
-          senderId: user.userId,
-          receiverId: chatId,
-          readBy: [],
-          deletedBy: [],
-          reactions: [],
-          messageType: "USER",
-          isMe: true,
-        };
-
-        setMessages((prev) => [...prev, tempMessage]);
-        scrollToBottom();
-        setMessage("");
-        const formData = new FormData();
-        formData.append("receiverId", chatId);
-        formData.append("content[text]", message);
-        result.assets.map((asset) => {
-          formData.append("mediaType", "DOCUMENT");
-          formData.append("files", {
-            uri: asset.uri,
-            type: asset.mimeType || "application/octet-stream",
-            name: asset.name,
-            mediaType: "DOCUMENT",
-          } as any);
-        });
-
-        try {
-          const response = await messageService.sendMediaMessage(formData);
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === tempId
-                ? ({ ...response, isMe: true } as Message)
-                : msg,
-            ),
-          );
-
-          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-        } catch (error: any) {
-          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-          Alert.alert("Error", "Failed to upload document. Please try again.");
-          console.error("Document upload error:", error);
-        }
-      }
-    } catch (error: any) {
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      Alert.alert("Error", "Failed to upload document. Please try again.");
-      console.error("Document upload error:", error);
-    } finally {
-      setIsLoadingMedia(false);
-    }
-  };
-  const handleReaction = async (
-    messageId: string,
-    reactionType: ReactionType,
-  ) => {
-    try {
-      await messageService.addReaction(messageId, reactionType);
-    } catch (error) {
-      console.error("Error adding reaction:", error);
-      Alert.alert("Error", "Failed to add reaction");
-    }
-  };
-
-  const handleRecall = async (messageId: string) => {
-    try {
-      await messageService.recallMessage(messageId);
-    } catch (error) {
-      console.error("Error recalling message:", error);
-      Alert.alert("Error", "Failed to recall message");
-    }
-  };
-
-  const handleDelete = async (messageId: string) => {
-    try {
-      await messageService.deleteMessage(messageId);
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      Alert.alert("Error", "Failed to delete message");
-    }
-  };
-  const handleUnReaction = async (messageId: string) => {
-    try {
-      await messageService.removeReaction(messageId);
-    } catch (error) {
-      console.error("Error removing reaction:", error);
-      Alert.alert("Error", "Failed to remove reaction");
-    }
-  };
-
-  const handleSendMediaMessage = async () => {
-    if (!user || selectedMedia.length === 0) return;
-    const tempId = uuid.v4();
-    setIsLoadingMedia(true);
-
-    try {
-      // Tạo tin nhắn tạm thời để hiển thị ngay
-      const tempMessage: Message = {
-        id: tempId,
-        content: {
-          text: message,
-          media: selectedMedia.map((media) => ({
-            type: media.type,
-            url: media.uri,
-            loading: true,
-            width: media.width,
-            height: media.height,
-          })),
-        },
-        senderId: user.userId,
-        receiverId: chatId,
-        readBy: [],
-        deletedBy: [],
-        reactions: [],
-        messageType: "USER",
-        isMe: true,
-      };
-
-      setMessages((prev) => [...prev, tempMessage]);
-      scrollToBottom();
-
-      // Create FormData
-      const formData = new FormData();
-      formData.append("receiverId", chatId);
-      formData.append("content[text]", message);
-
-      selectedMedia.forEach((media) => {
-        const fileType = media.type === "VIDEO" ? "video/mp4" : "image/jpeg";
-        formData.append("mediaType", media.type);
-        formData.append("files", {
-          uri: media.uri,
-          type: fileType,
-          name: `${media.type.toLowerCase()}_${Date.now()}.${media.type === "VIDEO" ? "mp4" : "jpg"}`,
-          mediaType: media.type,
-        } as any);
-      });
-
-      const response = await messageService.sendMediaMessage(formData);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === tempId ? ({ ...response, isMe: true } as Message) : msg,
-        ),
-      );
-
-      // Clear media preview and message input
-      setSelectedMedia([]);
-      setMessage("");
-    } catch (error: any) {
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      Alert.alert("Lỗi", "Không thể gửi file. Vui lòng thử lại.");
-      console.error("Media upload error:", error);
-    } finally {
-      setIsLoadingMedia(false);
-    }
+    const nextMessage = messages[index + 1];
+    return message.senderId !== nextMessage.senderId;
   };
 
   return (
     <View className="flex-1 bg-gray-100">
       <ChatHeader
-        chatId={chatId}
-        name={fullName}
-        avatarUrl={profilePictureUrl}
-        isGroup={isGroup}
+        chatId={chatId as string}
+        name={name as string}
         onBack={() => router.back()}
       />
 
@@ -510,7 +265,8 @@ const ChatScreen = () => {
           <MediaPreview
             mediaItems={selectedMedia}
             onRemove={(index) => {
-              setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
+              const updatedMedia = selectedMedia.filter((_, i) => i !== index);
+              setSelectedMedia(updatedMedia);
             }}
           />
         )}

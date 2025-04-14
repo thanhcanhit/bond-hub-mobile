@@ -31,6 +31,7 @@ interface ChatItemProps {
   statusMessage: string;
   lastSeen: string;
   since: string;
+  isGroup?: boolean;
   onPress?: () => void;
 }
 
@@ -89,12 +90,12 @@ const ChatItem: React.FC<ChatItemProps> = ({
 
   return (
     <TouchableOpacity
-      onPress={() =>
+      onPress={() => {
         router.push({
           pathname: `../chat/${id}`,
           params: { fullName, profilePictureUrl },
-        })
-      }
+        });
+      }}
       className="items-center px-2.5"
     >
       <HStack className="w-full items-center justify-between">

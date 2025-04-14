@@ -121,6 +121,8 @@ export interface Message {
   id: string;
   content: {
     text?: string;
+    image?: string;
+    video?: string;
     media?: MessageMedia[];
   };
   senderId: string;
@@ -163,7 +165,7 @@ export interface ChatHeaderProps {
   chatId: string;
   name: string;
   avatarUrl?: string;
-  isGroup: boolean;
+  isGroup?: boolean;
   onBack: () => void;
 }
 

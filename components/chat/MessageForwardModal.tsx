@@ -143,7 +143,7 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
                         {friend.friend.userInfo.fullName}
                       </Text>
                       {selectedFriends.has(friend.friend.id) && (
-                        <Check className="text-blue-500" size={24} />
+                        <Check color={"#297eff"} size={24} />
                       )}
                     </HStack>
                   </TouchableOpacity>
