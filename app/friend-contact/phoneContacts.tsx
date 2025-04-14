@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,8 +17,8 @@ import {
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { ArrowLeft, RefreshCw, Search } from "lucide-react-native";
-import { router } from "expo-router";
+import { ArrowLeft, RefreshCw, Search, UserPlus, X } from "lucide-react-native";
+import { router, useFocusEffect } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Contacts from "expo-contacts";
@@ -26,7 +26,10 @@ import {
   ContactItem as ContactItemType,
   getContacts,
   syncContacts,
+  cancelFriendRequest,
+  respondToFriendRequest,
 } from "@/services/friend-service";
+import { useSocket } from "@/hooks/useSocket";
 
 // Interface cho contact item hiển thị trên UI
 interface DisplayContact {
@@ -34,21 +37,23 @@ interface DisplayContact {
   fullName: string;
   phoneNumber: string;
   avatarUrl: string | null;
-  isFriend: boolean;
+  relationshipStatus: string;
   friendshipId?: string;
 }
 
 const ContactItem = ({
   contact,
-  showAddButton = false,
+  onAddFriend,
+  onCancelRequest,
+  onAcceptRequest,
+  onRejectRequest,
 }: {
   contact: DisplayContact;
-  showAddButton?: boolean;
+  onAddFriend: (id: string) => void;
+  onCancelRequest: (id: string) => void;
+  onAcceptRequest: (id: string) => void;
+  onRejectRequest: (id: string) => void;
 }) => {
-  const handleAddFriend = () => {
-    console.log("Send friend request to:", contact.id);
-  };
-
   const handleViewProfile = () => {
     router.push({
       pathname: "/user-info/[id]",
@@ -72,16 +77,53 @@ const ContactItem = ({
           </VStack>
         </HStack>
       </TouchableOpacity>
-      {showAddButton && !contact.isFriend ? (
+
+      {/* Hiển thị các nút tương tác dựa trên trạng thái mối quan hệ */}
+      {contact.relationshipStatus === "NONE" && (
         <TouchableOpacity
-          onPress={handleAddFriend}
+          onPress={() => onAddFriend(contact.id)}
           className="bg-blue-500 px-4 py-1.5 rounded-full"
         >
-          <Text className="text-white font-medium">Kết bạn</Text>
+          <HStack className="items-center space-x-1">
+            <UserPlus size={16} color="white" />
+            <Text className="text-white font-medium">Kết bạn</Text>
+          </HStack>
         </TouchableOpacity>
-      ) : contact.isFriend ? (
+      )}
+
+      {contact.relationshipStatus === "FRIEND" && (
         <Text className="text-gray-500 text-sm">Đã kết bạn</Text>
-      ) : null}
+      )}
+
+      {contact.relationshipStatus === "PENDING_SENT" && (
+        <TouchableOpacity
+          onPress={() => onCancelRequest(contact.friendshipId || "")}
+          className="bg-gray-200 px-4 py-1.5 rounded-full"
+        >
+          <HStack className="items-center space-x-1">
+            <X size={16} color="gray" />
+            <Text className="text-gray-600 font-medium">Hủy lời mời</Text>
+          </HStack>
+        </TouchableOpacity>
+      )}
+
+      {contact.relationshipStatus === "PENDING_RECEIVED" && (
+        <HStack className="space-x-2">
+          <TouchableOpacity
+            onPress={() => onRejectRequest(contact.friendshipId || "")}
+            className="bg-gray-200 px-3 py-1.5 rounded-full"
+          >
+            <Text className="text-gray-600 font-medium">Từ chối</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => onAcceptRequest(contact.friendshipId || "")}
+            className="bg-blue-100 px-3 py-1.5 rounded-full"
+          >
+            <Text className="text-blue-500 font-medium">Đồng ý</Text>
+          </TouchableOpacity>
+        </HStack>
+      )}
     </HStack>
   );
 };
@@ -95,14 +137,13 @@ export default function PhoneContactsScreen() {
   const [contacts, setContacts] = useState<DisplayContact[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Lấy danh sách liên hệ khi component mount
-  useEffect(() => {
-    fetchContacts();
-  }, []);
+  // Kết nối đến namespace friends của WebSocket
+  const { socket, isConnected, error: socketError } = useSocket("friends");
 
   // Lấy danh sách liên hệ từ API
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async (source: string = "manual") => {
     try {
+      console.log(`Fetching contacts (source: ${source})`);
       setIsLoading(true);
       setError(null);
       const response = await getContacts();
@@ -116,7 +157,7 @@ export default function PhoneContactsScreen() {
           "Không có tên",
         phoneNumber: item.contactUser.phoneNumber,
         avatarUrl: item.contactUser.userInfo?.profilePictureUrl || null,
-        isFriend: item.relationship?.status === "FRIEND",
+        relationshipStatus: item.relationship?.status || "NONE",
         friendshipId: item.relationship?.friendshipId,
       }));
 
@@ -127,7 +168,56 @@ export default function PhoneContactsScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Lấy danh sách liên hệ khi component mount
+  useEffect(() => {
+    fetchContacts("mount");
+  }, [fetchContacts]);
+
+  // Refetch contacts when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("Phone contacts screen focused, refreshing contacts");
+      fetchContacts("focus");
+      return () => {};
+    }, [fetchContacts]),
+  );
+
+  // Theo dõi trạng thái kết nối WebSocket
+  useEffect(() => {
+    if (isConnected) {
+      console.log(
+        "Socket connected to friends namespace in phone contacts screen",
+      );
+    } else if (socketError) {
+      console.error(
+        "Socket connection error in phone contacts screen:",
+        socketError,
+      );
+    }
+  }, [isConnected, socketError]);
+
+  // Lắng nghe sự kiện reload từ WebSocket
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    console.log("Setting up reload listener in phone contacts screen");
+
+    // Lắng nghe sự kiện reload
+    const handleReload = () => {
+      console.log("Received reload event from server, refreshing contacts");
+      fetchContacts("websocket");
+    };
+
+    socket.on("reload", handleReload);
+
+    // Dọn dẹp listener khi component unmount hoặc socket thay đổi
+    return () => {
+      console.log("Removing reload listener from phone contacts screen");
+      socket.off("reload", handleReload);
+    };
+  }, [socket, isConnected, fetchContacts]);
 
   // Đồng bộ danh bạ điện thoại
   const handleUpdateContacts = async () => {
@@ -192,19 +282,78 @@ export default function PhoneContactsScreen() {
     }
   };
 
+  // Xử lý gửi lời mời kết bạn
+  const handleAddFriend = (userId: string) => {
+    // Tạo introduce tự động
+    const introduce =
+      "Tôi biết bạn qua danh bạ của tôi. Chúng mình cùng kết nối nhé!";
+
+    // Điều hướng đến trang gửi lời mời kết bạn
+    router.push({
+      pathname: "/friend-contact/friend-request/[id]",
+      params: { id: userId, introduce },
+    });
+  };
+
+  // Xử lý hủy lời mời kết bạn
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      await cancelFriendRequest(requestId);
+      // Cập nhật danh sách sau khi hủy lời mời
+      fetchContacts("cancel-request");
+    } catch (err) {
+      console.error("Failed to cancel friend request:", err);
+      Alert.alert(
+        "Lỗi",
+        "Không thể hủy lời mời kết bạn. Vui lòng thử lại sau.",
+      );
+    }
+  };
+
+  // Xử lý chấp nhận lời mời kết bạn
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      await respondToFriendRequest(requestId, "ACCEPTED");
+      // Cập nhật danh sách sau khi chấp nhận lời mời
+      fetchContacts("accept-request");
+    } catch (err) {
+      console.error("Failed to accept friend request:", err);
+      Alert.alert(
+        "Lỗi",
+        "Không thể chấp nhận lời mời kết bạn. Vui lòng thử lại sau.",
+      );
+    }
+  };
+
+  // Xử lý từ chối lời mời kết bạn
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await respondToFriendRequest(requestId, "DECLINED");
+      // Cập nhật danh sách sau khi từ chối lời mời
+      fetchContacts("reject-request");
+    } catch (err) {
+      console.error("Failed to reject friend request:", err);
+      Alert.alert(
+        "Lỗi",
+        "Không thể từ chối lời mời kết bạn. Vui lòng thử lại sau.",
+      );
+    }
+  };
+
   const filteredContacts = contacts.filter((contact) => {
     const matchesSearch =
       contact.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.phoneNumber.includes(searchQuery);
     const matchesFilter =
       activeFilter === "all" ||
-      (activeFilter === "notFriends" && !contact.isFriend);
+      (activeFilter === "notFriends" &&
+        contact.relationshipStatus !== "FRIEND");
     return matchesSearch && matchesFilter;
   });
 
   const totalContacts = contacts.length;
   const notFriendsCount = contacts.filter(
-    (contact) => !contact.isFriend,
+    (contact) => contact.relationshipStatus !== "FRIEND",
   ).length;
   return (
     <View className="flex-1 bg-white">
@@ -301,7 +450,7 @@ export default function PhoneContactsScreen() {
           <View className="flex-1 items-center justify-center py-8">
             <Text className="text-red-500">{error}</Text>
             <TouchableOpacity
-              onPress={fetchContacts}
+              onPress={() => fetchContacts("retry")}
               className="mt-4 bg-blue-50 px-4 py-2 rounded-full"
             >
               <Text className="text-blue-500">Thử lại</Text>
@@ -314,7 +463,10 @@ export default function PhoneContactsScreen() {
                 <ContactItem
                   key={contact.id}
                   contact={contact}
-                  showAddButton={activeFilter === "notFriends"}
+                  onAddFriend={handleAddFriend}
+                  onCancelRequest={handleCancelRequest}
+                  onAcceptRequest={handleAcceptRequest}
+                  onRejectRequest={handleRejectRequest}
                 />
               ))}
             </View>
