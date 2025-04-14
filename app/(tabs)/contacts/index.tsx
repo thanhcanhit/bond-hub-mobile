@@ -8,6 +8,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useEffect } from "react";
 import { HStack } from "@/components/ui/hstack";
+import { useSocket } from "@/hooks/useSocket";
 import { VStack } from "@/components/ui/vstack";
 import {
   Avatar,
@@ -56,22 +57,56 @@ export default function ContactScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Kết nối đến namespace friends của WebSocket
+  const { socket, isConnected, error: socketError } = useSocket("friends");
+
   // Fetch friend list on component mount and when screen comes into focus
   useEffect(() => {
-    fetchFriendList();
+    fetchFriendList("mount");
   }, []);
 
   // Refetch friend list when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       console.log("Contacts screen focused, refreshing friend list");
-      fetchFriendList();
+      fetchFriendList("focus");
       return () => {};
     }, []),
   );
 
-  const fetchFriendList = async () => {
+  // Theo dõi trạng thái kết nối WebSocket
+  useEffect(() => {
+    if (isConnected) {
+      console.log("Socket connected to friends namespace in contacts screen");
+    } else if (socketError) {
+      console.error("Socket connection error in contacts screen:", socketError);
+    }
+  }, [isConnected, socketError]);
+
+  // Lắng nghe sự kiện reload từ WebSocket
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    console.log("Setting up reload listener in contacts screen");
+
+    // Lắng nghe sự kiện reload
+    const handleReload = () => {
+      console.log("Received reload event from server, refreshing friend list");
+      fetchFriendList("websocket");
+    };
+
+    socket.on("reload", handleReload);
+
+    // Dọn dẹp listener khi component unmount hoặc socket thay đổi
+    return () => {
+      console.log("Removing reload listener from contacts screen");
+      socket.off("reload", handleReload);
+    };
+  }, [socket, isConnected]);
+
+  const fetchFriendList = async (source: string = "manual") => {
     try {
+      console.log(`Fetching friend list (source: ${source})`);
       setIsLoading(true);
       setError(null);
       const response = await getFriendList();
@@ -158,6 +193,7 @@ export default function ContactScreen() {
   return (
     <View className="flex-1 bg-gray-100">
       <HStack className=" px-4  bg-white">
+        {/* WebSocket connection indicator */}
         <TouchableOpacity
           className={`flex-1 py-3 ${activeTab === "friends" ? "border-b-2 border-blue-500" : ""}`}
           onPress={() => setActiveTab("friends")}
@@ -233,7 +269,7 @@ export default function ContactScreen() {
             <View className="flex-1 items-center justify-center py-8">
               <Text className="text-red-500">{error}</Text>
               <TouchableOpacity
-                onPress={fetchFriendList}
+                onPress={() => fetchFriendList("retry")}
                 className="mt-4 bg-blue-50 px-4 py-2 rounded-full"
               >
                 <Text className="text-blue-500">Thử lại</Text>
