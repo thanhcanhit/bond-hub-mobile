@@ -10,16 +10,9 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { ArrowLeft } from "lucide-react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-} from "@/components/ui/select/select-actionsheet";
-import { Button, ButtonText } from "@/components/ui/button";
+// Đã xóa các import không cần thiết
 import { getUserProfile } from "@/services/user-service";
 import { useAuthStore } from "@/store/authStore";
 
@@ -27,13 +20,7 @@ export default function QRScanFriendScreen() {
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const [isLoading, setIsLoading] = useState(true);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [scannedData, setScannedData] = useState<{
-    type: string;
-    data: string;
-    userId: string;
-    userName: string;
-  } | null>(null);
+  // Đã xóa các state không cần thiết
   const [cameraActive, setCameraActive] = useState(true);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
@@ -69,8 +56,18 @@ export default function QRScanFriendScreen() {
     return () => clearTimeout(timer);
   }, [permission]);
 
+  // Reset camera state when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("QR scan screen focused, resetting camera");
+      setScanned(false);
+      setCameraActive(true);
+      startScanAnimation();
+      return () => {};
+    }, []),
+  );
+
   const handleBarCodeScanned = async ({
-    type,
     data,
   }: {
     type: string;
@@ -114,19 +111,17 @@ export default function QRScanFriendScreen() {
         return;
       }
 
-      // Lấy thông tin người dùng từ API
-      const userData = await getUserProfile(userId);
+      // Lấy thông tin người dùng từ API để đảm bảo userId hợp lệ
+      await getUserProfile(userId);
 
-      // Lưu thông tin đã quét
-      setScannedData({
-        type,
-        data,
-        userId,
-        userName: userData.userInfo?.fullName || "Người dùng",
+      // Tạo introduce tự động
+      const introduce = "Tôi biết bạn qua mã QR. Chúng mình cùng kết nối nhé!";
+
+      // Chuyển hướng trực tiếp đến trang thông tin người dùng với introduce
+      router.push({
+        pathname: "/user-info/[id]",
+        params: { id: userId, introduce },
       });
-
-      // Hiển thị hộp thoại xác nhận
-      setShowConfirmation(true);
     } catch (error) {
       console.error("Error processing QR code:", error);
       Alert.alert("Lỗi", "Không thể xử lý mã QR. Vui lòng thử lại sau.", [
@@ -141,39 +136,7 @@ export default function QRScanFriendScreen() {
     }
   };
 
-  const handleConfirmAddFriend = async () => {
-    if (!scannedData?.userId) {
-      return;
-    }
-
-    try {
-      // Tạo introduce tự động
-      const introduce = "Tôi biết bạn qua mã QR. Chúng mình cùng kết nối nhé!";
-
-      // Đóng hộp thoại xác nhận
-      setShowConfirmation(false);
-
-      // Điều hướng đến trang thông tin người dùng với introduce
-      router.push({
-        pathname: "/user-info/[id]",
-        params: { id: scannedData.userId, introduce },
-      });
-    } catch (error) {
-      console.error("Error adding friend:", error);
-      Alert.alert(
-        "Lỗi",
-        "Không thể gửi lời mời kết bạn. Vui lòng thử lại sau.",
-      );
-      setScanned(false);
-      setCameraActive(true);
-    }
-  };
-
-  const handleCancelAddFriend = () => {
-    setShowConfirmation(false);
-    setScanned(false);
-    setCameraActive(true);
-  };
+  // Xóa các hàm xử lý xác nhận vì chúng ta không còn sử dụng hộp thoại xác nhận nữa
 
   if (!permission) {
     // Camera permissions are still loading
@@ -344,42 +307,7 @@ export default function QRScanFriendScreen() {
         <ArrowLeft size={24} color="white" />
       </TouchableOpacity>
 
-      {/* Confirmation ActionSheet */}
-      <Actionsheet isOpen={showConfirmation} onClose={handleCancelAddFriend}>
-        <ActionsheetBackdrop />
-        <ActionsheetContent className="px-4 pb-6">
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-
-          <View className="items-center w-full mt-2 mb-6">
-            <Text className="mb-4 text-xl font-bold text-center">
-              Xác nhận kết bạn
-            </Text>
-            <Text className="mb-6 text-base text-center text-gray-600">
-              Bạn có muốn gửi lời mời kết bạn đến {scannedData?.userName} không?
-            </Text>
-
-            <View className="flex-row justify-between w-full gap-4">
-              <Button
-                action="negative"
-                variant="outline"
-                onPress={handleCancelAddFriend}
-                className="flex-1 rounded-full"
-              >
-                <ButtonText className="text-red-500">Huỷ bỏ</ButtonText>
-              </Button>
-              <Button
-                action="primary"
-                onPress={handleConfirmAddFriend}
-                className="flex-1 bg-blue-500 rounded-full"
-              >
-                <ButtonText>Xác nhận</ButtonText>
-              </Button>
-            </View>
-          </View>
-        </ActionsheetContent>
-      </Actionsheet>
+      {/* Đã xóa hộp thoại xác nhận */}
     </View>
   );
 }

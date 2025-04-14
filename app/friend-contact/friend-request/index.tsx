@@ -17,7 +17,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { ArrowLeft } from "lucide-react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -174,6 +174,7 @@ const SentRequestItem = ({
 
 export default function FriendRequestsScreen() {
   const insets = useSafeAreaInsets();
+  const { refresh } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
   const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
@@ -183,10 +184,52 @@ export default function FriendRequestsScreen() {
   // Kết nối đến namespace friends của WebSocket
   const { socket, isConnected, error: socketError } = useSocket("friends");
 
+  // Định nghĩa fetchFriendRequests với useCallback
+  const fetchFriendRequests = React.useCallback(
+    async (source: string = "manual") => {
+      try {
+        console.log(`Fetching friend requests (source: ${source})`);
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch both received and sent requests in parallel
+        const [receivedData, sentData] = await Promise.all([
+          getReceivedFriendRequests(),
+          getSentFriendRequests(),
+        ]);
+
+        setReceivedRequests(receivedData);
+        setSentRequests(sentData);
+
+        // Xóa tham số refresh khỏi URL sau khi đã cập nhật dữ liệu
+        if (refresh === "true") {
+          // Sử dụng router.setParams để thay thế URL hiện tại mà không thêm vào lịch sử
+          router.setParams({ refresh: undefined });
+        }
+      } catch (err) {
+        console.error("Failed to fetch friend requests:", err);
+        setError(
+          "Không thể tải danh sách lời mời kết bạn. Vui lòng thử lại sau.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [refresh],
+  );
+
   // Fetch friend requests on component mount
   useEffect(() => {
     fetchFriendRequests("mount");
-  }, []);
+  }, [fetchFriendRequests]);
+
+  // Cập nhật dữ liệu khi tham số refresh thay đổi
+  useEffect(() => {
+    if (refresh === "true") {
+      console.log("Refreshing friend requests due to refresh parameter");
+      fetchFriendRequests("refresh-param");
+    }
+  }, [refresh, fetchFriendRequests]);
 
   // Refetch friend requests when screen comes into focus
   useFocusEffect(
@@ -194,7 +237,7 @@ export default function FriendRequestsScreen() {
       console.log("Friend requests screen focused, refreshing requests");
       fetchFriendRequests("focus");
       return () => {};
-    }, []),
+    }, [fetchFriendRequests]),
   );
 
   // Theo dõi trạng thái kết nối WebSocket
@@ -232,31 +275,7 @@ export default function FriendRequestsScreen() {
       console.log("Removing reload listener from friend requests screen");
       socket.off("reload", handleReload);
     };
-  }, [socket, isConnected]);
-
-  const fetchFriendRequests = async (source: string = "manual") => {
-    try {
-      console.log(`Fetching friend requests (source: ${source})`);
-      setIsLoading(true);
-      setError(null);
-
-      // Fetch both received and sent requests in parallel
-      const [receivedData, sentData] = await Promise.all([
-        getReceivedFriendRequests(),
-        getSentFriendRequests(),
-      ]);
-
-      setReceivedRequests(receivedData);
-      setSentRequests(sentData);
-    } catch (err) {
-      console.error("Failed to fetch friend requests:", err);
-      setError(
-        "Không thể tải danh sách lời mời kết bạn. Vui lòng thử lại sau.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [socket, isConnected, fetchFriendRequests]);
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
