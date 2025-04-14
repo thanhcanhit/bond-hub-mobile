@@ -8,8 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useSocket } from "@/hooks/useSocket";
 import { ArrowLeft, Edit3 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/Colors";
@@ -39,6 +41,9 @@ export default function FriendRequestScreen() {
   const [characterCount, setCharacterCount] = useState(0);
   const MAX_CHARACTERS = 150;
 
+  // Kết nối đến namespace friends của WebSocket
+  const { socket, isConnected, error: socketError } = useSocket("friends");
+
   useEffect(() => {
     fetchUserInfo();
   }, [id]);
@@ -46,6 +51,77 @@ export default function FriendRequestScreen() {
   useEffect(() => {
     setCharacterCount(introduce.length);
   }, [introduce]);
+
+  // Theo dõi trạng thái kết nối WebSocket
+  useEffect(() => {
+    if (isConnected) {
+      console.log(
+        `Socket connected to friends namespace in friend request screen for user ${id}`,
+      );
+    } else if (socketError) {
+      console.error(
+        `Socket connection error in friend request screen:`,
+        socketError,
+      );
+    }
+  }, [isConnected, socketError, id]);
+
+  // Lắng nghe sự kiện reload từ WebSocket
+  useEffect(() => {
+    if (!socket || !isConnected || !userProfile) return;
+
+    console.log(
+      `Setting up reload listener in friend request screen for user ${id}`,
+    );
+
+    // Lắng nghe sự kiện reload
+    const handleReload = async () => {
+      console.log(
+        "Received reload event from server while composing friend request",
+      );
+
+      // Kiểm tra lại trạng thái mối quan hệ với người dùng
+      try {
+        const updatedUserData = await userService.getUserProfile(String(id));
+
+        // Nếu người dùng B đã gửi lời mời kết bạn cho người dùng A
+        if (updatedUserData.relationship?.status === "PENDING_RECEIVED") {
+          // Hiển thị thông báo
+          Alert.alert(
+            "Thông báo",
+            `${updatedUserData.userInfo?.fullName || "Người dùng"} đã gửi lời mời kết bạn cho bạn!`,
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  // Quay lại màn hình thông tin người dùng
+                  router.push({
+                    pathname: "/user-info/[id]",
+                    params: { id: String(id), refresh: "true" },
+                  });
+                },
+              },
+            ],
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Error checking user relationship after reload event:",
+          error,
+        );
+      }
+    };
+
+    socket.on("reload", handleReload);
+
+    // Dọn dẹp listener khi component unmount hoặc socket thay đổi
+    return () => {
+      console.log(
+        `Removing reload listener from friend request screen for user ${id}`,
+      );
+      socket.off("reload", handleReload);
+    };
+  }, [socket, isConnected, id, userProfile]);
 
   const fetchUserInfo = async () => {
     if (!id || typeof id !== "string") {
@@ -109,6 +185,7 @@ export default function FriendRequestScreen() {
             paddingTop: Platform.OS === "ios" ? insets.top : insets.top,
           }}
         >
+          {/* WebSocket connection indicator */}
           <View style={{ paddingTop: insets.top }} className="pb-4 px-4">
             <HStack className="items-center">
               <TouchableOpacity onPress={() => router.back()}>
