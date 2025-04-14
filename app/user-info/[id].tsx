@@ -296,33 +296,6 @@ export default function UserProfileScreen() {
                 style={{ paddingTop: insets.top }}
               >
                 {/* WebSocket connection status indicator */}
-                {/* {isConnected && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: insets.top + 4,
-                      right: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: 'rgba(0,0,0,0.3)',
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 12,
-                      zIndex: 10
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: '#4CAF50',
-                        marginRight: 4
-                      }}
-                    />
-                    <Text style={{ color: 'white', fontSize: 10 }}>Live</Text>
-                  </View>
-                )} */}
                 <TouchableOpacity onPress={() => router.back()}>
                   <ArrowLeft size={28} color="white" />
                 </TouchableOpacity>

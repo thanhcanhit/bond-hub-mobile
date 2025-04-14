@@ -194,33 +194,6 @@ export default function ContactScreen() {
     <View className="flex-1 bg-gray-100">
       <HStack className=" px-4  bg-white">
         {/* WebSocket connection indicator */}
-        {isConnected && (
-          <View
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "rgba(0,0,0,0.3)",
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 12,
-              zIndex: 10,
-            }}
-          >
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: "#4CAF50",
-                marginRight: 4,
-              }}
-            />
-            <Text style={{ color: "white", fontSize: 10 }}>Live</Text>
-          </View>
-        )}
         <TouchableOpacity
           className={`flex-1 py-3 ${activeTab === "friends" ? "border-b-2 border-blue-500" : ""}`}
           onPress={() => setActiveTab("friends")}
