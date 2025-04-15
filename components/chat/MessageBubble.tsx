@@ -11,7 +11,7 @@ import {
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { Heart, X } from "lucide-react-native";
+import { Heart, X, Forward } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
 import { VideoMessage } from "@/components/chat/VideoMessage";
@@ -224,6 +224,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </RNText>
             ) : (
               <>
+                {/* Forwarded message indicator */}
+                {message.forwardedFrom && (
+                  <View className="flex-row items-center mb-1">
+                    <Forward size={14} color="#6B7280" />
+                    <RNText className="text-xs text-gray-500 ml-1">
+                      Tin nhắn được chuyển tiếp
+                    </RNText>
+                  </View>
+                )}
+
                 {/* Text content */}
                 {message.content.text && (
                   <RNText
@@ -271,7 +281,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             }}
             onForward={handleForward}
             onClose={handleCloseActions}
-            position={isMyMessage ? "right" : "left"}
           />
 
           {/* Chỉ hiển thị reaction picker và nút reaction khi thỏa điều kiện */}
@@ -366,6 +375,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         isOpen={showForwardModal}
         onClose={() => setShowForwardModal(false)}
         messageId={message.id}
+        currentRecipientId={
+          !isMyMessage ? message.senderId : message.receiverId
+        }
       />
     </>
   );

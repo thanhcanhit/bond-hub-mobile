@@ -63,7 +63,7 @@ export const messageService = {
   // Đánh dấu đã đọc
   async markAsRead(messageId: string): Promise<void> {
     try {
-      await axiosInstance.patch(`/messages/${messageId}/read`);
+      await axiosInstance.patch(`/messages/read/${messageId}`);
     } catch (error) {
       handleError(error, "markAsRead");
     }
@@ -71,7 +71,7 @@ export const messageService = {
 
   async markAsUnread(messageId: string): Promise<void> {
     try {
-      await axiosInstance.patch(`/messages/${messageId}/unread`);
+      await axiosInstance.patch(`/messages/unread/${messageId}`);
     } catch (error) {
       handleError(error, "markAsUnread");
     }

@@ -1,14 +1,14 @@
 import React from "react";
-import { View, TouchableOpacity, Text, Pressable } from "react-native";
+import { View, TouchableOpacity, Text } from "react-native";
+import { Trash2, RefreshCcw, Heart, Forward } from "lucide-react-native";
+import { VStack } from "../ui/vstack";
 import {
-  MessageCircle,
-  Trash2,
-  RefreshCcw,
-  Heart,
-  Forward,
-} from "lucide-react-native";
-import { HStack } from "@/components/ui/hstack";
-import clsx from "clsx";
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+} from "../ui/select/select-actionsheet";
 
 interface MessageActionsProps {
   isVisible: boolean;
@@ -18,7 +18,6 @@ interface MessageActionsProps {
   onDelete: () => void;
   onForward: () => void;
   onClose: () => void;
-  position?: "left" | "right";
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -29,68 +28,79 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onDelete,
   onForward,
   onClose,
-  position = "left",
 }) => {
-  if (!isVisible) return null;
-
   return (
-    <>
-      {/* Overlay để xử lý click outside */}
-      <Pressable
-        onPress={onClose}
-        className="absolute inset-0 w-full h-screen z-10"
-      />
+    <Actionsheet isOpen={isVisible} onClose={onClose}>
+      <ActionsheetBackdrop />
+      <ActionsheetContent className="px-4 pb-6">
+        <ActionsheetDragIndicatorWrapper>
+          <ActionsheetDragIndicator />
+        </ActionsheetDragIndicatorWrapper>
 
-      <View
-        className={clsx(
-          "absolute -bottom-0 bg-white rounded-full shadow-md py-2 px-3 z-50 flex-row items-center ",
-          position === "left" ? "left-0" : "right-0",
-        )}
-      >
-        <HStack space="sm">
-          <TouchableOpacity
-            onPress={() => {
-              onReaction();
-              onClose();
-            }}
-            className="px-2 flex-row items-center"
-          >
-            <Heart size={20} color="#6B7280" />
-          </TouchableOpacity>
+        <View className="w-full">
+          <Text className="text-xl font-bold text-center mb-4 pt-2">
+            Tùy chọn tin nhắn
+          </Text>
 
-          <TouchableOpacity
-            onPress={() => {
-              onForward();
-              onClose();
-            }}
-            className="px-2"
-          >
-            <Forward size={20} color="#6B7280" />
-          </TouchableOpacity>
-
-          {isMyMessage && (
+          <VStack space="md" className="mt-2">
             <TouchableOpacity
               onPress={() => {
-                onRecall();
+                onReaction();
                 onClose();
               }}
-              className="px-2"
+              className="px-3 py-3 flex-row items-center  rounded-lg"
             >
-              <RefreshCcw size={20} color="#6B7280" />
+              <View className="bg-blue-50 p-2 rounded-full mr-3">
+                <Heart size={22} color="#297eff" />
+              </View>
+              <Text className="text-base font-medium">Thả cảm xúc</Text>
             </TouchableOpacity>
-          )}
 
-          <TouchableOpacity
-            onPress={() => {
-              onDelete();
-              onClose();
-            }}
-            className="px-2"
-          >
-            <Trash2 size={20} color="#EF4444" />
-          </TouchableOpacity>
-        </HStack>
-      </View>
-    </>
+            <TouchableOpacity
+              onPress={() => {
+                onForward();
+                onClose();
+              }}
+              className="px-3 py-3 flex-row items-center  rounded-lg"
+            >
+              <View className="bg-blue-50 p-2 rounded-full mr-3">
+                <Forward size={22} color="#297eff" />
+              </View>
+              <Text className="text-base font-medium">Chuyển tiếp</Text>
+            </TouchableOpacity>
+
+            {isMyMessage && (
+              <TouchableOpacity
+                onPress={() => {
+                  onRecall();
+                  onClose();
+                }}
+                className="px-3 py-3 flex-row items-center  rounded-lg"
+              >
+                <View className="bg-blue-50 p-2 rounded-full mr-3">
+                  <RefreshCcw size={22} color="#297eff" />
+                </View>
+                <Text className="text-base font-medium">Thu hồi</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={() => {
+                onDelete();
+                onClose();
+              }}
+              className="px-3 py-3 flex-row items-center  rounded-lg"
+            >
+              <View className="bg-red-50 p-2 rounded-full mr-3">
+                <Trash2 size={22} color="#EF4444" />
+              </View>
+              <Text className="text-base font-medium text-red-500">
+                Xóa tin nhắn
+              </Text>
+            </TouchableOpacity>
+          </VStack>
+        </View>
+      </ActionsheetContent>
+    </Actionsheet>
   );
 };

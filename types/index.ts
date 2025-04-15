@@ -191,3 +191,35 @@ export interface DocumentPreviewProps {
   url: string;
   fileName: string;
 }
+
+// Conversation interfaces based on Postman test data
+export interface Conversation {
+  id: string;
+  type: "USER" | "GROUP";
+  unreadCount: number;
+  updatedAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    profilePictureUrl?: string;
+  };
+  group?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  lastMessage?: {
+    id: string;
+    content: {
+      text?: string;
+      media?: MessageMedia[];
+    };
+    senderId: string;
+    createdAt: string;
+  };
+}
+
+export interface ConversationListProps {
+  conversations: Conversation[];
+  onConversationPress: (conversation: Conversation) => void;
+}

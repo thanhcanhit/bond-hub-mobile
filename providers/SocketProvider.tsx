@@ -82,6 +82,17 @@ export function SocketProvider({ children }: SocketProviderProps) {
         };
 
         addMessage(normalizedMessage);
+
+        // Cập nhật trạng thái người gửi thành online
+        const userStatusStore = useUserStatusStore.getState();
+        userStatusStore.setUserStatus(
+          data.message.senderId,
+          "online",
+          new Date(),
+        );
+
+        // Yêu cầu cập nhật trạng thái của người gửi
+        requestUserStatus(socket, data.message.senderId);
       },
     );
 
@@ -113,6 +124,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
             reaction: r.reaction as ReactionType,
           })),
         });
+
+        // Cập nhật trạng thái người dùng thêm reaction thành online
+        const userStatusStore = useUserStatusStore.getState();
+        userStatusStore.setUserStatus(data.userId, "online", new Date());
+
+        // Yêu cầu cập nhật trạng thái của người dùng
+        requestUserStatus(socket, data.userId);
       },
     );
 
@@ -134,6 +152,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
             reaction: r.reaction as ReactionType,
           })),
         });
+
+        // Cập nhật trạng thái người dùng bỏ reaction thành online
+        const userStatusStore = useUserStatusStore.getState();
+        userStatusStore.setUserStatus(data.userId, "online", new Date());
       },
     );
 
@@ -148,6 +170,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }) => {
         console.log("User is typing:", data);
         setTypingUsers(data);
+
+        // Cập nhật trạng thái người dùng đang nhập thành typing
+        const userStatusStore = useUserStatusStore.getState();
+        userStatusStore.setUserStatus(data.userId, "typing", new Date());
       },
     );
 
@@ -157,6 +183,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
       (data: { userId: string; receiverId?: string; groupId?: string }) => {
         console.log("User stopped typing:", data);
         removeTypingUser(data.userId);
+
+        // Cập nhật trạng thái người dùng ngừng nhập thành online
+        const userStatusStore = useUserStatusStore.getState();
+        userStatusStore.setUserStatus(data.userId, "online", new Date());
+
+        // Yêu cầu cập nhật trạng thái của người dùng
+        requestUserStatus(socket, data.userId);
       },
     );
 
@@ -167,6 +200,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         userId: string;
         status: "online" | "offline";
         timestamp: string | Date;
+        lastActivity?: string | Date;
       }) => {
         console.log("User status changed:", data);
 
@@ -176,12 +210,73 @@ export function SocketProvider({ children }: SocketProviderProps) {
             ? new Date(data.timestamp)
             : data.timestamp;
 
+        // Chuyển đổi lastActivity thành Date object nếu nó tồn tại và là string
+        const lastActivity = data.lastActivity
+          ? typeof data.lastActivity === "string"
+            ? new Date(data.lastActivity)
+            : data.lastActivity
+          : timestamp;
+
         // Cập nhật trạng thái trong store
-        useUserStatusStore
-          .getState()
-          .setUserStatus(data.userId, data.status, timestamp);
+        const userStatusStore = useUserStatusStore.getState();
+        userStatusStore.setUserStatus(
+          data.userId,
+          data.status,
+          timestamp,
+          lastActivity,
+        );
       },
     );
+
+    // Handle batch user status updates
+    socket.on(
+      "usersStatus",
+      (
+        data: Array<{
+          userId: string;
+          status: "online" | "offline";
+          timestamp: string | Date;
+          lastActivity?: string | Date;
+        }>,
+      ) => {
+        console.log("Batch user status update received:", data);
+
+        const userStatusStore = useUserStatusStore.getState();
+
+        // Cập nhật trạng thái cho tất cả người dùng trong batch
+        data.forEach((user) => {
+          const timestamp =
+            typeof user.timestamp === "string"
+              ? new Date(user.timestamp)
+              : user.timestamp;
+
+          const lastActivity = user.lastActivity
+            ? typeof user.lastActivity === "string"
+              ? new Date(user.lastActivity)
+              : user.lastActivity
+            : timestamp;
+
+          userStatusStore.setUserStatus(
+            user.userId,
+            user.status,
+            timestamp,
+            lastActivity,
+          );
+        });
+      },
+    );
+  };
+
+  // Hàm yêu cầu trạng thái của một người dùng cụ thể
+  const requestUserStatus = (socket: Socket, userId: string) => {
+    socket.emit("getUserStatus", { userId });
+  };
+
+  // Hàm yêu cầu trạng thái của nhiều người dùng
+  const requestMultipleUserStatus = (socket: Socket, userIds: string[]) => {
+    if (userIds.length > 0) {
+      socket.emit("getUsersStatus", { userIds });
+    }
   };
 
   // Kết nối socket khi đăng nhập thành công
@@ -230,14 +325,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
       console.log("[SocketProvider] Main socket connected:", main.id);
       setIsMainConnected(true);
 
-      // Thiết lập heartbeat cho main socket
+      // Thiết lập heartbeat cho main socket - giảm xuống 15 giây
       const mainHeartbeat = setInterval(() => {
         if (main.connected) {
           main.emit("heartbeat");
         } else {
           clearInterval(mainHeartbeat);
         }
-      }, 30000);
+      }, 15000);
 
       return () => clearInterval(mainHeartbeat);
     });
@@ -248,16 +343,55 @@ export function SocketProvider({ children }: SocketProviderProps) {
       setIsMessageConnected(true);
       setupMessageSocketListeners(message);
 
-      // Thiết lập heartbeat cho message socket
+      // Thiết lập window.messageSocket để các component khác có thể truy cập
+      if (typeof window !== "undefined") {
+        window.messageSocket = message;
+      }
+
+      // Thiết lập heartbeat cho message socket - giảm xuống 15 giây
       const messageHeartbeat = setInterval(() => {
         if (message.connected) {
           message.emit("heartbeat");
         } else {
           clearInterval(messageHeartbeat);
         }
-      }, 30000);
+      }, 15000);
 
-      return () => clearInterval(messageHeartbeat);
+      // Thiết lập cơ chế tự động cập nhật trạng thái người dùng
+      const statusUpdateInterval = setInterval(() => {
+        if (message.connected) {
+          // Lấy danh sách người dùng cần cập nhật trạng thái
+          const userStatusStore = useUserStatusStore.getState();
+          const userStatuses = userStatusStore.userStatuses;
+
+          // Lấy danh sách người dùng có trạng thái cũ hơn 1 phút
+          const now = new Date();
+          const userIdsToUpdate: string[] = [];
+
+          userStatuses.forEach((status, userId) => {
+            const lastUpdate = status.timestamp;
+            const diffMs = now.getTime() - lastUpdate.getTime();
+            const diffMinutes = diffMs / (1000 * 60);
+
+            // Nếu trạng thái cũ hơn 1 phút, thêm vào danh sách cập nhật
+            if (diffMinutes > 1) {
+              userIdsToUpdate.push(userId);
+            }
+          });
+
+          // Yêu cầu cập nhật trạng thái nếu có người dùng cần cập nhật
+          if (userIdsToUpdate.length > 0) {
+            requestMultipleUserStatus(message, userIdsToUpdate);
+          }
+        } else {
+          clearInterval(statusUpdateInterval);
+        }
+      }, 60000); // Kiểm tra mỗi 1 phút
+
+      return () => {
+        clearInterval(messageHeartbeat);
+        clearInterval(statusUpdateInterval);
+      };
     });
 
     // Xử lý disconnect cho cả hai socket

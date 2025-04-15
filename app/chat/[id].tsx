@@ -70,12 +70,7 @@ const ChatScreen = () => {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
-  const {
-    id: chatId,
-    fullName: name,
-    profilePictureUrl,
-    type,
-  } = useLocalSearchParams();
+  const { id: chatId, name, avatarUrl, type } = useLocalSearchParams();
 
   useEffect(() => {
     if (chatId) {
@@ -94,11 +89,11 @@ const ChatScreen = () => {
         setSelectedGroup({
           id: chatId as string,
           name: name as string,
-          profilePictureUrl: profilePictureUrl as string,
+          profilePictureUrl: avatarUrl as string,
         });
       }
     }
-  }, [chatId, name, profilePictureUrl, type]);
+  }, [chatId, name, avatarUrl, type]);
 
   useEffect(() => {
     loadMessages(chatId as string);
@@ -295,7 +290,7 @@ const ChatScreen = () => {
             <MessageBubble
               key={msg.id}
               message={msg}
-              profilePictureUrl={profilePictureUrl as string}
+              profilePictureUrl={avatarUrl as string}
               onReaction={handleReaction}
               onRecall={handleRecall}
               onDelete={handleDelete}
@@ -338,11 +333,9 @@ const ChatScreen = () => {
         )}
         <View
           className="flex-row justify-center items-center bg-white px-4 pt-4"
-          style={
-            Platform.OS === "ios"
-              ? { paddingBottom: 25 }
-              : { paddingBottom: 10 }
-          }
+          style={{
+            paddingBottom: Platform.OS === "ios" ? 25 : 10,
+          }}
         >
           <TouchableOpacity
             className="ml-2.5"
@@ -353,7 +346,7 @@ const ChatScreen = () => {
           </TouchableOpacity>
 
           <TextInput
-            className="flex-1 ml-2.5 p-1 h-full bg-transparent justify-center text-gray-700 text-base"
+            className="flex-1 ml-2.5 p-1 bg-transparent justify-center text-gray-700 text-base"
             placeholder="Nhập tin nhắn..."
             value={message}
             onChangeText={(text) => {
@@ -361,7 +354,12 @@ const ChatScreen = () => {
               debouncedTyping(text.length > 0);
             }}
             multiline
-            maxLength={1000}
+            numberOfLines={message.length > 100 ? 4 : 1}
+            textAlignVertical="center"
+            style={{
+              minHeight: 40,
+              maxHeight: 70,
+            }}
           />
           {!message.trim() && selectedMedia.length === 0 ? (
             <View className="flex-row relative">
