@@ -148,7 +148,6 @@ const ChatScreen = () => {
 
   const handleDocumentPick = async () => {
     if (!user) return;
-
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "application/msword", "text/plain"],
@@ -172,7 +171,7 @@ const ChatScreen = () => {
           name: asset.name,
           mimeType: asset.mimeType,
         }));
-
+        console.log(mediaFiles);
         await sendMediaMessage(
           chatId as string,
           message,

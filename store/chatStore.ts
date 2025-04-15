@@ -348,13 +348,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
       formData.append("content[text]", text);
 
       media.forEach((m) => {
-        const fileType = m.type === "VIDEO" ? "video/mp4" : "image/jpeg";
+        let fileType;
+        let fileName;
+
+        if (m.type === "DOCUMENT") {
+          fileType = m.mimeType || "application/octet-stream";
+          fileName = m.name || `document_${Date.now()}`;
+        } else {
+          fileType = m.type === "VIDEO" ? "video/mp4" : "image/jpeg";
+          fileName = `${m.type.toLowerCase()}_${Date.now()}.${m.type === "VIDEO" ? "mp4" : "jpg"}`;
+        }
+
         formData.append("mediaType", m.type);
         formData.append("files", {
           uri: m.uri,
           type: fileType,
-          name: `${m.type.toLowerCase()}_${Date.now()}.${m.type === "VIDEO" ? "mp4" : "jpg"}`,
+          name: fileName,
           mediaType: m.type,
+          // Include additional document metadata if available
+          ...(m.type === "DOCUMENT" && {
+            mimeType: m.mimeType,
+            size: m.size,
+          }),
         } as any);
       });
 
