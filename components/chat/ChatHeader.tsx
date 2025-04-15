@@ -7,15 +7,43 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatHeaderProps } from "@/types";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
+import { useUserStatusStore } from "@/store/userStatusStore";
+const formatLastSeen = (lastSeenDate: string) => {
+  const date = new Date(lastSeenDate);
+  const now = new Date();
+  const diffMinutes = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60),
+  );
 
+  if (diffMinutes < 1) return "Vừa mới truy cập";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+
+  return date.toLocaleDateString();
+};
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
+  chatId,
   name,
   avatarUrl,
   isGroup,
   onBack,
 }) => {
   const insets = useSafeAreaInsets();
+  const isOnline = useUserStatusStore((state) => state.isUserOnline(chatId));
+  const userStatus = useUserStatusStore((state) => state.getUserStatus(chatId));
+  const getStatusText = () => {
+    if (isGroup) return `${name}`; // Không hiển thị trạng thái cho group
+    if (isOnline) return "Đang hoạt động";
+    if (!userStatus?.timestamp) return "Không hoạt động";
+    return `${formatLastSeen(userStatus.timestamp.toISOString())}`;
+  };
 
+  const getStatusColor = () => {
+    if (isGroup) return "bg-transparent";
+    return isOnline ? "bg-green-500" : "bg-gray-400";
+  };
   return (
     <LinearGradient
       start={{ x: 0.03, y: 0 }}
@@ -41,7 +69,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               >
                 {name}
               </Text>
-              <Text className="text-xs text-gray-200">Online</Text>
+              <HStack className="items-center">
+                {!isGroup && (
+                  <View
+                    className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusColor()}`}
+                  />
+                )}
+                <Text className="text-xs text-gray-200">{getStatusText()}</Text>
+              </HStack>
             </VStack>
           </HStack>
           <HStack className="space-x-4">

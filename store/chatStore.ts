@@ -1,7 +1,11 @@
 import { create } from "zustand";
-import { Message, MessageReaction, ReactionType } from "@/types";
+import { Message, MessageReaction, ReactionType, User } from "@/types";
 import { messageService } from "@/services/message-service";
 import uuid from "react-native-uuid";
+import { useSocket } from "@/providers/SocketProvider";
+import { useUserStatusStore } from "./userStatusStore";
+import { Socket } from "socket.io-client";
+
 interface ChatState {
   messages: Message[];
   loading: boolean;
@@ -15,14 +19,33 @@ interface ChatState {
     width?: number;
     height?: number;
   }>;
-  typingUsers: Map<string, { timestamp: Date; userId: string }>;
+  typingUsers: Map<
+    string,
+    { timestamp: Date; receiverId?: string; groupId?: string }
+  >;
+  isTyping: boolean;
+  typingDebounceTimeout: NodeJS.Timeout | null;
+  currentChat: {
+    id: string;
+    name: string;
+    type: "USER" | "GROUP";
+    // Add other common properties between User and Group
+  } | null;
+  currentChatType: "USER" | "GROUP" | null;
+  selectedContact: any | null;
+  selectedGroup: any | null;
 
   // Actions
   setMessages: (messages: Message[]) => void;
   addMessage: (message: Message) => void;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   deleteMessage: (messageId: string) => void;
-  setTypingUsers: (data: { userId: string; timestamp: Date }) => void;
+  setTypingUsers: (data: {
+    userId: string;
+    timestamp: Date;
+    receiverId?: string;
+    groupId?: string;
+  }) => void;
   removeTypingUser: (userId: string) => void;
   setLoading: (loading: boolean) => void;
   setRefreshing: (refreshing: boolean) => void;
@@ -37,6 +60,12 @@ interface ChatState {
       height?: number;
     }>,
   ) => void;
+  handleTypingStatus: (isTyping: boolean) => void;
+  sendTypingIndicator: (isTyping: boolean, socket: Socket) => void;
+  setSelectedContact: (contact: User | null) => void;
+  setSelectedGroup: (group: any | null) => void;
+  setCurrentChatType: (type: "USER" | "GROUP" | null) => void;
+  setCurrentChat: (chat: ChatState["currentChat"]) => void;
 
   // Async actions
   loadMessages: (chatId: string, pageNum?: number) => Promise<void>;
@@ -62,6 +91,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoadingMedia: false,
   selectedMedia: [],
   typingUsers: new Map(),
+  isTyping: false,
+  typingDebounceTimeout: null,
+  currentChat: null,
+  currentChatType: null,
+  selectedContact: null,
+  selectedGroup: null,
 
   setMessages: (messages) => set({ messages }),
   addMessage: (message) =>
@@ -78,27 +113,192 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       messages: state.messages.filter((msg) => msg.id !== messageId),
     })),
-  setTypingUsers: (data) =>
+  setTypingUsers: (data) => {
     set((state) => {
       const newTypingUsers = new Map(state.typingUsers);
       newTypingUsers.set(data.userId, {
         timestamp: data.timestamp,
-        userId: data.userId,
+        receiverId: data.receiverId,
+        groupId: data.groupId,
       });
       return { typingUsers: newTypingUsers };
-    }),
-  removeTypingUser: (userId) =>
+    });
+
+    // Update user status store
+    const { setUserStatus } = useUserStatusStore.getState();
+    setUserStatus(data.userId, "typing", data.timestamp);
+  },
+  removeTypingUser: (userId) => {
     set((state) => {
       const newTypingUsers = new Map(state.typingUsers);
       newTypingUsers.delete(userId);
       return { typingUsers: newTypingUsers };
-    }),
+    });
+
+    // Update user status store back to online
+    const { setUserStatus } = useUserStatusStore.getState();
+    setUserStatus(userId, "online", new Date());
+  },
   setLoading: (loading) => set({ loading }),
   setRefreshing: (refreshing) => set({ refreshing }),
   setPage: (page) => set({ page }),
   setHasMore: (hasMore) => set({ hasMore }),
   setIsLoadingMedia: (isLoadingMedia) => set({ isLoadingMedia }),
   setSelectedMedia: (media) => set({ selectedMedia: media }),
+  handleTypingStatus: (isTyping) => {
+    const state = get();
+    const currentChat =
+      state.currentChatType === "USER"
+        ? state.selectedContact
+        : state.selectedGroup;
+
+    if (!currentChat) return;
+
+    // Clear existing timeout
+    if (state.typingDebounceTimeout) {
+      clearTimeout(state.typingDebounceTimeout);
+    }
+
+    // Get socket instance
+    const socket = typeof window !== "undefined" ? window.messageSocket : null;
+    if (!socket) {
+      console.log(
+        "[chatStore] Cannot send typing status: No socket connection",
+      );
+      return;
+    }
+
+    // Prepare data to send
+    const data: { receiverId?: string; groupId?: string } = {};
+    if (state.currentChatType === "USER") {
+      data.receiverId = currentChat.id;
+    } else {
+      data.groupId = currentChat.id;
+    }
+
+    // Only emit if typing state changed
+    if (isTyping !== state.isTyping) {
+      const event = isTyping ? "typing" : "stopTyping";
+      socket.emit(event, data);
+
+      // Update local typing state
+      set({ isTyping });
+
+      // Update user status store
+      const { setUserStatus } = useUserStatusStore.getState();
+      setUserStatus(currentChat.id, isTyping ? "typing" : "online", new Date());
+    }
+
+    // Set timeout to automatically stop typing after 2 seconds of inactivity
+    const timeout = setTimeout(() => {
+      if (get().isTyping) {
+        socket.emit("stopTyping", data);
+        set({ isTyping: false });
+
+        // Update user status store
+        const { setUserStatus } = useUserStatusStore.getState();
+        setUserStatus(currentChat.id, "online", new Date());
+      }
+    }, 2000);
+
+    set({ typingDebounceTimeout: timeout });
+  },
+  sendTypingIndicator: (isTyping: boolean, socket: Socket) => {
+    const state = get();
+    const { currentChat } = state;
+
+    console.log("Current state:", {
+      currentChat,
+      currentChatType: state.currentChatType,
+      selectedContact: state.selectedContact,
+      selectedGroup: state.selectedGroup,
+    });
+
+    if (!currentChat) {
+      console.log(
+        "[chatStore] Cannot send typing indicator: No valid recipient",
+      );
+      return;
+    }
+
+    // Prepare data to send
+    const data: { receiverId?: string; groupId?: string } = {};
+    if (currentChat.type === "USER") {
+      data.receiverId = currentChat.id;
+      console.log(
+        `[chatStore] Sending ${isTyping ? "typing" : "stopTyping"} event to user ${currentChat.id}`,
+      );
+    } else {
+      data.groupId = currentChat.id;
+      console.log(
+        `[chatStore] Sending ${isTyping ? "typing" : "stopTyping"} event to group ${currentChat.id}`,
+      );
+    }
+
+    // Emit the event
+    const event = isTyping ? "typing" : "stopTyping";
+    socket.emit(event, data);
+
+    // Update local typing state
+    set({ isTyping });
+
+    // Update user status store
+    const { setUserStatus } = useUserStatusStore.getState();
+    setUserStatus(currentChat.id, isTyping ? "typing" : "online", new Date());
+
+    // Clear existing timeout if any
+    if (state.typingDebounceTimeout) {
+      clearTimeout(state.typingDebounceTimeout);
+    }
+
+    // Set new timeout to automatically stop typing after 2 seconds of inactivity
+    if (isTyping) {
+      const timeout = setTimeout(() => {
+        if (get().isTyping) {
+          socket.emit("stopTyping", data);
+          set({ isTyping: false });
+
+          // Update user status store back to online
+          setUserStatus(currentChat.id, "online", new Date());
+        }
+      }, 2000);
+
+      set({ typingDebounceTimeout: timeout });
+    }
+  },
+  setSelectedContact: (contact) =>
+    set({
+      selectedContact: contact,
+      currentChatType: contact ? "USER" : null,
+      selectedGroup: null, // Clear other selection
+      currentChat: contact
+        ? {
+            id: contact.userId,
+            name: contact.fullName,
+            type: "USER",
+            // Map other properties as needed
+          }
+        : null,
+    }),
+
+  setSelectedGroup: (group) =>
+    set({
+      selectedGroup: group,
+      currentChatType: group ? "GROUP" : null,
+      selectedContact: null, // Clear other selection
+      currentChat: group
+        ? {
+            id: group.id,
+            name: group.name,
+            type: "GROUP",
+            // Map other properties as needed
+          }
+        : null,
+    }),
+
+  setCurrentChatType: (type) => set({ currentChatType: type }),
+
+  setCurrentChat: (chat) => set({ currentChat: chat }),
 
   // Async actions
   loadMessages: async (chatId, pageNum = 1) => {

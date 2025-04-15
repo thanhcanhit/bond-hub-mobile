@@ -43,7 +43,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
 
       <View
         className={clsx(
-          "absolute  bg-white rounded-full shadow-md py-2 px-3 z-50 flex-row items-center ",
+          "absolute -bottom-0 bg-white rounded-full shadow-md py-2 px-3 z-50 flex-row items-center ",
           position === "left" ? "left-0" : "right-0",
         )}
       >
@@ -53,7 +53,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
               onReaction();
               onClose();
             }}
-            className="px-2"
+            className="px-2 flex-row items-center"
           >
             <Heart size={20} color="#6B7280" />
           </TouchableOpacity>

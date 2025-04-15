@@ -25,6 +25,7 @@ import { MessageForwardModal } from "./MessageForwardModal";
 
 interface MessageBubbleProps {
   message: Message;
+  profilePictureUrl?: string;
   onReaction: (messageId: string, type: ReactionType) => void;
   onRecall: (messageId: string) => void;
   onDelete: (messageId: string) => void;
@@ -48,6 +49,7 @@ const reactionOptions: ReactionOption[] = [
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
+  profilePictureUrl,
   onReaction,
   onRecall,
   onDelete,
@@ -197,10 +199,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {!isMyMessage && (
           <View className="mr-2">
             <Avatar size="sm">
-              <AvatarImage source={{}} />
-              <AvatarFallbackText>
-                {message.senderId.slice(0, 2).toUpperCase()}
-              </AvatarFallbackText>
+              <AvatarImage source={{ uri: profilePictureUrl }} />
+              {!profilePictureUrl && (
+                <AvatarFallbackText>
+                  {message.senderId.slice(0, 2).toUpperCase()}
+                </AvatarFallbackText>
+              )}
             </Avatar>
           </View>
         )}
@@ -283,7 +287,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
                   <View
                     className={clsx(
-                      "absolute -top-0 bg-white rounded-full shadow-md py-2 px-3 z-20 flex-row items-center",
+                      "absolute -bottom-0 bg-white rounded-full shadow-md py-2 px-3 z-20 flex-row items-center",
                       isMyMessage ? "right-0" : "left-0",
                     )}
                   >

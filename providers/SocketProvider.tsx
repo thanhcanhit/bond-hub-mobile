@@ -9,6 +9,7 @@ import { io, Socket } from "socket.io-client";
 import { Message, ReactionType } from "@/types";
 import { useChatStore } from "@/store/chatStore";
 import { useAuthStore } from "@/store/authStore";
+import { useUserStatusStore } from "@/store/userStatusStore";
 
 // Định nghĩa context cho cả hai socket
 interface SocketContextType {
@@ -165,9 +166,20 @@ export function SocketProvider({ children }: SocketProviderProps) {
       (data: {
         userId: string;
         status: "online" | "offline";
-        timestamp: Date;
+        timestamp: string | Date;
       }) => {
         console.log("User status changed:", data);
+
+        // Chuyển đổi timestamp thành Date object nếu nó là string
+        const timestamp =
+          typeof data.timestamp === "string"
+            ? new Date(data.timestamp)
+            : data.timestamp;
+
+        // Cập nhật trạng thái trong store
+        useUserStatusStore
+          .getState()
+          .setUserStatus(data.userId, data.status, timestamp);
       },
     );
   };

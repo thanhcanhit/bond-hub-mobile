@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -34,8 +34,11 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { MediaPreview } from "@/components/chat/MediaPreview";
 import { useChatStore } from "@/store/chatStore";
+import { debounce } from "lodash";
+import { useSocket } from "@/providers/SocketProvider";
 
 const ChatScreen = () => {
+  const { messageSocket } = useSocket();
   const {
     loading,
     messages,
@@ -54,6 +57,10 @@ const ChatScreen = () => {
     handleDelete,
     setRefreshing,
     setSelectedMedia,
+    sendTypingIndicator,
+    setSelectedContact,
+    setSelectedGroup,
+    currentChat,
   } = useChatStore();
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -63,7 +70,35 @@ const ChatScreen = () => {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
-  const { id: chatId, fullName: name } = useLocalSearchParams();
+  const {
+    id: chatId,
+    fullName: name,
+    profilePictureUrl,
+    type,
+  } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (chatId) {
+      const chatType = (type as "USER") || "GROUP" ? "USER" : "GROUP";
+
+      if (chatType === "USER") {
+        setSelectedContact({
+          userId: chatId as string,
+          fullName: name as string,
+          email: null,
+          phoneNumber: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else {
+        setSelectedGroup({
+          id: chatId as string,
+          name: name as string,
+          profilePictureUrl: profilePictureUrl as string,
+        });
+      }
+    }
+  }, [chatId, name, profilePictureUrl, type]);
 
   useEffect(() => {
     loadMessages(chatId as string);
@@ -218,10 +253,25 @@ const ChatScreen = () => {
   const renderTypingIndicator = () => {
     const typingUsersArray = Array.from(typingUsers.values());
     if (typingUsersArray.length > 0) {
-      return <Text className="text-gray-500 text-2xl">đang nhập...</Text>;
+      return (
+        <Text className="text-gray-500 text-sm p-2 bg-none ">
+          đang soạn tin ...
+        </Text>
+      );
     }
     return null;
   };
+
+  // Add debounce function
+  const debouncedTyping = useCallback(
+    debounce((isTyping: boolean) => {
+      if (messageSocket) {
+        console.log("Typing...", isTyping);
+        sendTypingIndicator(isTyping, messageSocket);
+      }
+    }, 500),
+    [messageSocket],
+  );
 
   return (
     <View className="flex-1 bg-gray-100">
@@ -246,6 +296,7 @@ const ChatScreen = () => {
             <MessageBubble
               key={msg.id}
               message={msg}
+              profilePictureUrl={profilePictureUrl as string}
               onReaction={handleReaction}
               onRecall={handleRecall}
               onDelete={handleDelete}
@@ -267,7 +318,6 @@ const ChatScreen = () => {
           onClose={() => setShowEmoji(!showEmoji)}
         />
       )}
-      {renderTypingIndicator()}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
@@ -277,6 +327,7 @@ const ChatScreen = () => {
             : { paddingBottom: insets.bottom }
         }
       >
+        {renderTypingIndicator()}
         {selectedMedia.length > 0 && (
           <MediaPreview
             mediaItems={selectedMedia}
@@ -306,12 +357,15 @@ const ChatScreen = () => {
             className="flex-1 ml-2.5 p-1 h-full bg-transparent justify-center text-gray-700 text-base"
             placeholder="Nhập tin nhắn..."
             value={message}
-            onChangeText={setMessage}
+            onChangeText={(text) => {
+              setMessage(text);
+              debouncedTyping(text.length > 0);
+            }}
             multiline
             maxLength={1000}
           />
           {!message.trim() && selectedMedia.length === 0 ? (
-            <View className="flex-row">
+            <View className="flex-row relative">
               <TouchableOpacity className="mx-2" disabled={isLoadingMedia}>
                 <Mic
                   size={26}

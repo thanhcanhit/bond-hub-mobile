@@ -1,9 +1,9 @@
 import React from "react";
 import { HStack } from "./ui/hstack";
 import { Avatar, AvatarFallbackText, AvatarImage } from "./ui/avatar";
-import { Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { VStack } from "./ui/vstack";
-import { BellOff, CircleIcon } from "lucide-react-native";
+import { useUserStatusStore } from "@/store/userStatusStore";
 import { useRouter } from "expo-router";
 
 // Comment interface cũ
@@ -32,6 +32,7 @@ interface ChatItemProps {
   lastSeen: string;
   since: string;
   isGroup?: boolean;
+  hasNewMessages?: boolean; // Thêm prop mới
   onPress?: () => void;
 }
 
@@ -42,31 +43,22 @@ const ChatItem: React.FC<ChatItemProps> = ({
   statusMessage,
   lastSeen,
   since,
+  hasNewMessages = false, // Giá trị mặc định là false
   onPress,
 }) => {
   const router = useRouter();
+  const isOnline = useUserStatusStore((state) => state.isUserOnline(id));
+  const userStatus = useUserStatusStore((state) => state.getUserStatus(id));
 
-  // Comment hàm cũ
-  /*
-  const formatTime = (timeString: string) => {
-    if (!timeString) return "";
-    const date = new Date(timeString);
-    const now = new Date();
-    if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-    const daysDiff = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    if (daysDiff < 7) {
-      return date.toLocaleDateString([], { weekday: "short" });
-    }
-    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  const getStatusColor = () => {
+    return isOnline ? "bg-green-500" : "bg-gray-400";
   };
-  */
+
+  const getStatusText = () => {
+    if (isOnline) return "Đang hoạt động";
+    if (!userStatus?.timestamp) return formatLastSeen(lastSeen);
+    return `${formatLastSeen(userStatus.timestamp.toISOString())}`;
+  };
 
   const formatLastSeen = (lastSeenDate: string) => {
     const date = new Date(lastSeenDate);
@@ -99,25 +91,49 @@ const ChatItem: React.FC<ChatItemProps> = ({
       className="items-center px-2.5"
     >
       <HStack className="w-full items-center justify-between">
-        <Avatar size="lg">
-          {profilePictureUrl ? (
-            <AvatarImage source={{ uri: profilePictureUrl }} />
-          ) : (
-            <AvatarFallbackText>{fullName}</AvatarFallbackText>
-          )}
-        </Avatar>
+        <View className="relative">
+          <Avatar size="lg">
+            {profilePictureUrl ? (
+              <AvatarImage source={{ uri: profilePictureUrl }} />
+            ) : (
+              <AvatarFallbackText>{fullName}</AvatarFallbackText>
+            )}
+          </Avatar>
+          {/* Online status indicator */}
+          <View
+            className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${getStatusColor()}`}
+          />
+        </View>
 
         <VStack className="w-5/6 pl-2 py-4 border-b-[0.5px] border-gray-200">
           <HStack className="justify-between">
-            <Text className="font-semibold text-lg" numberOfLines={1}>
-              {fullName}
-            </Text>
-            <VStack>
-              {/* <Text className="text-gray-500">{formatDate(since)}</Text> /* Đã gửi tin nhắn */}
-              <Text className="text-xs text-gray-400 ml-2">
-                {formatLastSeen(lastSeen)}
+            <HStack className="items-center">
+              <Text className="font-semibold text-lg" numberOfLines={1}>
+                {fullName}
               </Text>
-            </VStack>
+              {/* Notification dot */}
+              {hasNewMessages && (
+                <View className="w-2 h-2 rounded-full bg-red-500 ml-2" />
+              )}
+            </HStack>
+
+            {/* Status Button */}
+            <TouchableOpacity
+              className={`px-2 py-1 rounded-full flex-row items-center ${
+                isOnline ? "bg-green-100" : "bg-white"
+              }`}
+            >
+              <View
+                className={`w-2 h-2 rounded-full mr-1.5 ${getStatusColor()}`}
+              />
+              <Text
+                className={`text-xs ${
+                  isOnline ? "text-green-700" : "text-gray-600"
+                }`}
+              >
+                {getStatusText()}
+              </Text>
+            </TouchableOpacity>
           </HStack>
 
           <HStack>
