@@ -388,17 +388,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       await messageService.addReaction(messageId, reaction);
-      state.updateMessage(messageId, {
-        reactions: [
-          ...(state.messages.find((m) => m.id === messageId)?.reactions || []),
-          {
-            userId:
-              state.messages.find((m) => m.id === messageId)?.senderId || "",
-            reaction,
-            count: 1,
-          },
-        ],
-      });
+
+      // Tìm tin nhắn cần cập nhật
+      const message = state.messages.find((m) => m.id === messageId);
+      if (!message) return;
+
+      // Lấy thông tin người dùng hiện tại từ authStore
+      const currentUserId = message.isMe
+        ? message.senderId
+        : message.receiverId;
+
+      // Kiểm tra xem người dùng đã thả reaction chưa
+      const existingReactionIndex = message.reactions?.findIndex(
+        (r) => r.userId === currentUserId,
+      );
+
+      let updatedReactions = [...(message.reactions || [])];
+
+      if (existingReactionIndex !== undefined && existingReactionIndex >= 0) {
+        // Nếu đã có reaction, cập nhật count và giữ nguyên loại reaction
+        updatedReactions[existingReactionIndex] = {
+          ...updatedReactions[existingReactionIndex],
+          count: (updatedReactions[existingReactionIndex].count || 1) + 1,
+        };
+      } else {
+        // Nếu chưa có reaction, thêm mới
+        updatedReactions.push({
+          userId: currentUserId,
+          reaction,
+          count: 1,
+        });
+      }
+
+      // Cập nhật tin nhắn với reactions mới
+      state.updateMessage(messageId, { reactions: updatedReactions });
     } catch (error) {
       console.error("Error adding reaction:", error);
     }
@@ -408,14 +431,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       await messageService.removeReaction(messageId);
+
+      // Tìm tin nhắn cần cập nhật
       const message = state.messages.find((m) => m.id === messageId);
-      if (message) {
-        state.updateMessage(messageId, {
-          reactions: message.reactions?.filter(
-            (r) => r.userId !== message.senderId,
-          ),
-        });
-      }
+      if (!message) return;
+
+      // Lấy thông tin người dùng hiện tại từ authStore
+      const currentUserId = message.isMe
+        ? message.senderId
+        : message.receiverId;
+
+      // Lọc bỏ reaction của người dùng hiện tại
+      const updatedReactions =
+        message.reactions?.filter((r) => r.userId !== currentUserId) || [];
+
+      // Cập nhật tin nhắn với reactions mới
+      state.updateMessage(messageId, { reactions: updatedReactions });
     } catch (error) {
       console.error("Error removing reaction:", error);
     }

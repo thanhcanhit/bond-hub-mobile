@@ -214,6 +214,7 @@ export interface Conversation {
       text?: string;
       media?: MessageMedia[];
     };
+    recalled?: boolean;
     senderId: string;
     createdAt: string;
   };

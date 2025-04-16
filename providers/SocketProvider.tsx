@@ -10,6 +10,7 @@ import { Message, ReactionType } from "@/types";
 import { useChatStore } from "@/store/chatStore";
 import { useAuthStore } from "@/store/authStore";
 import { useUserStatusStore } from "@/store/userStatusStore";
+import { useConversationsStore } from "@/store/conversationsStore";
 
 // Định nghĩa context cho cả hai socket
 interface SocketContextType {
@@ -42,8 +43,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
   // Chat store actions
   const {
-    messages,
-    setMessages,
     addMessage,
     updateMessage,
     deleteMessage,
@@ -81,7 +80,27 @@ export function SocketProvider({ children }: SocketProviderProps) {
           forwardedFrom: data.message.forwardedFrom,
         };
 
-        addMessage(normalizedMessage);
+        // Chỉ thêm tin nhắn vào store nếu đang ở đúng cuộc trò chuyện
+        const chatStore = useChatStore.getState();
+        const currentChat = chatStore.currentChat;
+
+        // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện hiện tại không
+        const isCurrentUserChat =
+          currentChat?.type === "USER" &&
+          ((normalizedMessage.senderId === currentChat.id &&
+            normalizedMessage.receiverId === currentUser?.userId) ||
+            (normalizedMessage.receiverId === currentChat.id &&
+              normalizedMessage.senderId === currentUser?.userId));
+
+        const isCurrentGroupChat =
+          currentChat?.type === "GROUP" &&
+          normalizedMessage.messageType === "GROUP" &&
+          normalizedMessage.groupId === currentChat.id;
+
+        // Chỉ thêm tin nhắn nếu đang ở đúng cuộc trò chuyện
+        if (isCurrentUserChat || isCurrentGroupChat) {
+          addMessage(normalizedMessage);
+        }
 
         // Cập nhật trạng thái người gửi thành online
         const userStatusStore = useUserStatusStore.getState();
@@ -93,17 +112,43 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
         // Yêu cầu cập nhật trạng thái của người gửi
         requestUserStatus(socket, data.message.senderId);
+
+        // Tự động cập nhật danh sách cuộc trò chuyện ở trang chủ
+        const conversationsStore = useConversationsStore.getState();
+        conversationsStore.fetchConversations(1);
       },
     );
 
     // Handle message update (recall)
     socket.on("messageRecalled", (data: { messageId: string }) => {
-      updateMessage(data.messageId, { recalled: true });
+      // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện hiện tại không
+      const chatStore = useChatStore.getState();
+      const message = chatStore.messages.find((m) => m.id === data.messageId);
+
+      if (message) {
+        // Chỉ cập nhật tin nhắn nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+        updateMessage(data.messageId, { recalled: true });
+      }
+
+      // Cập nhật danh sách cuộc trò chuyện
+      const conversationsStore = useConversationsStore.getState();
+      conversationsStore.fetchConversations(1);
     });
 
     // Handle message deletion
     socket.on("messageDeleted", (data: { messageId: string }) => {
-      deleteMessage(data.messageId);
+      // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện hiện tại không
+      const chatStore = useChatStore.getState();
+      const message = chatStore.messages.find((m) => m.id === data.messageId);
+
+      if (message) {
+        // Chỉ xóa tin nhắn nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+        deleteMessage(data.messageId);
+      }
+
+      // Cập nhật danh sách cuộc trò chuyện
+      const conversationsStore = useConversationsStore.getState();
+      conversationsStore.fetchConversations(1);
     });
 
     // Handle reaction updates
@@ -117,13 +162,20 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }) => {
         console.log("[SocketProvider] Reaction update received:", data);
 
-        // Chỉ cần cập nhật reactions của tin nhắn
-        updateMessage(data.messageId, {
-          reactions: data.reactions.map((r) => ({
-            userId: r.userId,
-            reaction: r.reaction as ReactionType,
-          })),
-        });
+        // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện hiện tại không
+        const chatStore = useChatStore.getState();
+        const currentChat = chatStore.currentChat;
+        const message = chatStore.messages.find((m) => m.id === data.messageId);
+
+        if (message && currentChat) {
+          // Chỉ cập nhật reactions của tin nhắn nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+          updateMessage(data.messageId, {
+            reactions: data.reactions.map((r) => ({
+              userId: r.userId,
+              reaction: r.reaction as ReactionType,
+            })),
+          });
+        }
 
         // Cập nhật trạng thái người dùng thêm reaction thành online
         const userStatusStore = useUserStatusStore.getState();
@@ -145,13 +197,20 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }) => {
         console.log("[SocketProvider] Reaction removal received:", data);
 
-        // Cập nhật lại reactions của tin nhắn
-        updateMessage(data.messageId, {
-          reactions: data.reactions.map((r) => ({
-            userId: r.userId,
-            reaction: r.reaction as ReactionType,
-          })),
-        });
+        // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện hiện tại không
+        const chatStore = useChatStore.getState();
+        const currentChat = chatStore.currentChat;
+        const message = chatStore.messages.find((m) => m.id === data.messageId);
+
+        if (message && currentChat) {
+          // Chỉ cập nhật reactions của tin nhắn nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+          updateMessage(data.messageId, {
+            reactions: data.reactions.map((r) => ({
+              userId: r.userId,
+              reaction: r.reaction as ReactionType,
+            })),
+          });
+        }
 
         // Cập nhật trạng thái người dùng bỏ reaction thành online
         const userStatusStore = useUserStatusStore.getState();
@@ -169,7 +228,49 @@ export function SocketProvider({ children }: SocketProviderProps) {
         timestamp: Date;
       }) => {
         console.log("User is typing:", data);
-        setTypingUsers(data);
+
+        // Xử lý trạng thái typing cho cả chat screen và conversation list
+        const chatStore = useChatStore.getState();
+        const currentChat = chatStore.currentChat;
+        const conversationsStore = useConversationsStore.getState();
+
+        // Xác định ID của cuộc trò chuyện
+        let conversationId = "";
+        if (data.groupId) {
+          // Nếu là nhóm
+          conversationId = data.groupId;
+        } else if (data.receiverId === currentUser?.userId) {
+          // Nếu người gửi đang nhắn cho mình
+          conversationId = data.userId;
+        } else if (data.userId === currentUser?.userId) {
+          // Nếu mình đang nhắn cho người khác
+          conversationId = data.receiverId || "";
+        }
+
+        if (conversationId) {
+          // Cập nhật trạng thái typing trong conversation list
+          conversationsStore.setTypingUser(
+            conversationId,
+            data.userId,
+            new Date(),
+          );
+
+          // Kiểm tra xem sự kiện typing có thuộc về cuộc trò chuyện hiện tại không
+          const isCurrentUserChat =
+            currentChat?.type === "USER" &&
+            ((data.receiverId === currentUser?.userId &&
+              data.userId === currentChat.id) ||
+              (data.userId === currentUser?.userId &&
+                data.receiverId === currentChat.id));
+
+          const isCurrentGroupChat =
+            currentChat?.type === "GROUP" && data.groupId === currentChat.id;
+
+          // Chỉ cập nhật trạng thái typing trong chat screen nếu đang ở đúng cuộc trò chuyện
+          if (isCurrentUserChat || isCurrentGroupChat) {
+            setTypingUsers(data);
+          }
+        }
 
         // Cập nhật trạng thái người dùng đang nhập thành typing
         const userStatusStore = useUserStatusStore.getState();
@@ -182,7 +283,45 @@ export function SocketProvider({ children }: SocketProviderProps) {
       "userTypingStopped",
       (data: { userId: string; receiverId?: string; groupId?: string }) => {
         console.log("User stopped typing:", data);
-        removeTypingUser(data.userId);
+
+        // Xử lý trạng thái ngừng typing cho cả chat screen và conversation list
+        const chatStore = useChatStore.getState();
+        const currentChat = chatStore.currentChat;
+        const conversationsStore = useConversationsStore.getState();
+
+        // Xác định ID của cuộc trò chuyện
+        let conversationId = "";
+        if (data.groupId) {
+          // Nếu là nhóm
+          conversationId = data.groupId;
+        } else if (data.receiverId === currentUser?.userId) {
+          // Nếu người gửi đang nhắn cho mình
+          conversationId = data.userId;
+        } else if (data.userId === currentUser?.userId) {
+          // Nếu mình đang nhắn cho người khác
+          conversationId = data.receiverId || "";
+        }
+
+        if (conversationId) {
+          // Xóa trạng thái typing trong conversation list
+          conversationsStore.removeTypingUser(conversationId);
+
+          // Kiểm tra xem sự kiện typing có thuộc về cuộc trò chuyện hiện tại không
+          const isCurrentUserChat =
+            currentChat?.type === "USER" &&
+            ((data.receiverId === currentUser?.userId &&
+              data.userId === currentChat.id) ||
+              (data.userId === currentUser?.userId &&
+                data.receiverId === currentChat.id));
+
+          const isCurrentGroupChat =
+            currentChat?.type === "GROUP" && data.groupId === currentChat.id;
+
+          // Chỉ cập nhật trạng thái typing trong chat screen nếu đang ở đúng cuộc trò chuyện
+          if (isCurrentUserChat || isCurrentGroupChat) {
+            removeTypingUser(data.userId);
+          }
+        }
 
         // Cập nhật trạng thái người dùng ngừng nhập thành online
         const userStatusStore = useUserStatusStore.getState();
@@ -190,6 +329,42 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
         // Yêu cầu cập nhật trạng thái của người dùng
         requestUserStatus(socket, data.userId);
+      },
+    );
+
+    // Handle message read status
+    socket.on(
+      "messageRead",
+      (data: {
+        conversationId: string;
+        type: "USER" | "GROUP";
+        messageIds?: string[];
+      }) => {
+        console.log("Message read event received:", data);
+
+        // Kiểm tra xem có phải đang ở trong cuộc trò chuyện này không
+        const chatStore = useChatStore.getState();
+        const currentChat = chatStore.currentChat;
+
+        const isCurrentChat =
+          currentChat?.id === data.conversationId &&
+          currentChat?.type === data.type;
+
+        // Nếu có danh sách messageIds và đang ở đúng cuộc trò chuyện, cập nhật trạng thái đã đọc
+        if (isCurrentChat && data.messageIds && data.messageIds.length > 0) {
+          // Cập nhật trạng thái đã đọc cho từng tin nhắn
+          data.messageIds.forEach((messageId) => {
+            const message = chatStore.messages.find((m) => m.id === messageId);
+            if (message) {
+              // Cập nhật trạng thái đã đọc
+              // Lưu ý: Cần cập nhật logic này tùy theo cấu trúc dữ liệu của bạn
+            }
+          });
+        }
+
+        // Cập nhật danh sách cuộc trò chuyện
+        const conversationsStore = useConversationsStore.getState();
+        conversationsStore.fetchConversations(1);
       },
     );
 

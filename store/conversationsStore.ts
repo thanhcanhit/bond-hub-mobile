@@ -9,6 +9,7 @@ interface ConversationsState {
   error: string | null;
   currentPage: number;
   hasMore: boolean;
+  typingUsers: Map<string, { userId: string; timestamp: Date }>; // Map<conversationId, typingInfo>
 
   // Actions
   fetchConversations: (page?: number, limit?: number) => Promise<void>;
@@ -27,6 +28,13 @@ interface ConversationsState {
   addConversation: (conversation: Conversation) => void;
   removeConversation: (id: string) => void;
   clearConversations: () => void;
+  setTypingUser: (
+    conversationId: string,
+    userId: string,
+    timestamp: Date,
+  ) => void;
+  removeTypingUser: (conversationId: string) => void;
+  isUserTypingInConversation: (conversationId: string) => boolean;
 }
 
 export const useConversationsStore = create<ConversationsState>((set, get) => ({
@@ -36,6 +44,7 @@ export const useConversationsStore = create<ConversationsState>((set, get) => ({
   error: null,
   currentPage: 1,
   hasMore: true,
+  typingUsers: new Map(),
 
   fetchConversations: async (page = 1, limit = 20) => {
     try {
@@ -226,5 +235,43 @@ export const useConversationsStore = create<ConversationsState>((set, get) => ({
     } catch (error) {
       console.error("Error marking message as unread:", error);
     }
+  },
+
+  // Phương thức đánh dấu người dùng đang typing trong một cuộc trò chuyện
+  setTypingUser: (conversationId, userId, timestamp) => {
+    set((state) => {
+      const newTypingUsers = new Map(state.typingUsers);
+      newTypingUsers.set(conversationId, { userId, timestamp });
+
+      // Tự động xóa trạng thái typing sau 5 giây nếu không nhận được cập nhật mới
+      setTimeout(() => {
+        const currentTypingInfo = get().typingUsers.get(conversationId);
+        if (currentTypingInfo && currentTypingInfo.timestamp === timestamp) {
+          get().removeTypingUser(conversationId);
+        }
+      }, 5000);
+
+      return { typingUsers: newTypingUsers };
+    });
+  },
+
+  // Phương thức xóa trạng thái typing của một cuộc trò chuyện
+  removeTypingUser: (conversationId) => {
+    set((state) => {
+      const newTypingUsers = new Map(state.typingUsers);
+      newTypingUsers.delete(conversationId);
+      return { typingUsers: newTypingUsers };
+    });
+  },
+
+  // Phương thức kiểm tra xem có người đang typing trong một cuộc trò chuyện không
+  isUserTypingInConversation: (conversationId) => {
+    const typingInfo = get().typingUsers.get(conversationId);
+    if (!typingInfo) return false;
+
+    // Kiểm tra xem trạng thái typing có còn hiệu lực không (trong vòng 5 giây)
+    const now = new Date();
+    const diff = now.getTime() - typingInfo.timestamp.getTime();
+    return diff < 5000; // 5 giây
   },
 }));

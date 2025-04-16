@@ -4,6 +4,7 @@ import { Avatar, AvatarFallbackText, AvatarImage } from "./ui/avatar";
 import { Text, TouchableOpacity, View } from "react-native";
 import { VStack } from "./ui/vstack";
 import { useUserStatusStore } from "@/store/userStatusStore";
+import { useConversationsStore } from "@/store/conversationsStore";
 import { useRouter } from "expo-router";
 import { Conversation } from "@/types";
 import UserStatusIndicator from "./UserStatusIndicator";
@@ -85,8 +86,24 @@ const ChatItem: React.FC<ChatItemProps> = ({ conversation, onPress }) => {
     return date.toLocaleDateString();
   };
 
+  // Kiểm tra xem có người đang typing trong cuộc trò chuyện này không
+  const isTyping = useConversationsStore((state) => {
+    const conversationId = isUser ? id : id;
+    return state.isUserTypingInConversation(conversationId || "");
+  });
+
   const getLastMessageText = () => {
+    // Nếu có người đang typing, hiển thị trạng thái typing
+    if (isTyping) {
+      return "Đang nhập tin nhắn ...";
+    }
+
     if (!conversation.lastMessage) return "Chưa có tin nhắn";
+
+    // Nếu tin nhắn đã bị thu hồi
+    if (conversation.lastMessage.recalled) {
+      return "Tin nhắn đã bị thu hồi";
+    }
 
     if (conversation.lastMessage.content.text) {
       return conversation.lastMessage.content.text;
@@ -178,7 +195,7 @@ const ChatItem: React.FC<ChatItemProps> = ({ conversation, onPress }) => {
           <HStack className="justify-between items-center mt-1">
             {/* Last message */}
             <Text
-              className="text-gray-500 text-sm"
+              className={`text-sm ${isTyping ? "text-blue-400 " : conversation.lastMessage?.recalled ? "text-gray-400 italic" : "text-gray-500"}`}
               numberOfLines={1}
               style={{ width: "80%" }}
             >

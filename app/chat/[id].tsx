@@ -74,7 +74,15 @@ const ChatScreen = () => {
 
   useEffect(() => {
     if (chatId) {
-      const chatType = (type as "USER") || "GROUP" ? "USER" : "GROUP";
+      const chatType = type === "GROUP" ? "GROUP" : "USER";
+
+      // Cập nhật thông tin cuộc trò chuyện hiện tại
+      useChatStore.getState().setCurrentChat({
+        id: chatId as string,
+        name: name as string,
+        type: chatType as "USER" | "GROUP",
+      });
+      useChatStore.getState().setCurrentChatType(chatType as "USER" | "GROUP");
 
       if (chatType === "USER") {
         setSelectedContact({
@@ -93,6 +101,12 @@ const ChatScreen = () => {
         });
       }
     }
+
+    // Khi rời khỏi màn hình chat, xóa thông tin cuộc trò chuyện hiện tại
+    return () => {
+      useChatStore.getState().setCurrentChat(null);
+      useChatStore.getState().setCurrentChatType(null);
+    };
   }, [chatId, name, avatarUrl, type]);
 
   useEffect(() => {
