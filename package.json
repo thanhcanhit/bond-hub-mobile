@@ -48,7 +48,7 @@
     "expo-camera": "~16.0.18",
     "expo-constants": "~17.0.6",
     "expo-contacts": "~14.0.5",
-    "expo-device": "^7.0.2",
+    "expo-device": "^7.0.3",
     "expo-document-picker": "~13.0.3",
     "expo-file-system": "~18.0.12",
     "expo-font": "~13.0.2",
@@ -58,6 +58,7 @@
     "expo-linear-gradient": "~14.0.2",
     "expo-linking": "~7.0.3",
     "expo-network": "~7.0.5",
+    "expo-notifications": "^0.29.14",
     "expo-router": "~4.0.15",
     "expo-secure-store": "~14.0.1",
     "expo-sharing": "~13.0.1",
@@ -65,6 +66,7 @@
     "expo-status-bar": "~2.0.0",
     "expo-symbols": "~0.2.0",
     "expo-system-ui": "~4.0.6",
+    "expo-task-manager": "^12.0.6",
     "expo-video": "~2.0.6",
     "expo-video-thumbnails": "~9.0.3",
     "expo-web-browser": "~14.0.1",
@@ -92,7 +94,8 @@
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^3.4.17",
     "uuid": "^11.1.0",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "expo-background-fetch": "~13.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

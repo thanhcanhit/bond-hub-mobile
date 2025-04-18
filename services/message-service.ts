@@ -32,12 +32,21 @@ export const messageService = {
     limit: number = 20,
   ): Promise<Message[] | undefined> {
     try {
+      console.log(
+        `Fetching message history for receiver ${receiverId}, page ${page}`,
+      );
       const response = await axiosInstance.get(`/messages/user/${receiverId}`, {
         params: { page, limit },
+        timeout: 30000, // Tăng thời gian chờ lên 30 giây
       });
+      console.log(
+        `Successfully fetched ${response.data?.length || 0} messages`,
+      );
       return response.data;
     } catch (error) {
       handleError(error, "getMessageHistory");
+      // Trả về mảng rỗng thay vì undefined để tránh crash app
+      return [];
     }
   },
 

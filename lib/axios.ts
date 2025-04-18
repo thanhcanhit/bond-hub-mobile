@@ -17,7 +17,7 @@ interface CustomApiConfig extends AxiosRequestConfig {
 class ApiConfig {
   static readonly BASE_URL: string =
     process.env.EXPO_PUBLIC_API_URL || "https://api.bondhub.cloud/api/v1";
-  static readonly DEFAULT_TIMEOUT: number = 15000;
+  static readonly DEFAULT_TIMEOUT: number = 30000; // Tăng thời gian chờ lên 30 giây
 }
 
 // Function to get JWT token from SecureStore
@@ -164,6 +164,17 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
       } else if (error.request) {
         // Request was made but no response was received
         console.error("Request error (no response):", error.request);
+        console.error("Network info:", {
+          online: typeof navigator !== "undefined" && navigator.onLine,
+          timestamp: new Date().toISOString(),
+          url: error.config?.url,
+          method: error.config?.method,
+        });
+
+        // Kiểm tra kết nối mạng
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          console.error("Network is offline. Please check your connection.");
+        }
       } else {
         // Something happened in setting up the request
         console.error("Error setting up request:", error.message);

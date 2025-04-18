@@ -320,6 +320,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       state.setPage(pageNum);
     } catch (error) {
       console.error("Error loading messages:", error);
+      // Trả về mảng rỗng để tránh crash app
+      if (pageNum === 1) {
+        state.setMessages([]);
+      }
     } finally {
       state.setLoading(false);
     }

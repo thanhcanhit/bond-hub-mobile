@@ -4,8 +4,8 @@ import * as SecureStore from "expo-secure-store";
 import { axiosPublicInstance } from "../lib/axios";
 import { router } from "expo-router";
 import * as device from "expo-device";
-import { User, UserInfo } from "@/types";
-import { getUserInfo } from "@/services/user-service";
+import { User, UserData, UserInfo } from "@/types";
+import { getUserData, getUserInfo } from "@/services/user-service";
 import { socketManager } from "../lib/socket";
 
 interface AuthState {
@@ -15,6 +15,7 @@ interface AuthState {
   loading: boolean;
   registrationId: string | null;
   resetId: string | null;
+  userData: UserData | null;
 }
 
 interface AuthActions {
@@ -49,12 +50,13 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       if (accessToken) {
         const userStr = await SecureStore.getItemAsync("user");
         const userInfoStr = await SecureStore.getItemAsync("userInfo");
-
+        const userDataStr = await SecureStore.getItemAsync("userData");
         if (userStr) {
           const user = JSON.parse(userStr);
+          const userData = userDataStr ? JSON.parse(userDataStr) : null;
           const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
           set({ isAuthenticated: true, user, userInfo, loading: false });
-          if (!userInfo && user) {
+          if (!userInfo || (!userDataStr && user)) {
             get().fetchUserInfo();
           }
           return;
@@ -87,6 +89,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
     loading: true,
     registrationId: null,
     resetId: null,
+    userData: null,
 
     fetchUserInfo: async () => {
       const { user } = get();
@@ -94,10 +97,19 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
 
       try {
         const userInfoData = await getUserInfo(user.userId);
+        const userDataResponse = await getUserData(user.userId);
+        console.log("User data:", userDataResponse);
+        await SecureStore.setItemAsync(
+          "userData",
+          JSON.stringify(userDataResponse),
+        );
         await SecureStore.setItemAsync(
           "userInfo",
           JSON.stringify(userInfoData),
         );
+
+        // Cập nhật state riêng biệt
+        set({ userData: userDataResponse });
         set({ userInfo: userInfoData });
       } catch (error) {
         console.error("Failed to fetch user info:", error);

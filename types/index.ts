@@ -10,6 +10,19 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+export interface UserData {
+  id: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  userInfo: UserInfo;
+  relationship: {
+    status: string;
+    message: string;
+    friendshipId: string;
+  };
+}
 
 export interface UserInfo {
   id: string;

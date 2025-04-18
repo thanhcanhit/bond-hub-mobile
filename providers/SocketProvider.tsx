@@ -11,6 +11,8 @@ import { useChatStore } from "@/store/chatStore";
 import { useAuthStore } from "@/store/authStore";
 import { useUserStatusStore } from "@/store/userStatusStore";
 import { useConversationsStore } from "@/store/conversationsStore";
+import { notificationService } from "@/services/notification-service";
+import { AppState, AppStateStatus } from "react-native";
 
 // Định nghĩa context cho cả hai socket
 interface SocketContextType {
@@ -39,7 +41,22 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const [messageSocket, setMessageSocket] = useState<Socket | null>(null);
   const [isMainConnected, setIsMainConnected] = useState(false);
   const [isMessageConnected, setIsMessageConnected] = useState(false);
+  const [appState, setAppState] = useState<AppStateStatus>(
+    AppState.currentState,
+  );
   const currentUser = useAuthStore((state) => state.user);
+
+  // Theo dõi trạng thái ứng dụng (foreground/background)
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      console.log("App state changed to:", nextAppState);
+      setAppState(nextAppState);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // Chat store actions
   const {
@@ -100,6 +117,16 @@ export function SocketProvider({ children }: SocketProviderProps) {
         // Chỉ thêm tin nhắn nếu đang ở đúng cuộc trò chuyện
         if (isCurrentUserChat || isCurrentGroupChat) {
           addMessage(normalizedMessage);
+        }
+
+        // Hiển thị thông báo nếu tin nhắn không phải từ người dùng hiện tại
+        // và ứng dụng đang ở background hoặc không ở trong cuộc trò chuyện hiện tại
+        if (
+          normalizedMessage.senderId !== currentUser?.userId &&
+          (appState !== "active" || (!isCurrentUserChat && !isCurrentGroupChat))
+        ) {
+          // Tạo thông báo cho tin nhắn mới
+          notificationService.createMessageNotification(normalizedMessage);
         }
 
         // Cập nhật trạng thái người gửi thành online
