@@ -16,6 +16,7 @@ import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
 import { VideoMessage } from "@/components/chat/VideoMessage";
 import { DocumentPreview } from "@/components/chat/DocumentPreview";
+import AudioMessage from "@/components/chat/AudioMessage";
 import { Message, ReactionType } from "@/types";
 import clsx from "clsx";
 import { MediaGrid } from "@/components/chat/MediaGrid";
@@ -125,6 +126,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               url={media.url}
               fileName={media.fileName || ""}
             />
+          ))}
+
+        {/* Render audio messages */}
+        {mediaItems
+          .filter((media) => media.type === "AUDIO")
+          .map((media, index) => (
+            <AudioMessage key={`audio-${index}`} url={media.url} />
           ))}
       </>
     );

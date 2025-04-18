@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import { Message, MessageReaction, ReactionType, User } from "@/types";
+import {
+  GroupInfo,
+  Message,
+  MessageReaction,
+  ReactionType,
+  User,
+} from "@/types";
 import { messageService } from "@/services/message-service";
 import uuid from "react-native-uuid";
 import { useSocket } from "@/providers/SocketProvider";
@@ -33,7 +39,7 @@ interface ChatState {
   } | null;
   currentChatType: "USER" | "GROUP" | null;
   selectedContact: any | null;
-  selectedGroup: any | null;
+  selectedGroup: GroupInfo | null;
 
   // Actions
   setMessages: (messages: Message[]) => void;
@@ -391,9 +397,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         formData.append("receiverId", chatId);
       }
 
-      if (text) {
-        formData.append("content[text]", text);
-      }
+      formData.append("content[text]", text);
 
       media.forEach((m) => {
         let fileType;
@@ -402,12 +406,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (m.type === "DOCUMENT") {
           fileType = m.mimeType || "application/octet-stream";
           fileName = m.name || `document_${Date.now()}`;
+        } else if (m.type === "AUDIO") {
+          fileType = "audio/m4a";
+          fileName = `audio_${Date.now()}.m4a`;
         } else {
           fileType = m.type === "VIDEO" ? "video/mp4" : "image/jpeg";
           fileName = `${m.type.toLowerCase()}_${Date.now()}.${m.type === "VIDEO" ? "mp4" : "jpg"}`;
         }
 
-        formData.append("mediaType", m.type);
         formData.append("files", {
           uri: m.uri,
           type: fileType,
@@ -420,7 +426,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }),
         } as any);
       });
-
+      console.log("formData", formData);
       let response;
       if (chatType === "GROUP") {
         response = await messageService.sendGroupMediaMessage(formData);

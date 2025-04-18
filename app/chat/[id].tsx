@@ -12,6 +12,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Text,
+  Modal,
 } from "react-native";
 // import uuid from "react-native-uuid"; // Not needed
 import { VStack } from "@/components/ui/vstack";
@@ -34,6 +35,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { MediaPreview } from "@/components/chat/MediaPreview";
+import VoiceRecorder from "@/components/chat/VoiceRecorder";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
 
@@ -64,11 +66,11 @@ const ChatScreen = () => {
   const shouldAutoScroll = useRef<boolean>(true);
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
   const { id: chatId, name, avatarUrl, type } = useLocalSearchParams();
-
   useEffect(() => {
     if (chatId) {
       const chatType = type === "GROUP" ? "GROUP" : "USER";
@@ -406,7 +408,11 @@ const ChatScreen = () => {
           />
           {!message.trim() && selectedMedia.length === 0 ? (
             <View className="flex-row relative">
-              <TouchableOpacity className="mx-2" disabled={isLoadingMedia}>
+              <TouchableOpacity
+                className="mx-2"
+                disabled={isLoadingMedia}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
                 <Mic
                   size={26}
                   color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
@@ -451,6 +457,41 @@ const ChatScreen = () => {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* Voice Recorder Modal */}
+      <Modal
+        visible={showVoiceRecorder}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowVoiceRecorder(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <VoiceRecorder
+            onClose={() => setShowVoiceRecorder(false)}
+            onSend={(uri) => {
+              // Handle the voice message
+              if (user) {
+                const voiceMedia = [
+                  {
+                    uri,
+                    type: "AUDIO" as const,
+                    name: `voice_message_${Date.now()}.m4a`,
+                    mediaType: "AUDIO",
+                  },
+                ];
+
+                sendMediaMessage(
+                  chatId as string,
+                  "", // No text for voice messages
+                  user.userId,
+                  voiceMedia,
+                );
+                setShowVoiceRecorder(false);
+              }
+            }}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };

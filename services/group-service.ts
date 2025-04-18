@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axios";
-import { Group, GroupMember } from "@/types";
+import { Group, GroupInfo, GroupMember } from "@/types";
 
 interface CreateGroupRequest {
   name: string;
@@ -58,7 +58,7 @@ export const groupService = {
       return handleError(error, "getGroupDetails");
     }
   },
-  async getGroupInfo(groupId: string): Promise<Group | null> {
+  async getGroupInfo(groupId: string): Promise<GroupInfo | null> {
     try {
       const response = await axiosInstance.get(`/groups/${groupId}/info`);
       return response.data;

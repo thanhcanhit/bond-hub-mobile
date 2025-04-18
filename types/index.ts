@@ -109,7 +109,7 @@ export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
 
 export interface MessageMedia {
   url: string;
-  type: "IMAGE" | "VIDEO" | "DOCUMENT";
+  type: "IMAGE" | "VIDEO" | "DOCUMENT" | "AUDIO";
   fileId?: string;
   fileName?: string;
   thumbnailUrl?: string;
@@ -254,6 +254,13 @@ export interface Group {
   createdAt: string;
   updatedAt: string;
   members: GroupMember[];
+}
+export interface GroupInfo {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  createdAt: string;
+  memberCount?: number;
 }
 
 export interface GroupMember {

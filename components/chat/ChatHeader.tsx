@@ -12,11 +12,12 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { ChatHeaderProps } from "@/types";
+import type { ChatHeaderProps, GroupInfo } from "@/types";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
 import { useUserStatusStore } from "@/store/userStatusStore";
 import GroupDetailsModal from "../GroupDetailsModal";
 import { useRouter } from "expo-router";
+import { groupService } from "@/services/group-service";
 const formatLastSeen = (lastSeenDate: string) => {
   const date = new Date(lastSeenDate);
   const now = new Date();
@@ -44,9 +45,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const isOnline = useUserStatusStore((state) => state.isUserOnline(chatId));
   const userStatus = useUserStatusStore((state) => state.getUserStatus(chatId));
+  const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
+
+  React.useEffect(() => {
+    if (isGroup) {
+      groupService.getGroupInfo(chatId).then((info) => {
+        setGroupInfo(info);
+      });
+    }
+  }, [isGroup, chatId]);
 
   const getStatusText = () => {
-    if (isGroup) return `${name}`; // Không hiển thị trạng thái cho group
+    if (isGroup) return `Số thành viên: ${groupInfo?.memberCount}`; // Không hiển thị trạng thái cho group
     if (isOnline && !isGroup) return "Đang hoạt động";
     if (!userStatus?.timestamp) return "Không hoạt động";
     return `${formatLastSeen(userStatus.timestamp.toISOString())}`;
