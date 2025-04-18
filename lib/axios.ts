@@ -164,16 +164,26 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
       } else if (error.request) {
         // Request was made but no response was received
         console.error("Request error (no response):", error.request);
+
+        // Get network status
+        const isOnline = typeof navigator !== "undefined" && navigator.onLine;
+
         console.error("Network info:", {
-          online: typeof navigator !== "undefined" && navigator.onLine,
-          timestamp: new Date().toISOString(),
-          url: error.config?.url,
           method: error.config?.method,
+          url: error.config?.url,
+          online: isOnline,
+          timestamp: new Date().toISOString(),
         });
 
         // Kiểm tra kết nối mạng
-        if (typeof navigator !== "undefined" && !navigator.onLine) {
+        if (!isOnline) {
           console.error("Network is offline. Please check your connection.");
+          // Create a custom error with network status information
+          const networkError = new Error(
+            "Network is offline. Please check your connection.",
+          );
+          networkError.name = "NetworkError";
+          return Promise.reject(networkError);
         }
       } else {
         // Something happened in setting up the request

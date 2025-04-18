@@ -51,12 +51,13 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
         const userStr = await SecureStore.getItemAsync("user");
         const userInfoStr = await SecureStore.getItemAsync("userInfo");
         const userDataStr = await SecureStore.getItemAsync("userData");
+
         if (userStr) {
           const user = JSON.parse(userStr);
           const userData = userDataStr ? JSON.parse(userDataStr) : null;
           const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
           set({ isAuthenticated: true, user, userInfo, loading: false });
-          if (!userInfo || (!userDataStr && user)) {
+          if ((!userInfo || !userData) && user) {
             get().fetchUserInfo();
           }
           return;
@@ -98,7 +99,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
       try {
         const userInfoData = await getUserInfo(user.userId);
         const userDataResponse = await getUserData(user.userId);
-        console.log("User data:", userDataResponse);
         await SecureStore.setItemAsync(
           "userData",
           JSON.stringify(userDataResponse),
@@ -107,7 +107,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => {
           "userInfo",
           JSON.stringify(userInfoData),
         );
-
         // Cập nhật state riêng biệt
         set({ userData: userDataResponse });
         set({ userInfo: userInfoData });

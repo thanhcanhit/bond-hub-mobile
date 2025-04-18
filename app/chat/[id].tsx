@@ -13,7 +13,7 @@ import {
   NativeScrollEvent,
   Text,
 } from "react-native";
-import uuid from "react-native-uuid";
+// import uuid from "react-native-uuid"; // Not needed
 import { VStack } from "@/components/ui/vstack";
 import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
 import {
@@ -28,6 +28,7 @@ import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
 import { Message } from "@/types";
+import { useConversationsStore } from "@/store/conversationsStore";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -35,10 +36,8 @@ import MessageBubble from "@/components/chat/MessageBubble";
 import { MediaPreview } from "@/components/chat/MediaPreview";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
-import { useSocket } from "@/providers/SocketProvider";
 
 const ChatScreen = () => {
-  const { messageSocket } = useSocket();
   const {
     loading,
     messages,
@@ -57,10 +56,8 @@ const ChatScreen = () => {
     handleDelete,
     setRefreshing,
     setSelectedMedia,
-    sendTypingIndicator,
     setSelectedContact,
     setSelectedGroup,
-    currentChat,
   } = useChatStore();
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -110,9 +107,17 @@ const ChatScreen = () => {
   }, [chatId, name, avatarUrl, type]);
 
   useEffect(() => {
-    loadMessages(chatId as string);
-    console.log(chatId, name);
-  }, [chatId]);
+    if (chatId) {
+      console.log(`Initializing chat screen for ${chatId}`);
+      loadMessages(chatId as string);
+
+      // Mark conversation as read when entering chat
+      const conversationsStore = useConversationsStore.getState();
+      conversationsStore.markAsRead(chatId as string, type as "USER" | "GROUP");
+    } else {
+      console.error("Cannot load messages: No chat ID provided");
+    }
+  }, [chatId, type]);
 
   useEffect(() => {
     scrollToBottom();
@@ -125,14 +130,34 @@ const ChatScreen = () => {
   };
 
   const handleRefresh = async () => {
+    if (!chatId) {
+      console.error("Cannot refresh: No chat ID provided");
+      return;
+    }
+
     setRefreshing(true);
-    await loadMessages(chatId as string, 1);
-    setRefreshing(false);
+    try {
+      await loadMessages(chatId as string, 1);
+    } catch (error) {
+      console.error("Error refreshing messages:", error);
+      Alert.alert("Error", "Could not load messages. Please try again.");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleLoadMore = async () => {
     if (!hasMore || loading) return;
-    await loadMessages(chatId as string, page + 1);
+    if (!chatId) {
+      console.error("Cannot load more: No chat ID provided");
+      return;
+    }
+
+    try {
+      await loadMessages(chatId as string, page + 1);
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    }
   };
 
   const handleSend = async () => {
@@ -273,12 +298,15 @@ const ChatScreen = () => {
   // Add debounce function
   const debouncedTyping = useCallback(
     debounce((isTyping: boolean) => {
-      if (messageSocket) {
+      try {
         console.log("Typing...", isTyping);
-        sendTypingIndicator(isTyping, messageSocket);
+        // Use the chatStore function directly
+        useChatStore.getState().handleTypingStatus(isTyping);
+      } catch (error) {
+        console.error("Error sending typing indicator:", error);
       }
     }, 500),
-    [messageSocket],
+    [],
   );
 
   return (

@@ -305,6 +305,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       state.setLoading(true);
+
+      // Check if we have a valid chatId
+      if (!chatId) {
+        console.error("Cannot load messages: Invalid chat ID");
+        state.setMessages([]);
+        state.setLoading(false);
+        return;
+      }
+
+      console.log(`Loading messages for chat ${chatId}, page ${pageNum}`);
       const data = await messageService.getMessageHistory(chatId, pageNum);
 
       if (!data || data.length < 20) {
@@ -318,6 +328,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       state.setPage(pageNum);
+      console.log(
+        `Successfully loaded ${data?.length || 0} messages for chat ${chatId}`,
+      );
     } catch (error) {
       console.error("Error loading messages:", error);
       // Trả về mảng rỗng để tránh crash app

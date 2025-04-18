@@ -11,6 +11,18 @@ interface ForwardMessageRequest {
 
 const handleError = (error: any, context: string) => {
   console.error(`Error in ${context}:`, error);
+
+  // Check if it's a network error
+  if (
+    error.name === "NetworkError" ||
+    (error.message && error.message.includes("Network")) ||
+    (error.code && error.code === "ECONNABORTED")
+  ) {
+    // Return empty data instead of throwing for network errors
+    console.log(`Network error in ${context}, returning empty data`);
+    return [];
+  }
+
   throw error;
 };
 
@@ -30,7 +42,8 @@ export const messageService = {
     receiverId: string,
     page: number = 1,
     limit: number = 20,
-  ): Promise<Message[] | undefined> {
+    retryCount = 0,
+  ): Promise<Message[]> {
     try {
       console.log(
         `Fetching message history for receiver ${receiverId}, page ${page}`,
@@ -42,9 +55,26 @@ export const messageService = {
       console.log(
         `Successfully fetched ${response.data?.length || 0} messages`,
       );
-      return response.data;
-    } catch (error) {
-      handleError(error, "getMessageHistory");
+      return response.data || [];
+    } catch (error: any) {
+      // Check if it's a network error and we should retry
+      if (
+        retryCount < 2 &&
+        (error.name === "NetworkError" ||
+          (error.message && error.message.includes("Network")) ||
+          (error.code && error.code === "ECONNABORTED"))
+      ) {
+        console.log(`Network error, retrying (${retryCount + 1}/2)...`);
+        // Wait for a short time before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.getMessageHistory(receiverId, page, limit, retryCount + 1);
+      }
+
+      // If we've exhausted retries or it's not a network error
+      console.error(
+        `Error in getMessageHistory (attempt ${retryCount + 1})`,
+        error,
+      );
       // Trả về mảng rỗng thay vì undefined để tránh crash app
       return [];
     }

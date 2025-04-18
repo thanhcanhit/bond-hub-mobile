@@ -359,41 +359,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       },
     );
 
-    // Handle message read status
-    socket.on(
-      "messageRead",
-      (data: {
-        conversationId: string;
-        type: "USER" | "GROUP";
-        messageIds?: string[];
-      }) => {
-        console.log("Message read event received:", data);
-
-        // Kiểm tra xem có phải đang ở trong cuộc trò chuyện này không
-        const chatStore = useChatStore.getState();
-        const currentChat = chatStore.currentChat;
-
-        const isCurrentChat =
-          currentChat?.id === data.conversationId &&
-          currentChat?.type === data.type;
-
-        // Nếu có danh sách messageIds và đang ở đúng cuộc trò chuyện, cập nhật trạng thái đã đọc
-        if (isCurrentChat && data.messageIds && data.messageIds.length > 0) {
-          // Cập nhật trạng thái đã đọc cho từng tin nhắn
-          data.messageIds.forEach((messageId) => {
-            const message = chatStore.messages.find((m) => m.id === messageId);
-            if (message) {
-              // Cập nhật trạng thái đã đọc
-              // Lưu ý: Cần cập nhật logic này tùy theo cấu trúc dữ liệu của bạn
-            }
-          });
-        }
-
-        // Cập nhật danh sách cuộc trò chuyện
-        const conversationsStore = useConversationsStore.getState();
-        conversationsStore.fetchConversations(1);
-      },
-    );
+    // Message read status handling has been removed
 
     // Handle user status changes
     socket.on(
@@ -500,7 +466,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       return;
     }
 
-    const baseUrl = "https://api.bondhub.cloud";
+    const baseUrl = "http://bondhub.cloud:3000";
     const socketConfig = {
       auth: { userId: currentUser.userId },
       reconnection: true,

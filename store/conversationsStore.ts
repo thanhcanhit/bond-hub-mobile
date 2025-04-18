@@ -13,12 +13,12 @@ interface ConversationsState {
 
   // Actions
   fetchConversations: (page?: number, limit?: number) => Promise<void>;
-  markAsRead: (conversationId: string, type: "USER" | "GROUP") => Promise<void>;
+  markAsRead: (conversationId: string, type: "USER" | "GROUP") => void;
   markMessageAsRead: (
     messageId: string,
     conversationId: string,
     type: "USER" | "GROUP",
-  ) => Promise<void>;
+  ) => void;
   markMessageAsUnread: (
     messageId: string,
     conversationId: string,
@@ -127,10 +127,28 @@ export const useConversationsStore = create<ConversationsState>((set, get) => ({
     set({ conversations: [], totalCount: 0, currentPage: 1, hasMore: true });
   },
 
-  markAsRead: async (conversationId, type) => {
-    try {
-      // Tìm cuộc trò chuyện phù hợp
-      const state = get();
+  markAsRead: (conversationId, type) => {
+    // Cập nhật trạng thái local mà không gọi API
+    set((state) => ({
+      conversations: state.conversations.map((conv) => {
+        // Tìm cuộc trò chuyện phù hợp dựa trên ID và loại
+        const isMatch =
+          (type === "USER" &&
+            conv.type === "USER" &&
+            conv.user?.id === conversationId) ||
+          (type === "GROUP" &&
+            conv.type === "GROUP" &&
+            conv.group?.id === conversationId);
+
+        return isMatch ? { ...conv, unreadCount: 0 } : conv;
+      }),
+    }));
+  },
+
+  // Đánh dấu một tin nhắn cụ thể là đã đọc - không gọi API
+  markMessageAsRead: (messageId, conversationId, type) => {
+    // Cập nhật trạng thái local
+    set((state) => {
       const conversation = state.conversations.find((conv) => {
         if (type === "USER" && conv.type === "USER") {
           return conv.user?.id === conversationId;
@@ -140,68 +158,16 @@ export const useConversationsStore = create<ConversationsState>((set, get) => ({
         return false;
       });
 
-      // Nếu có tin nhắn cuối cùng, đánh dấu nó là đã đọc
-      if (conversation?.lastMessage?.id) {
-        await conversationService.markMessageAsRead(
-          conversation.lastMessage.id,
-        );
-
-        // Nếu có nhiều tin nhắn chưa đọc, có thể đánh dấu tất cả là đã đọc
-        // Bạn có thể cần lấy danh sách tin nhắn chưa đọc và đánh dấu từng tin
+      if (conversation) {
+        return {
+          conversations: state.conversations.map((conv) =>
+            conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv,
+          ),
+        };
       }
 
-      // Cập nhật trạng thái local
-      set((state) => ({
-        conversations: state.conversations.map((conv) => {
-          // Tìm cuộc trò chuyện phù hợp dựa trên ID và loại
-          const isMatch =
-            (type === "USER" &&
-              conv.type === "USER" &&
-              conv.user?.id === conversationId) ||
-            (type === "GROUP" &&
-              conv.type === "GROUP" &&
-              conv.group?.id === conversationId);
-
-          return isMatch ? { ...conv, unreadCount: 0 } : conv;
-        }),
-      }));
-    } catch (error) {
-      console.error("Error marking conversation as read:", error);
-    }
-  },
-
-  // Đánh dấu một tin nhắn cụ thể là đã đọc
-  markMessageAsRead: async (messageId, conversationId, type) => {
-    try {
-      await conversationService.markMessageAsRead(messageId);
-
-      // Cập nhật trạng thái local nếu cần
-      // Nếu đây là tin nhắn cuối cùng trong cuộc trò chuyện, có thể cập nhật unreadCount
-      set((state) => {
-        const conversation = state.conversations.find((conv) => {
-          if (type === "USER" && conv.type === "USER") {
-            return conv.user?.id === conversationId;
-          } else if (type === "GROUP" && conv.type === "GROUP") {
-            return conv.group?.id === conversationId;
-          }
-          return false;
-        });
-
-        if (conversation?.lastMessage?.id === messageId) {
-          return {
-            conversations: state.conversations.map((conv) =>
-              conv.id === conversation.id
-                ? { ...conv, unreadCount: Math.max(0, conv.unreadCount - 1) }
-                : conv,
-            ),
-          };
-        }
-
-        return state; // Không thay đổi nếu không phải tin nhắn cuối cùng
-      });
-    } catch (error) {
-      console.error("Error marking message as read:", error);
-    }
+      return state; // Không thay đổi nếu không tìm thấy cuộc trò chuyện
+    });
   },
 
   // Đánh dấu một tin nhắn cụ thể là chưa đọc

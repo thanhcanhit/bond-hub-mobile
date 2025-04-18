@@ -4,7 +4,6 @@ import { router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Input, InputField } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { initiatePhoneUpdate } from "@/services/user-service";
@@ -13,7 +12,8 @@ export default function ChangePhoneScreen() {
   const insets = useSafeAreaInsets();
   const [newPhone, setNewPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { user, userData } = useAuthStore();
+  const { userData } = useAuthStore();
+  console.log("User data:", userData);
 
   const handleInitiatePhoneUpdate = async () => {
     if (!newPhone) {

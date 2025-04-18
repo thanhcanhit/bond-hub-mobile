@@ -83,25 +83,7 @@ const HomeConversations: React.FC = () => {
     // Lắng nghe sự kiện tin nhắn mới
     messageSocket.on("newMessage", handleNewMessage);
 
-    // Lắng nghe sự kiện đánh dấu đã đọc
-    messageSocket.on(
-      "messageRead",
-      (data: { conversationId: string; type: "USER" | "GROUP" }) => {
-        const { conversationId, type } = data;
-        const conversation = conversations.find((conv) => {
-          if (conv.type === "USER" && type === "USER") {
-            return conv.user?.id === conversationId;
-          } else if (conv.type === "GROUP" && type === "GROUP") {
-            return conv.group?.id === conversationId;
-          }
-          return false;
-        });
-
-        if (conversation) {
-          updateConversation(conversation.id, { unreadCount: 0 });
-        }
-      },
-    );
+    // Lắng nghe sự kiện đánh dấu đã đọc - đã bỏ logic này
 
     // Cleanup khi component unmount
     return () => {
