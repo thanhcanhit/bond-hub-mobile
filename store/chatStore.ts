@@ -315,7 +315,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       console.log(`Loading messages for chat ${chatId}, page ${pageNum}`);
-      const data = await messageService.getMessageHistory(chatId, pageNum);
+
+      // Determine if this is a group chat or user chat
+      const chatType = state.currentChatType;
+      let data: Message[] = [];
+
+      if (chatType === "GROUP") {
+        data = await messageService.getGroupMessageHistory(chatId, pageNum);
+      } else {
+        data = await messageService.getMessageHistory(chatId, pageNum);
+      }
 
       if (!data || data.length < 20) {
         state.setHasMore(false);
@@ -343,11 +352,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   sendMessage: async (chatId, text) => {
+    const state = get();
     try {
-      await messageService.sendMessage({
-        receiverId: chatId,
-        content: { text },
-      });
+      // Determine if this is a group chat or user chat
+      const chatType = state.currentChatType;
+
+      if (chatType === "GROUP") {
+        await messageService.sendGroupMessage({
+          groupId: chatId,
+          content: { text },
+        });
+      } else {
+        await messageService.sendMessage({
+          receiverId: chatId,
+          content: { text },
+        });
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -361,8 +381,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       state.setIsLoadingMedia(true);
 
       const formData = new FormData();
-      formData.append("receiverId", chatId);
-      formData.append("content[text]", text);
+
+      // Determine if this is a group chat or user chat
+      const chatType = state.currentChatType;
+
+      if (chatType === "GROUP") {
+        formData.append("groupId", chatId);
+      } else {
+        formData.append("receiverId", chatId);
+      }
+
+      if (text) {
+        formData.append("content[text]", text);
+      }
 
       media.forEach((m) => {
         let fileType;
@@ -390,8 +421,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         } as any);
       });
 
-      const response = await messageService.sendMediaMessage(formData);
-      state.updateMessage(tempId, { ...response, isMe: true });
+      let response;
+      if (chatType === "GROUP") {
+        response = await messageService.sendGroupMediaMessage(formData);
+      } else {
+        response = await messageService.sendMediaMessage(formData);
+      }
+
+      if (response) {
+        state.updateMessage(tempId, { ...response, isMe: true });
+      }
       state.setSelectedMedia([]);
     } catch (error) {
       console.error("Media upload error:", error);

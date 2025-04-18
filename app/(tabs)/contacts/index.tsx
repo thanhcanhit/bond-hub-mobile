@@ -24,9 +24,10 @@ import {
   UserRoundPlus,
   Cake,
 } from "lucide-react-native";
-import ListChatItem from "@/components/ListChatItem";
 import { router, useFocusEffect } from "expo-router";
 import { getFriendList } from "@/services/friend-service";
+import CreateGroupModal from "@/components/CreateGroupModal";
+import { useConversationsStore } from "@/store/conversationsStore";
 
 // Interface for friend items in UI
 interface FriendItem {
@@ -44,6 +45,8 @@ export default function ContactScreen() {
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const { fetchConversations } = useConversationsStore();
 
   // Kết nối đến namespace friends của WebSocket
   const { socket, isConnected, error: socketError } = useSocket("friends");
@@ -288,7 +291,7 @@ export default function ContactScreen() {
         <View>
           <TouchableOpacity
             className="flex-row items-center px-4 py-3  bg-white"
-            onPress={() => {}}
+            onPress={() => setShowCreateGroup(true)}
           >
             <View className="items-center justify-center w-14 h-14 bg-blue-50 rounded-full">
               <Users size={24} color={Colors.light.PRIMARY_BLUE} />
@@ -299,6 +302,26 @@ export default function ContactScreen() {
           <View className="mt-1 pb-10 h-full bg-white"></View>
         </View>
       )}
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        visible={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+        friends={friends}
+        onGroupCreated={(groupId) => {
+          // Refresh conversations to include the new group
+          fetchConversations(1);
+
+          // Navigate to the new group chat
+          router.push({
+            pathname: "../chat/[id]",
+            params: {
+              id: groupId,
+              type: "GROUP",
+            },
+          });
+        }}
+      />
     </View>
   );
 }

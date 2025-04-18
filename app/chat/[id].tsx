@@ -314,6 +314,7 @@ const ChatScreen = () => {
       <ChatHeader
         chatId={chatId as string}
         name={name as string}
+        isGroup={type === "GROUP"}
         onBack={() => router.back()}
       />
 

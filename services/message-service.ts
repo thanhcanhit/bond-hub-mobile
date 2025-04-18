@@ -1,11 +1,16 @@
 import axiosInstance from "@/lib/axios";
-import { Message, ReactionType, SendMessageRequest } from "@/types";
+import {
+  Message,
+  ReactionType,
+  SendMessageRequest,
+  SendGroupMessageRequest,
+} from "@/types";
 
 interface ForwardMessageRequest {
   messageId: string;
   targets: Array<{
-    // Đổi
-    userId: string;
+    type: "USER" | "GROUP";
+    id: string;
   }>;
 }
 
@@ -27,7 +32,7 @@ const handleError = (error: any, context: string) => {
 };
 
 export const messageService = {
-  // Gửi tin nhắn văn bản
+  // Gửi tin nhắn văn bản đến người dùng
   async sendMessage(data: SendMessageRequest): Promise<Message | undefined> {
     try {
       const response = await axiosInstance.post("/messages/user", data);
@@ -37,7 +42,19 @@ export const messageService = {
     }
   },
 
-  // Lấy lịch sử tin nhắn
+  // Gửi tin nhắn văn bản đến nhóm
+  async sendGroupMessage(
+    data: SendGroupMessageRequest,
+  ): Promise<Message | undefined> {
+    try {
+      const response = await axiosInstance.post("/messages/group", data);
+      return response.data;
+    } catch (error) {
+      handleError(error, "sendGroupMessage");
+    }
+  },
+
+  // Lấy lịch sử tin nhắn người dùng
   async getMessageHistory(
     receiverId: string,
     page: number = 1,
@@ -80,7 +97,55 @@ export const messageService = {
     }
   },
 
-  // Tìm kiếm tin nhắn
+  // Lấy lịch sử tin nhắn nhóm
+  async getGroupMessageHistory(
+    groupId: string,
+    page: number = 1,
+    limit: number = 20,
+    retryCount = 0,
+  ): Promise<Message[]> {
+    try {
+      console.log(
+        `Fetching group message history for group ${groupId}, page ${page}`,
+      );
+      const response = await axiosInstance.get(`/messages/group/${groupId}`, {
+        params: { page, limit },
+        timeout: 30000, // Tăng thời gian chờ lên 30 giây
+      });
+      console.log(
+        `Successfully fetched ${response.data?.length || 0} group messages`,
+      );
+      return response.data || [];
+    } catch (error: any) {
+      // Check if it's a network error and we should retry
+      if (
+        retryCount < 2 &&
+        (error.name === "NetworkError" ||
+          (error.message && error.message.includes("Network")) ||
+          (error.code && error.code === "ECONNABORTED"))
+      ) {
+        console.log(`Network error, retrying (${retryCount + 1}/2)...`);
+        // Wait for a short time before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.getGroupMessageHistory(
+          groupId,
+          page,
+          limit,
+          retryCount + 1,
+        );
+      }
+
+      // If we've exhausted retries or it's not a network error
+      console.error(
+        `Error in getGroupMessageHistory (attempt ${retryCount + 1})`,
+        error,
+      );
+      // Trả về mảng rỗng thay vì undefined để tránh crash app
+      return [];
+    }
+  },
+
+  // Tìm kiếm tin nhắn người dùng
   async searchMessages(
     receiverId: string,
     query: string,
@@ -96,6 +161,25 @@ export const messageService = {
       return response.data;
     } catch (error) {
       handleError(error, "searchMessages");
+    }
+  },
+
+  // Tìm kiếm tin nhắn nhóm
+  async searchGroupMessages(
+    groupId: string,
+    query: string,
+    page: number = 1,
+  ): Promise<Message[] | undefined> {
+    try {
+      const response = await axiosInstance.get(
+        `/messages/group/${groupId}/search`,
+        {
+          params: { query, page },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      handleError(error, "searchGroupMessages");
     }
   },
 
@@ -181,6 +265,23 @@ export const messageService = {
       return response.data;
     } catch (error) {
       handleError(error, "sendMediaMessage");
+    }
+  },
+
+  // Gửi tin nhắn media đến nhóm
+  async sendGroupMediaMessage(
+    formData: FormData,
+  ): Promise<Message | undefined> {
+    try {
+      const response = await axiosInstance.post("/messages/group", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("Send group media message", response.data);
+      return response.data;
+    } catch (error) {
+      handleError(error, "sendGroupMediaMessage");
     }
   },
 };

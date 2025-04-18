@@ -20,9 +20,7 @@ const HomeConversations: React.FC = () => {
     fetchConversations,
     markAsRead,
     markMessageAsRead,
-    markMessageAsUnread,
     updateConversation,
-    addConversation,
   } = useConversationsStore();
 
   // Tải danh sách cuộc trò chuyện khi component được mount
@@ -42,7 +40,6 @@ const HomeConversations: React.FC = () => {
     }) => {
       const { message } = data;
       const isGroup = message.messageType === "GROUP";
-      const conversationType = isGroup ? "GROUP" : "USER";
       const conversationId = isGroup
         ? message.groupId
         : message.senderId === currentUser.userId

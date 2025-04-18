@@ -160,6 +160,13 @@ export interface SendMessageRequest {
   };
 }
 
+export interface SendGroupMessageRequest {
+  groupId: string;
+  content: {
+    text?: string;
+  };
+}
+
 export interface SendMediaMessageRequest {
   receiverId: string;
   text?: string;
@@ -236,4 +243,30 @@ export interface Conversation {
 export interface ConversationListProps {
   conversations: Conversation[];
   onConversationPress: (conversation: Conversation) => void;
+}
+
+// Group related interfaces
+export interface Group {
+  id: string;
+  name: string;
+  creatorId: string;
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  members: GroupMember[];
+}
+
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  userId: string;
+  role: "LEADER" | "CO_LEADER" | "MEMBER";
+  addedById: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    profilePictureUrl?: string;
+  };
 }
