@@ -27,11 +27,13 @@ import { MessageForwardModal } from "./MessageForwardModal";
 interface MessageBubbleProps {
   message: Message;
   profilePictureUrl?: string;
+  senderName?: string; // Add sender name for group chats
+  isGroupChat?: boolean; // Flag to indicate if this is a group chat
   onReaction: (messageId: string, type: ReactionType) => void;
   onRecall: (messageId: string) => void;
   onDelete: (messageId: string) => void;
   onUnReaction: (messageId: string) => void;
-  isLastMessageOfUser: boolean; // Thêm prop mới
+  isLastMessageOfUser: boolean;
 }
 
 interface ReactionOption {
@@ -51,6 +53,8 @@ const reactionOptions: ReactionOption[] = [
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   profilePictureUrl,
+  senderName,
+  isGroupChat = false,
   onReaction,
   onRecall,
   onDelete,
@@ -242,6 +246,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       Tin nhắn được chuyển tiếp
                     </RNText>
                   </View>
+                )}
+
+                {/* Sender name for group chats */}
+                {!isMyMessage && isGroupChat && senderName && (
+                  <RNText className="text-[8px] font-medium text-blue-500 mb-1">
+                    {senderName}
+                  </RNText>
                 )}
 
                 {/* Text content */}

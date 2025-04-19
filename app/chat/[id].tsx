@@ -28,8 +28,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
-import { Message } from "@/types";
+import { Message, GroupMember } from "@/types";
 import { useConversationsStore } from "@/store/conversationsStore";
+import { groupService } from "@/services/group-service";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -67,10 +68,12 @@ const ChatScreen = () => {
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
   const { id: chatId, name, avatarUrl, type } = useLocalSearchParams();
+  const isGroupChat = type === "GROUP";
   useEffect(() => {
     if (chatId) {
       const chatType = type === "GROUP" ? "GROUP" : "USER";
@@ -98,6 +101,9 @@ const ChatScreen = () => {
           name: name as string,
           profilePictureUrl: avatarUrl as string,
         });
+
+        // Fetch group members for group chats
+        fetchGroupMembers(chatId as string);
       }
     }
 
@@ -276,6 +282,37 @@ const ChatScreen = () => {
     }
   };
 
+  // Fetch group members
+  const fetchGroupMembers = async (groupId: string) => {
+    try {
+      const groupDetails = await groupService.getGroupDetails(groupId);
+      if (groupDetails && groupDetails.members) {
+        setGroupMembers(groupDetails.members);
+      }
+    } catch (error) {
+      console.error("Error fetching group members:", error);
+    }
+  };
+
+  // Get sender name and profile picture from group members
+  const getSenderInfo = (senderId: string) => {
+    if (!isGroupChat)
+      return { name: undefined, profilePic: avatarUrl as string };
+
+    const member = groupMembers.find((member) => member.userId === senderId);
+    if (member) {
+      // Handle both possible structures of GroupMember using type assertion
+      // Some implementations have user property, others have fullName directly
+      const memberAny = member as any;
+      return {
+        name: memberAny.user?.fullName || memberAny.fullName,
+        profilePic:
+          memberAny.user?.profilePictureUrl || memberAny.profilePictureUrl,
+      };
+    }
+    return { name: undefined, profilePic: undefined };
+  };
+
   // Hàm để xác định tin nhắn cuối cùng của mỗi người dùng
   const getIsLastMessageOfUser = (message: Message, index: number) => {
     if (index === messages.length - 1) return true;
@@ -286,13 +323,52 @@ const ChatScreen = () => {
 
   // Render typing indicator
   const renderTypingIndicator = () => {
-    const typingUsersArray = Array.from(typingUsers.values());
+    // Get typing users and filter out current user
+    const typingUsersMap = new Map(typingUsers);
+    // Remove current user from the map to avoid showing your own typing status
+    if (user?.userId) {
+      typingUsersMap.delete(user.userId);
+    }
+
+    // Convert to array for easier processing
+    const typingUsersArray = Array.from(typingUsersMap.entries()).map(
+      ([userId, data]) => ({ userId, ...data }),
+    );
+
     if (typingUsersArray.length > 0) {
-      return (
-        <Text className="text-gray-500 text-sm p-2 bg-none ">
-          đang soạn tin ...
-        </Text>
-      );
+      // For group chats, show who is typing
+      if (isGroupChat) {
+        const typingNames = typingUsersArray.map((typingUser) => {
+          const member = groupMembers.find(
+            (m) => m.userId === typingUser.userId,
+          );
+          if (!member) return "Someone";
+          const memberAny = member as any;
+          return memberAny.user?.fullName || memberAny.fullName || "Someone";
+        });
+
+        let typingText = "";
+        if (typingNames.length === 1) {
+          typingText = `${typingNames[0]} đang soạn tin...`;
+        } else if (typingNames.length === 2) {
+          typingText = `${typingNames[0]} và ${typingNames[1]} đang soạn tin...`;
+        } else if (typingNames.length > 2) {
+          typingText = `${typingNames[0]} và ${typingNames.length - 1} người khác đang soạn tin...`;
+        }
+
+        return (
+          <Text className="text-gray-500 text-sm p-2 bg-none">
+            {typingText}
+          </Text>
+        );
+      } else {
+        // For direct chats, just show "typing..."
+        return (
+          <Text className="text-gray-500 text-sm p-2 bg-none">
+            đang soạn tin...
+          </Text>
+        );
+      }
     }
     return null;
   };
@@ -331,18 +407,23 @@ const ChatScreen = () => {
       >
         {loading && <ActivityIndicator className="py-4" />}
         <VStack className="py-4">
-          {messages.map((msg, index) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              profilePictureUrl={avatarUrl as string}
-              onReaction={handleReaction}
-              onRecall={handleRecall}
-              onDelete={handleDelete}
-              onUnReaction={handleUnReaction}
-              isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
-            />
-          ))}
+          {messages.map((msg, index) => {
+            const senderInfo = getSenderInfo(msg.senderId);
+            return (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                profilePictureUrl={senderInfo.profilePic}
+                senderName={senderInfo.name}
+                isGroupChat={isGroupChat}
+                onReaction={handleReaction}
+                onRecall={handleRecall}
+                onDelete={handleDelete}
+                onUnReaction={handleUnReaction}
+                isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
+              />
+            );
+          })}
         </VStack>
       </ScrollView>
 

@@ -268,12 +268,10 @@ export interface GroupMember {
   groupId: string;
   userId: string;
   role: "LEADER" | "CO_LEADER" | "MEMBER";
-  addedById: string;
-  createdAt: string;
-  updatedAt: string;
-  user: {
+  fullName?: string;
+  profilePictureUrl?: string;
+  addedBy?: {
     id: string;
     fullName: string;
-    profilePictureUrl?: string;
   };
 }
