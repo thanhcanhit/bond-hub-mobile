@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatHeaderProps, GroupInfo } from "@/types";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
 import { useUserStatusStore } from "@/store/userStatusStore";
-import GroupDetailsModal from "../GroupDetailsModal";
+// Removed GroupDetailsModal import
 import { useRouter } from "expo-router";
 import { groupService } from "@/services/group-service";
 const formatLastSeen = (lastSeenDate: string) => {
@@ -42,7 +42,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [showGroupDetails, setShowGroupDetails] = useState(false);
+  // Removed showGroupDetails state
   const isOnline = useUserStatusStore((state) => state.isUserOnline(chatId));
   const userStatus = useUserStatusStore((state) => state.getUserStatus(chatId));
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
@@ -67,15 +67,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     return isOnline ? "bg-green-500" : "bg-gray-400";
   };
 
-  const handleLeaveGroup = () => {
-    // Navigate back to conversation list
-    router.replace("/");
-  };
-
-  const handleDeleteGroup = () => {
-    // Navigate back to conversation list
-    router.replace("/");
-  };
+  // Removed handleLeaveGroup and handleDeleteGroup functions
   return (
     <LinearGradient
       start={{ x: 0.03, y: 0 }}
@@ -123,34 +115,30 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               </>
             ) : (
               <>
-                <TouchableOpacity
-                  className="px-2.5"
-                  onPress={() => setShowGroupDetails(true)}
-                >
-                  <Users size={24} color="white" />
-                </TouchableOpacity>
                 <TouchableOpacity className="px-2.5">
                   <Search size={24} color="white" />
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity className="pl-2.5">
+            <TouchableOpacity
+              className="pl-2.5"
+              onPress={() => {
+                if (isGroup) {
+                  // Sử dụng định tuyến động
+                  router.push(`/group/${chatId}`);
+                } else {
+                  // Xử lý khi không phải là nhóm
+                  console.log("Logs pressed for non-group chat");
+                }
+              }}
+            >
               <Logs size={24} color="white" />
             </TouchableOpacity>
           </HStack>
         </HStack>
       </View>
 
-      {/* Group Details Modal */}
-      {isGroup && (
-        <GroupDetailsModal
-          visible={showGroupDetails}
-          onClose={() => setShowGroupDetails(false)}
-          groupId={chatId}
-          onLeaveGroup={handleLeaveGroup}
-          onDeleteGroup={handleDeleteGroup}
-        />
-      )}
+      {/* Removed Group Details Modal */}
     </LinearGradient>
   );
 };
