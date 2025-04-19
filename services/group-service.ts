@@ -289,8 +289,15 @@ export const updateGroupAvatar = async (
 ): Promise<any> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
-    const formData = new FormData();
-    formData.append("file", avatarFile);
+
+    // If avatarFile is already a FormData object, use it directly
+    const formData =
+      avatarFile instanceof FormData ? avatarFile : new FormData();
+
+    // If it's not a FormData object, append the file
+    if (!(avatarFile instanceof FormData)) {
+      formData.append("file", avatarFile);
+    }
 
     const response = await axiosInstance.patch(
       `/groups/${groupId}/avatar`,
@@ -307,4 +314,30 @@ export const updateGroupAvatar = async (
     console.error("Error updating group avatar:", error);
     throw error;
   }
+};
+
+/**
+ * Group service object for components that expect an object-based API
+ */
+export const groupService = {
+  createGroup,
+  getGroupList,
+  getGroupDetails,
+  getGroupInfo,
+  updateGroup: updateGroupInfo, // Alias for compatibility
+  updateGroupInfo,
+  addMembersToGroup,
+  removeMember: removeMemberFromGroup, // Alias for compatibility
+  removeMemberFromGroup,
+  leaveGroup,
+  deleteGroup: async (groupId: string): Promise<boolean> => {
+    try {
+      await axiosInstance.delete(`/groups/${groupId}`);
+      return true;
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      return false;
+    }
+  },
+  updateGroupAvatar,
 };
