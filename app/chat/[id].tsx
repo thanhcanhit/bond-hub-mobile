@@ -12,8 +12,9 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Text,
+  Modal,
 } from "react-native";
-import uuid from "react-native-uuid";
+// import uuid from "react-native-uuid"; // Not needed
 import { VStack } from "@/components/ui/vstack";
 import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
 import {
@@ -28,17 +29,17 @@ import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
 import { Message } from "@/types";
+import { useConversationsStore } from "@/store/conversationsStore";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { MediaPreview } from "@/components/chat/MediaPreview";
+import VoiceRecorder from "@/components/chat/VoiceRecorder";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
-import { useSocket } from "@/providers/SocketProvider";
 
 const ChatScreen = () => {
-  const { messageSocket } = useSocket();
   const {
     loading,
     messages,
@@ -57,29 +58,30 @@ const ChatScreen = () => {
     handleDelete,
     setRefreshing,
     setSelectedMedia,
-    sendTypingIndicator,
     setSelectedContact,
     setSelectedGroup,
-    currentChat,
   } = useChatStore();
 
   const scrollViewRef = useRef<ScrollView>(null);
   const shouldAutoScroll = useRef<boolean>(true);
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
-  const {
-    id: chatId,
-    fullName: name,
-    profilePictureUrl,
-    type,
-  } = useLocalSearchParams();
-
+  const { id: chatId, name, avatarUrl, type } = useLocalSearchParams();
   useEffect(() => {
     if (chatId) {
-      const chatType = (type as "USER") || "GROUP" ? "USER" : "GROUP";
+      const chatType = type === "GROUP" ? "GROUP" : "USER";
+
+      // Cập nhật thông tin cuộc trò chuyện hiện tại
+      useChatStore.getState().setCurrentChat({
+        id: chatId as string,
+        name: name as string,
+        type: chatType as "USER" | "GROUP",
+      });
+      useChatStore.getState().setCurrentChatType(chatType as "USER" | "GROUP");
 
       if (chatType === "USER") {
         setSelectedContact({
@@ -94,16 +96,30 @@ const ChatScreen = () => {
         setSelectedGroup({
           id: chatId as string,
           name: name as string,
-          profilePictureUrl: profilePictureUrl as string,
+          profilePictureUrl: avatarUrl as string,
         });
       }
     }
-  }, [chatId, name, profilePictureUrl, type]);
+
+    // Khi rời khỏi màn hình chat, xóa thông tin cuộc trò chuyện hiện tại
+    return () => {
+      useChatStore.getState().setCurrentChat(null);
+      useChatStore.getState().setCurrentChatType(null);
+    };
+  }, [chatId, name, avatarUrl, type]);
 
   useEffect(() => {
-    loadMessages(chatId as string);
-    console.log(chatId, name);
-  }, [chatId]);
+    if (chatId) {
+      console.log(`Initializing chat screen for ${chatId}`);
+      loadMessages(chatId as string);
+
+      // Mark conversation as read when entering chat
+      const conversationsStore = useConversationsStore.getState();
+      conversationsStore.markAsRead(chatId as string, type as "USER" | "GROUP");
+    } else {
+      console.error("Cannot load messages: No chat ID provided");
+    }
+  }, [chatId, type]);
 
   useEffect(() => {
     scrollToBottom();
@@ -116,14 +132,34 @@ const ChatScreen = () => {
   };
 
   const handleRefresh = async () => {
+    if (!chatId) {
+      console.error("Cannot refresh: No chat ID provided");
+      return;
+    }
+
     setRefreshing(true);
-    await loadMessages(chatId as string, 1);
-    setRefreshing(false);
+    try {
+      await loadMessages(chatId as string, 1);
+    } catch (error) {
+      console.error("Error refreshing messages:", error);
+      Alert.alert("Error", "Could not load messages. Please try again.");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleLoadMore = async () => {
     if (!hasMore || loading) return;
-    await loadMessages(chatId as string, page + 1);
+    if (!chatId) {
+      console.error("Cannot load more: No chat ID provided");
+      return;
+    }
+
+    try {
+      await loadMessages(chatId as string, page + 1);
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    }
   };
 
   const handleSend = async () => {
@@ -264,12 +300,15 @@ const ChatScreen = () => {
   // Add debounce function
   const debouncedTyping = useCallback(
     debounce((isTyping: boolean) => {
-      if (messageSocket) {
+      try {
         console.log("Typing...", isTyping);
-        sendTypingIndicator(isTyping, messageSocket);
+        // Use the chatStore function directly
+        useChatStore.getState().handleTypingStatus(isTyping);
+      } catch (error) {
+        console.error("Error sending typing indicator:", error);
       }
     }, 500),
-    [messageSocket],
+    [],
   );
 
   return (
@@ -277,6 +316,7 @@ const ChatScreen = () => {
       <ChatHeader
         chatId={chatId as string}
         name={name as string}
+        isGroup={type === "GROUP"}
         onBack={() => router.back()}
       />
 
@@ -295,7 +335,7 @@ const ChatScreen = () => {
             <MessageBubble
               key={msg.id}
               message={msg}
-              profilePictureUrl={profilePictureUrl as string}
+              profilePictureUrl={avatarUrl as string}
               onReaction={handleReaction}
               onRecall={handleRecall}
               onDelete={handleDelete}
@@ -338,11 +378,9 @@ const ChatScreen = () => {
         )}
         <View
           className="flex-row justify-center items-center bg-white px-4 pt-4"
-          style={
-            Platform.OS === "ios"
-              ? { paddingBottom: 25 }
-              : { paddingBottom: 10 }
-          }
+          style={{
+            paddingBottom: Platform.OS === "ios" ? 25 : 10,
+          }}
         >
           <TouchableOpacity
             className="ml-2.5"
@@ -353,7 +391,7 @@ const ChatScreen = () => {
           </TouchableOpacity>
 
           <TextInput
-            className="flex-1 ml-2.5 p-1 h-full bg-transparent justify-center text-gray-700 text-base"
+            className="flex-1 ml-2.5 p-1 bg-transparent justify-center text-gray-700 text-base"
             placeholder="Nhập tin nhắn..."
             value={message}
             onChangeText={(text) => {
@@ -361,11 +399,20 @@ const ChatScreen = () => {
               debouncedTyping(text.length > 0);
             }}
             multiline
-            maxLength={1000}
+            numberOfLines={message.length > 100 ? 4 : 1}
+            textAlignVertical="center"
+            style={{
+              minHeight: 40,
+              maxHeight: 70,
+            }}
           />
           {!message.trim() && selectedMedia.length === 0 ? (
             <View className="flex-row relative">
-              <TouchableOpacity className="mx-2" disabled={isLoadingMedia}>
+              <TouchableOpacity
+                className="mx-2"
+                disabled={isLoadingMedia}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
                 <Mic
                   size={26}
                   color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
@@ -410,6 +457,41 @@ const ChatScreen = () => {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* Voice Recorder Modal */}
+      <Modal
+        visible={showVoiceRecorder}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowVoiceRecorder(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <VoiceRecorder
+            onClose={() => setShowVoiceRecorder(false)}
+            onSend={(uri) => {
+              // Handle the voice message
+              if (user) {
+                const voiceMedia = [
+                  {
+                    uri,
+                    type: "AUDIO" as const,
+                    name: `voice_message_${Date.now()}.m4a`,
+                    mediaType: "AUDIO",
+                  },
+                ];
+
+                sendMediaMessage(
+                  chatId as string,
+                  "", // No text for voice messages
+                  user.userId,
+                  voiceMedia,
+                );
+                setShowVoiceRecorder(false);
+              }
+            }}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };

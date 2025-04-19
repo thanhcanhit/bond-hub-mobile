@@ -10,6 +10,19 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+export interface UserData {
+  id: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  userInfo: UserInfo;
+  relationship: {
+    status: string;
+    message: string;
+    friendshipId: string;
+  };
+}
 
 export interface UserInfo {
   id: string;
@@ -96,7 +109,7 @@ export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
 
 export interface MessageMedia {
   url: string;
-  type: "IMAGE" | "VIDEO" | "DOCUMENT";
+  type: "IMAGE" | "VIDEO" | "DOCUMENT" | "AUDIO";
   fileId?: string;
   fileName?: string;
   thumbnailUrl?: string;
@@ -147,6 +160,13 @@ export interface SendMessageRequest {
   };
 }
 
+export interface SendGroupMessageRequest {
+  groupId: string;
+  content: {
+    text?: string;
+  };
+}
+
 export interface SendMediaMessageRequest {
   receiverId: string;
   text?: string;
@@ -190,4 +210,70 @@ export interface VideoMessageProps {
 export interface DocumentPreviewProps {
   url: string;
   fileName: string;
+}
+
+// Conversation interfaces based on Postman test data
+export interface Conversation {
+  id: string;
+  type: "USER" | "GROUP";
+  unreadCount: number;
+  updatedAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    profilePictureUrl?: string;
+  };
+  group?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  lastMessage?: {
+    id: string;
+    content: {
+      text?: string;
+      media?: MessageMedia[];
+    };
+    recalled?: boolean;
+    senderId: string;
+    createdAt: string;
+  };
+}
+
+export interface ConversationListProps {
+  conversations: Conversation[];
+  onConversationPress: (conversation: Conversation) => void;
+}
+
+// Group related interfaces
+export interface Group {
+  id: string;
+  name: string;
+  creatorId: string;
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  members: GroupMember[];
+}
+export interface GroupInfo {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  createdAt: string;
+  memberCount?: number;
+}
+
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  userId: string;
+  role: "LEADER" | "CO_LEADER" | "MEMBER";
+  addedById: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    profilePictureUrl?: string;
+  };
 }

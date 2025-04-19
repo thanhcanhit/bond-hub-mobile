@@ -11,11 +11,12 @@ import {
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { Heart, X } from "lucide-react-native";
+import { Heart, Forward, HeartOff } from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
 import { VideoMessage } from "@/components/chat/VideoMessage";
 import { DocumentPreview } from "@/components/chat/DocumentPreview";
+import AudioMessage from "@/components/chat/AudioMessage";
 import { Message, ReactionType } from "@/types";
 import clsx from "clsx";
 import { MediaGrid } from "@/components/chat/MediaGrid";
@@ -71,25 +72,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     return null;
   }
 
+  // Kiểm tra xem người dùng hiện tại đã thả reaction cho tin nhắn này chưa
+  const userReaction = useMemo(() => {
+    if (!message.reactions) return null;
+    return message.reactions.find((r) => r.userId === user?.userId) || null;
+  }, [message.reactions, user?.userId]);
+
+  const hasReacted = !!userReaction;
   const hasReactions = message.reactions && message.reactions.length > 0;
   const shouldShowReactionButton =
     isLastMessageOfUser || hasReactions || showLongPressReaction;
 
-  // Group reactions by type and count them
+  // Reactions are already grouped by type with count in the new data structure
   const groupedReactions = useMemo(() => {
     if (!message.reactions) return [];
-    return message.reactions.reduce(
-      (acc: { type: ReactionType; count: number }[], curr) => {
-        const existing = acc.find((r) => r.type === curr.reaction);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          acc.push({ type: curr.reaction as ReactionType, count: 1 });
-        }
-        return acc;
-      },
-      [],
-    );
+
+    // Map the reactions to the format expected by the UI
+    return message.reactions.map((reaction) => ({
+      type: reaction.reaction as ReactionType,
+      count: reaction.count || 1,
+      userId: reaction.userId,
+    }));
   }, [message.reactions]);
 
   // Render media content (images, videos, documents)
@@ -123,6 +126,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               url={media.url}
               fileName={media.fileName || ""}
             />
+          ))}
+
+        {/* Render audio messages */}
+        {mediaItems
+          .filter((media) => media.type === "AUDIO")
+          .map((media, index) => (
+            <AudioMessage key={`audio-${index}`} url={media.url} />
           ))}
       </>
     );
@@ -224,6 +234,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </RNText>
             ) : (
               <>
+                {/* Forwarded message indicator */}
+                {message.forwardedFrom && (
+                  <View className="flex-row items-center mb-1">
+                    <Forward size={14} color="#6B7280" />
+                    <RNText className="text-xs text-gray-500 ml-1">
+                      Tin nhắn được chuyển tiếp
+                    </RNText>
+                  </View>
+                )}
+
                 {/* Text content */}
                 {message.content.text && (
                   <RNText
@@ -271,7 +291,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             }}
             onForward={handleForward}
             onClose={handleCloseActions}
-            position={isMyMessage ? "right" : "left"}
           />
 
           {/* Chỉ hiển thị reaction picker và nút reaction khi thỏa điều kiện */}
@@ -306,15 +325,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         ))}
                       </HStack>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => {
-                        handleUnReaction();
-                        handleCloseReactionPicker();
-                      }}
-                      className=""
-                    >
-                      <X size={18} color="#c4c4c4" />
-                    </TouchableOpacity>
+                    {hasReacted && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          handleUnReaction();
+                          handleCloseReactionPicker();
+                        }}
+                        className="ml-2"
+                      >
+                        <HeartOff size={20} color="#c4c4c4" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </>
               )}
@@ -322,25 +343,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               <TouchableOpacity
                 onPress={() => setShowReactionPicker(!showReactionPicker)}
                 className={clsx(
-                  "absolute -bottom-4 bg-white rounded-full shadow p-1.5 right-1 z-20",
+                  "absolute -bottom-5 bg-white rounded-full shadow-sm p-1.5 right-1 z-20",
                 )}
               >
                 {groupedReactions.length > 0 ? (
                   <HStack space="xs">
-                    {groupedReactions.map((reaction, index) => (
-                      <View key={index} className="flex-row items-center">
-                        <RNText className="text-xs text-gray-500 mr-1">
-                          {reaction.count}
-                        </RNText>
-                        <RNText className="text-xs">
-                          {
-                            reactionOptions.find(
-                              (opt) => opt.type === reaction.type,
-                            )?.emoji
-                          }
-                        </RNText>
-                      </View>
-                    ))}
+                    {groupedReactions.map((reaction, index) => {
+                      const emoji = reactionOptions.find(
+                        (opt) => opt.type === reaction.type,
+                      )?.emoji;
+
+                      return (
+                        <View
+                          key={index}
+                          className={`flex-row items-center px-1  rounded-full ${reaction.userId === user?.userId ? "bg-blue-50" : "bg-gray-100"}`}
+                        >
+                          <RNText className="text-xs">{emoji}</RNText>
+                          <RNText className="text-xs text-gray-500 ">
+                            {reaction.count}
+                          </RNText>
+                        </View>
+                      );
+                    })}
                   </HStack>
                 ) : (
                   <Heart size={12} color="#c4c4c4" strokeWidth={1.5} />
@@ -366,6 +390,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         isOpen={showForwardModal}
         onClose={() => setShowForwardModal(false)}
         messageId={message.id}
+        currentRecipientId={
+          !isMyMessage ? message.senderId : message.receiverId
+        }
       />
     </>
   );

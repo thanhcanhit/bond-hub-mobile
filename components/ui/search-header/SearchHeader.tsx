@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, TouchableOpacity, Platform, Text } from "react-native";
 import { Colors } from "@/constants/Colors";
 import {
@@ -12,6 +12,7 @@ import {
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import SearchModal from "./SearchModal";
 type SearchHeaderProps = {
   screenName: "index" | "contacts" | "discovery" | "timeline" | "info";
   onSearch?: (text: string) => void;
@@ -24,6 +25,7 @@ export default function SearchHeader({
   onActionPress,
 }: SearchHeaderProps) {
   const insets = useSafeAreaInsets();
+  const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
 
   const renderActionIcons = () => {
     switch (screenName) {
@@ -90,7 +92,7 @@ export default function SearchHeader({
       >
         <View className="flex-1">
           <TouchableOpacity
-            onPress={() => {}}
+            onPress={() => setIsSearchModalVisible(true)}
             style={{
               paddingVertical: 12,
               paddingHorizontal: 16,
@@ -101,6 +103,12 @@ export default function SearchHeader({
             <Search size={23} color="white" />
             <Text className="pl-6 text-xl text-white opacity-60">Tìm kiếm</Text>
           </TouchableOpacity>
+
+          {/* Search Modal */}
+          <SearchModal
+            isVisible={isSearchModalVisible}
+            onClose={() => setIsSearchModalVisible(false)}
+          />
         </View>
         {renderActionIcons()}
       </View>

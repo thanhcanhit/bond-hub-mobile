@@ -1,18 +1,23 @@
 import axiosInstance from "@/lib/axios";
 import * as SecureStore from "expo-secure-store";
+import { Group, GroupInfo, GroupMember } from "@/types";
 
-export interface GroupMember {
+// Interface for group member request payload
+export interface GroupMemberRequest {
   userId: string;
   addedById: string;
 }
 
+// Interface for creating a group
 export interface CreateGroupRequest {
   name: string;
   creatorId: string;
-  initialMembers: GroupMember[];
-  file?: FormData;
+  initialMembers: GroupMemberRequest[];
+  file?: any; // File can be any type to match actual usage
+  avatar?: string | null;
 }
 
+// Interface for group chat data
 export interface GroupChat {
   id: string;
   name: string;
@@ -30,6 +35,21 @@ export interface GroupChat {
   };
 }
 
+// Interface for updating group information
+export interface UpdateGroupRequest {
+  name?: string;
+  avatarUrl?: string;
+}
+
+// Interface for adding a member to a group
+export interface AddMemberRequest {
+  groupId: string;
+  userId: string;
+}
+
+/**
+ * Create a new group with the given name and initial members
+ */
 export const createGroup = async (
   name: string,
   initialMembers: string[],
@@ -38,7 +58,7 @@ export const createGroup = async (
   try {
     const token = await SecureStore.getItemAsync("accessToken");
 
-    // Lấy thông tin người dùng từ SecureStore
+    // Get user information from SecureStore
     const userStr = await SecureStore.getItemAsync("user");
     console.log("User data in SecureStore:", userStr);
 
@@ -46,11 +66,11 @@ export const createGroup = async (
       throw new Error("User data not found");
     }
 
-    // Parse thông tin người dùng
+    // Parse user information
     const userData = JSON.parse(userStr);
     console.log("Parsed user data:", userData);
 
-    // Lấy userId từ đối tượng user
+    // Get userId from user object
     const userId = userData.userId;
     console.log("User ID from user object:", userId);
 
@@ -58,13 +78,13 @@ export const createGroup = async (
       throw new Error("User ID not found in user data");
     }
 
-    // Tạo danh sách thành viên ban đầu
+    // Create initial members list
     const members = initialMembers.map((memberId) => ({
       userId: memberId,
       addedById: userId,
     }));
 
-    // Nếu có file ảnh, sử dụng FormData
+    // If there's an avatar file, use FormData
     if (avatarFile) {
       const formData = new FormData();
       formData.append("name", name);
@@ -91,7 +111,7 @@ export const createGroup = async (
 
       return response.data;
     } else {
-      // Nếu không có file ảnh, sử dụng JSON
+      // If no avatar file, use JSON
       const data = {
         name,
         creatorId: userId,
@@ -116,6 +136,9 @@ export const createGroup = async (
   }
 };
 
+/**
+ * Get list of groups
+ */
 export const getGroupList = async (): Promise<GroupChat[]> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
@@ -131,6 +154,9 @@ export const getGroupList = async (): Promise<GroupChat[]> => {
   }
 };
 
+/**
+ * Get details of a specific group
+ */
 export const getGroupDetails = async (groupId: string): Promise<any> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
@@ -146,9 +172,30 @@ export const getGroupDetails = async (groupId: string): Promise<any> => {
   }
 };
 
+/**
+ * Get basic information about a group
+ */
+export const getGroupInfo = async (groupId: string): Promise<GroupInfo> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.get(`/groups/${groupId}/info`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching group info:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update group information
+ */
 export const updateGroupInfo = async (
   groupId: string,
-  updateData: { name?: string; avatarUrl?: string },
+  updateData: UpdateGroupRequest,
 ): Promise<any> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
@@ -165,6 +212,9 @@ export const updateGroupInfo = async (
   }
 };
 
+/**
+ * Add members to a group
+ */
 export const addMembersToGroup = async (
   groupId: string,
   memberIds: string[],
@@ -188,6 +238,9 @@ export const addMembersToGroup = async (
   }
 };
 
+/**
+ * Remove a member from a group
+ */
 export const removeMemberFromGroup = async (
   groupId: string,
   memberId: string,
@@ -209,6 +262,9 @@ export const removeMemberFromGroup = async (
   }
 };
 
+/**
+ * Leave a group
+ */
 export const leaveGroup = async (groupId: string): Promise<any> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
@@ -220,6 +276,35 @@ export const leaveGroup = async (groupId: string): Promise<any> => {
     return response.data;
   } catch (error) {
     console.error("Error leaving group:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update group avatar
+ */
+export const updateGroupAvatar = async (
+  groupId: string,
+  avatarFile: any,
+): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const formData = new FormData();
+    formData.append("file", avatarFile);
+
+    const response = await axiosInstance.patch(
+      `/groups/${groupId}/avatar`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating group avatar:", error);
     throw error;
   }
 };
