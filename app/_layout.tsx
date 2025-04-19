@@ -62,6 +62,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings" options={{ headerShown: false }} />
               <Stack.Screen name="user-info" options={{ headerShown: false }} />
               <Stack.Screen name="chat" options={{ headerShown: false }} />
+              <Stack.Screen name="group" options={{ headerShown: false }} />
               <Stack.Screen
                 name="friend-contact"
                 options={{ headerShown: false }}
