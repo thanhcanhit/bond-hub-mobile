@@ -26,7 +26,6 @@ import {
 } from "lucide-react-native";
 import { router, useFocusEffect } from "expo-router";
 import { getFriendList } from "@/services/friend-service";
-import CreateGroupModal from "@/components/CreateGroupModal";
 import { useConversationsStore } from "@/store/conversationsStore";
 
 // Interface for friend items in UI
@@ -302,26 +301,6 @@ export default function ContactScreen() {
           <View className="mt-1 pb-10 h-full bg-white"></View>
         </View>
       )}
-
-      {/* Create Group Modal */}
-      <CreateGroupModal
-        visible={showCreateGroup}
-        onClose={() => setShowCreateGroup(false)}
-        friends={friends}
-        onGroupCreated={(groupId) => {
-          // Refresh conversations to include the new group
-          fetchConversations(1);
-
-          // Navigate to the new group chat
-          router.push({
-            pathname: "../chat/[id]",
-            params: {
-              id: groupId,
-              type: "GROUP",
-            },
-          });
-        }}
-      />
     </View>
   );
 }

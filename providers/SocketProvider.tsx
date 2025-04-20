@@ -370,8 +370,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
         timestamp: string | Date;
         lastActivity?: string | Date;
       }) => {
-        console.log("User status changed:", data);
-
         // Chuyển đổi timestamp thành Date object nếu nó là string
         const timestamp =
           typeof data.timestamp === "string"
@@ -500,7 +498,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         } else {
           clearInterval(mainHeartbeat);
         }
-      }, 15000);
+      }, 30000);
 
       return () => clearInterval(mainHeartbeat);
     });
@@ -523,7 +521,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         } else {
           clearInterval(messageHeartbeat);
         }
-      }, 15000);
+      }, 30000);
 
       // Thiết lập cơ chế tự động cập nhật trạng thái người dùng
       const statusUpdateInterval = setInterval(() => {

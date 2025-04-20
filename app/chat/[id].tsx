@@ -349,20 +349,19 @@ const ChatScreen = () => {
 
         let typingText = "";
         if (typingNames.length === 1) {
-          typingText = `${typingNames[0]} đang soạn tin...`;
+          typingText = `${typingNames[0]} đang soạn tin ...`;
         } else if (typingNames.length === 2) {
-          typingText = `${typingNames[0]} và ${typingNames[1]} đang soạn tin...`;
+          typingText = `${typingNames[0]} và ${typingNames[1]} đang soạn tin ...`;
         } else if (typingNames.length > 2) {
-          typingText = `${typingNames[0]} và ${typingNames.length - 1} người khác đang soạn tin...`;
+          typingText = `${typingNames[0]} và ${typingNames.length - 1} người khác đang soạn tin ...`;
         }
 
         return (
-          <Text className="text-gray-500 text-sm p-2 bg-none">
+          <Text className="text-blue-300 py-0.5 px-2 text-sm bg-transparent">
             {typingText}
           </Text>
         );
       } else {
-        // For direct chats, just show "typing..."
         return (
           <Text className="text-gray-500 text-sm p-2 bg-none">
             đang soạn tin...
@@ -458,9 +457,9 @@ const ChatScreen = () => {
           />
         )}
         <View
-          className="flex-row justify-center items-center bg-white px-4 pt-4"
+          className="flex-row justify-center items-center bg-white px-4 pt-2"
           style={{
-            paddingBottom: Platform.OS === "ios" ? 25 : 10,
+            paddingBottom: Platform.OS === "ios" ? 20 : 8,
           }}
         >
           <TouchableOpacity
@@ -560,7 +559,7 @@ const ChatScreen = () => {
                     mediaType: "AUDIO",
                   },
                 ];
-
+                console.log("---- voice: ", voiceMedia);
                 sendMediaMessage(
                   chatId as string,
                   "", // No text for voice messages
