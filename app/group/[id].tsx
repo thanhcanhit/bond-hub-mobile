@@ -190,6 +190,24 @@ export default function GroupInfoScreen() {
   };
 
   const handleLeaveGroup = () => {
+    // Kiểm tra xem người dùng có phải là trưởng nhóm không
+    if (isGroupLeader) {
+      // Nếu là trưởng nhóm, yêu cầu chuyển quyền trước
+      Alert.alert(
+        "Không thể rời nhóm",
+        "Bạn đang là trưởng nhóm. Vui lòng chuyển quyền trưởng nhóm cho thành viên khác trước khi rời nhóm.",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Chuyển quyền ngay",
+            onPress: handleTransferLeadership,
+          },
+        ],
+      );
+      return;
+    }
+
+    // Nếu không phải trưởng nhóm, cho phép rời nhóm bình thường
     Alert.alert("Rời nhóm", "Bạn có chắc chắn muốn rời khỏi nhóm này?", [
       { text: "Hủy", style: "cancel" },
       {
@@ -198,6 +216,7 @@ export default function GroupInfoScreen() {
         onPress: async () => {
           setIsUpdating(true);
           try {
+            // Gọi API rời nhóm
             const success = await groupService.leaveGroup(groupId);
             if (success) {
               router.replace("/");

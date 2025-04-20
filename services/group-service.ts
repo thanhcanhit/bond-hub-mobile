@@ -268,11 +268,15 @@ export const removeMemberFromGroup = async (
 export const leaveGroup = async (groupId: string): Promise<any> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
-    const response = await axiosInstance.delete(`/groups/${groupId}/leave`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const response = await axiosInstance.post(
+      `/groups/${groupId}/leave`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
     return response.data;
   } catch (error) {
     console.error("Error leaving group:", error);
