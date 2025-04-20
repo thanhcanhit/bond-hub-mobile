@@ -53,6 +53,10 @@ export default function GroupInfoScreen() {
   const [selectedMember, setSelectedMember] =
     useState<ExtendedGroupMember | null>(null);
   const [showMemberInfo, setShowMemberInfo] = useState(false);
+  const [showTransferLeadershipModal, setShowTransferLeadershipModal] =
+    useState(false);
+  const [transferConfirmMember, setTransferConfirmMember] =
+    useState<ExtendedGroupMember | null>(null);
   const currentUser = useAuthStore((state) => state.user);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -228,6 +232,63 @@ export default function GroupInfoScreen() {
             } catch (error) {
               console.error("Error deleting group:", error);
               Alert.alert("Lỗi", "Không thể xóa nhóm");
+            } finally {
+              setIsUpdating(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleTransferLeadership = () => {
+    Alert.alert(
+      "Chuyển quyền trưởng nhóm",
+      "Người được chọn sẽ trở thành trưởng nhóm và có mọi quyền quản lý nhóm. Bạn sẽ mất quyền quản lý nhưng vẫn là 1 thành viên của nhóm. Hành động này không thể phục hồi.",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Tiếp tục",
+          onPress: () => {
+            // Hiển thị modal chọn thành viên
+            setShowTransferLeadershipModal(true);
+          },
+        },
+      ],
+    );
+  };
+
+  const handleConfirmTransferLeadership = async (
+    member: ExtendedGroupMember,
+  ) => {
+    setTransferConfirmMember(null);
+    setShowTransferLeadershipModal(false);
+
+    Alert.alert(
+      `Chuyển quyền trưởng nhóm cho ${member.fullName}?`,
+      `${member.fullName} sẽ trở thành trưởng nhóm. Bạn sẽ trở thành 1 thành viên bình thường.`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Chuyển",
+          onPress: async () => {
+            try {
+              setIsUpdating(true);
+              // Gọi API để cập nhật vai trò thành viên
+              await groupService.updateMemberRole(
+                groupId,
+                member.userId,
+                "LEADER",
+              );
+              // Cập nhật lại thông tin nhóm
+              await fetchGroupDetails();
+              Alert.alert(
+                "Thành công",
+                `Đã chuyển quyền trưởng nhóm cho ${member.fullName}`,
+              );
+            } catch (error) {
+              console.error("Error transferring leadership:", error);
+              Alert.alert("Lỗi", "Không thể chuyển quyền trưởng nhóm");
             } finally {
               setIsUpdating(false);
             }
@@ -456,6 +517,18 @@ export default function GroupInfoScreen() {
 
           {/* Actions */}
           <VStack className="p-4 border-t border-gray-200 mt-4">
+            {isGroupLeader && (
+              <TouchableOpacity
+                onPress={handleTransferLeadership}
+                className="flex-row items-center py-3"
+              >
+                <User size={20} color={Colors.light.PRIMARY_BLUE} />
+                <Text className="ml-3 text-blue-500">
+                  Chuyển quyền trưởng nhóm
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               onPress={handleLeaveGroup}
               className="flex-row items-center py-3"
@@ -718,6 +791,66 @@ export default function GroupInfoScreen() {
                 </View>
               </View>
             )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Modal chọn thành viên để chuyển quyền trưởng nhóm */}
+      <Modal
+        visible={showTransferLeadershipModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowTransferLeadershipModal(false)}
+      >
+        <Pressable
+          className="flex-1 justify-end"
+          style={{ backgroundColor: "rgba(148, 163, 184, 0.3)" }}
+          onPress={() => setShowTransferLeadershipModal(false)}
+        >
+          <Pressable
+            className="bg-white rounded-t-3xl p-5"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="items-center mb-4">
+              <View className="w-10 h-1 bg-gray-300 rounded-full mb-4" />
+              <Text className="text-xl font-bold mb-2">Chọn thành viên</Text>
+
+              <TouchableOpacity
+                className="absolute right-0 top-0"
+                onPress={() => setShowTransferLeadershipModal(false)}
+              >
+                <X size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={
+                group?.members?.filter(
+                  (member) =>
+                    member.userId !== currentUser?.userId &&
+                    member.role !== "LEADER",
+                ) || []
+              }
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }: { item: ExtendedGroupMember }) => (
+                <TouchableOpacity
+                  className="flex-row items-center py-3 border-b border-gray-100"
+                  onPress={() => handleConfirmTransferLeadership(item)}
+                >
+                  <Avatar size="md">
+                    {item.profilePictureUrl ? (
+                      <AvatarImage source={{ uri: item.profilePictureUrl }} />
+                    ) : (
+                      <AvatarFallbackText>
+                        {item.fullName || ""}
+                      </AvatarFallbackText>
+                    )}
+                  </Avatar>
+                  <Text className="ml-3 font-medium">{item.fullName}</Text>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            />
           </Pressable>
         </Pressable>
       </Modal>
