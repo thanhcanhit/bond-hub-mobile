@@ -317,6 +317,33 @@ export const updateGroupAvatar = async (
 };
 
 /**
+ * Update a member's role in a group
+ */
+export const updateMemberRole = async (
+  groupId: string,
+  memberId: string,
+  role: "MEMBER" | "CO_LEADER" | "LEADER",
+): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.patch(
+      `/groups/${groupId}/members/${memberId}/role`,
+      { role },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating member role:", error);
+    throw error;
+  }
+};
+
+/**
  * Group service object for components that expect an object-based API
  */
 export const groupService = {
@@ -340,4 +367,5 @@ export const groupService = {
     }
   },
   updateGroupAvatar,
+  updateMemberRole,
 };

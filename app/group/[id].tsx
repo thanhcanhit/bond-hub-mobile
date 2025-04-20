@@ -8,6 +8,8 @@ import {
   Alert,
   TextInput,
   ScrollView,
+  Modal,
+  Pressable,
 } from "react-native";
 import {
   Avatar,
@@ -23,12 +25,16 @@ import {
   LogOut,
   Trash2,
   Camera,
+  Phone,
+  MessageSquare,
+  X,
+  User,
+  ShieldAlert,
 } from "lucide-react-native";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
 import { groupService } from "@/services/group-service";
 import axiosInstance from "@/lib/axios";
-import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Group, GroupMember } from "@/types";
 import * as ImagePicker from "expo-image-picker";
@@ -44,6 +50,9 @@ export default function GroupInfoScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedMember, setSelectedMember] =
+    useState<ExtendedGroupMember | null>(null);
+  const [showMemberInfo, setShowMemberInfo] = useState(false);
   const currentUser = useAuthStore((state) => state.user);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -250,59 +259,79 @@ export default function GroupInfoScreen() {
     const profilePictureUrl = item.profilePictureUrl;
     const addedBy = item.addedBy?.fullName || "";
 
-    return (
-      <HStack className="py-3 border-b border-gray-100 items-center">
-        <Avatar size="md">
-          {profilePictureUrl ? (
-            <AvatarImage source={{ uri: profilePictureUrl }} />
-          ) : (
-            <AvatarFallbackText>{fullName}</AvatarFallbackText>
-          )}
-        </Avatar>
-        <VStack className="ml-3 flex-1">
-          <Text className="font-medium">{fullName}</Text>
-          <Text className="text-xs text-gray-500">
-            {item.role === "LEADER"
-              ? "Trưởng nhóm"
-              : item.role === "CO_LEADER"
-                ? "Phó nhóm"
-                : "Thành viên"}
-          </Text>
-          {addedBy && item.role !== "LEADER" && (
-            <Text className="text-xs text-gray-400">Thêm bởi: {addedBy}</Text>
-          )}
-        </VStack>
+    // Kiểm tra xem có phải là người dùng hiện tại không
+    const isCurrentUser = item.userId === currentUser?.userId;
 
-        {isGroupLeader && item.userId !== currentUser?.userId && (
-          <TouchableOpacity
-            className="p-2"
-            onPress={() => {
-              Alert.alert(
-                "Xóa thành viên",
-                `Bạn có chắc chắn muốn xóa ${(item as ExtendedGroupMember).fullName || "thành viên này"} khỏi nhóm?`,
-                [
-                  { text: "Hủy", style: "cancel" },
-                  {
-                    text: "Xóa",
-                    style: "destructive",
-                    onPress: async () => {
-                      try {
-                        await groupService.removeMember(groupId, item.userId);
-                        fetchGroupDetails();
-                      } catch (error) {
-                        console.error("Error removing member:", error);
-                        Alert.alert("Lỗi", "Không thể xóa thành viên");
-                      }
+    return (
+      <TouchableOpacity
+        className="py-3 border-b border-gray-100"
+        onPress={() => {
+          // Chỉ hiển thị thông tin khi nhấn vào thành viên khác
+          if (!isCurrentUser) {
+            setSelectedMember(item);
+            setShowMemberInfo(true);
+          }
+        }}
+        disabled={isCurrentUser}
+        activeOpacity={isCurrentUser ? 1 : 0.7}
+      >
+        <HStack className="items-center">
+          <Avatar size="md">
+            {profilePictureUrl ? (
+              <AvatarImage source={{ uri: profilePictureUrl }} />
+            ) : (
+              <AvatarFallbackText>{fullName}</AvatarFallbackText>
+            )}
+          </Avatar>
+          <VStack className="ml-3 flex-1">
+            <Text className="font-medium">
+              {fullName}
+              {isCurrentUser ? " (Bạn)" : ""}
+            </Text>
+            <Text className="text-xs text-gray-500">
+              {item.role === "LEADER"
+                ? "Trưởng nhóm"
+                : item.role === "CO_LEADER"
+                  ? "Phó nhóm"
+                  : "Thành viên"}
+            </Text>
+            {addedBy && item.role !== "LEADER" && (
+              <Text className="text-xs text-gray-400">Thêm bởi: {addedBy}</Text>
+            )}
+          </VStack>
+
+          {isGroupLeader && item.userId !== currentUser?.userId && (
+            <TouchableOpacity
+              className="p-2"
+              onPress={(e) => {
+                e.stopPropagation(); // Ngăn sự kiện lan tỏa đến TouchableOpacity cha
+                Alert.alert(
+                  "Xóa thành viên",
+                  `Bạn có chắc chắn muốn xóa ${(item as ExtendedGroupMember).fullName || "thành viên này"} khỏi nhóm?`,
+                  [
+                    { text: "Hủy", style: "cancel" },
+                    {
+                      text: "Xóa",
+                      style: "destructive",
+                      onPress: async () => {
+                        try {
+                          await groupService.removeMember(groupId, item.userId);
+                          fetchGroupDetails();
+                        } catch (error) {
+                          console.error("Error removing member:", error);
+                          Alert.alert("Lỗi", "Không thể xóa thành viên");
+                        }
+                      },
                     },
-                  },
-                ],
-              );
-            }}
-          >
-            <Trash2 size={20} color={"red"} />
-          </TouchableOpacity>
-        )}
-      </HStack>
+                  ],
+                );
+              }}
+            >
+              <Trash2 size={20} color={"red"} />
+            </TouchableOpacity>
+          )}
+        </HStack>
+      </TouchableOpacity>
     );
   };
 
@@ -441,7 +470,7 @@ export default function GroupInfoScreen() {
                 className="flex-row items-center py-3"
               >
                 <Trash2 size={20} color={"red"} />
-                <Text className="ml-3 text-red-500">Xóa nhóm</Text>
+                <Text className="ml-3 text-red-500">Giải tán nhóm</Text>
               </TouchableOpacity>
             )}
           </VStack>
@@ -457,6 +486,241 @@ export default function GroupInfoScreen() {
           <ActivityIndicator size="large" color="white" />
         </View>
       )}
+
+      {/* Modal thông tin thành viên */}
+      <Modal
+        visible={showMemberInfo}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowMemberInfo(false)}
+      >
+        <Pressable
+          className="flex-1 justify-end"
+          style={{
+            backgroundColor: "rgba(148, 163, 184, 0.3)",
+          }} /* Màu slate-400 với độ trong suốt 30% */
+          onPress={() => setShowMemberInfo(false)}
+        >
+          <Pressable
+            className="bg-white rounded-t-3xl p-5"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="items-center mb-4">
+              <View className="w-10 h-1 bg-gray-300 rounded-full mb-4" />
+              <Text className="text-xl font-bold mb-2">
+                Thông tin thành viên
+              </Text>
+
+              <TouchableOpacity
+                className="absolute right-0 top-0"
+                onPress={() => setShowMemberInfo(false)}
+              >
+                <X size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedMember && (
+              <View className="items-center">
+                <Avatar size="xl" className="mb-4">
+                  {selectedMember.profilePictureUrl ? (
+                    <AvatarImage
+                      source={{ uri: selectedMember.profilePictureUrl }}
+                    />
+                  ) : (
+                    <AvatarFallbackText>
+                      {selectedMember.fullName || ""}
+                    </AvatarFallbackText>
+                  )}
+                </Avatar>
+
+                <Text className="text-xl font-bold mb-1">
+                  {selectedMember.fullName}
+                </Text>
+                <Text className="text-gray-500 mb-4">
+                  {selectedMember.role === "LEADER"
+                    ? "Trưởng nhóm"
+                    : selectedMember.role === "CO_LEADER"
+                      ? "Phó nhóm"
+                      : "Thành viên"}
+                </Text>
+
+                <View className="w-full">
+                  <TouchableOpacity className="flex-row items-center py-4 border-t border-gray-200">
+                    <User size={20} color={Colors.light.PRIMARY_BLUE} />
+                    <Text className="ml-3 text-base">Xem trang cá nhân</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity className="flex-row items-center py-4 border-t border-gray-200">
+                    <MessageSquare
+                      size={20}
+                      color={Colors.light.PRIMARY_BLUE}
+                    />
+                    <Text className="ml-3 text-base">Nhắn tin</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity className="flex-row items-center py-4 border-t border-gray-200">
+                    <Phone size={20} color={Colors.light.PRIMARY_BLUE} />
+                    <Text className="ml-3 text-base">Gọi điện</Text>
+                  </TouchableOpacity>
+
+                  {/* Bổ nhiệm làm phó nhóm */}
+                  {isGroupLeader &&
+                    selectedMember.role !== "LEADER" &&
+                    selectedMember.role !== "CO_LEADER" && (
+                      <TouchableOpacity
+                        className="flex-row items-center py-4 border-t border-gray-200"
+                        onPress={() => {
+                          setShowMemberInfo(false);
+                          Alert.alert(
+                            "Bổ nhiệm làm phó nhóm",
+                            `Bạn có muốn bổ nhiệm ${selectedMember.fullName} làm phó nhóm?`,
+                            [
+                              { text: "Hủy", style: "cancel" },
+                              {
+                                text: "Bổ nhiệm",
+                                onPress: async () => {
+                                  try {
+                                    setIsUpdating(true);
+                                    // Gọi API để cập nhật vai trò thành viên
+                                    await groupService.updateMemberRole(
+                                      groupId,
+                                      selectedMember.userId,
+                                      "CO_LEADER",
+                                    );
+                                    // Cập nhật lại thông tin nhóm
+                                    await fetchGroupDetails();
+                                    Alert.alert(
+                                      "Thành công",
+                                      `Đã bổ nhiệm ${selectedMember.fullName} làm phó nhóm`,
+                                    );
+                                  } catch (error) {
+                                    console.error(
+                                      "Error updating member role:",
+                                      error,
+                                    );
+                                    Alert.alert(
+                                      "Lỗi",
+                                      "Không thể bổ nhiệm phó nhóm",
+                                    );
+                                  } finally {
+                                    setIsUpdating(false);
+                                  }
+                                },
+                              },
+                            ],
+                          );
+                        }}
+                      >
+                        <ShieldAlert
+                          size={20}
+                          color={Colors.light.PRIMARY_BLUE}
+                        />
+                        <Text className="ml-3 text-base">
+                          Bổ nhiệm làm phó nhóm
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                  {/* Hạ cấp phó nhóm xuống thành viên thường */}
+                  {isGroupLeader && selectedMember.role === "CO_LEADER" && (
+                    <TouchableOpacity
+                      className="flex-row items-center py-4 border-t border-gray-200"
+                      onPress={() => {
+                        setShowMemberInfo(false);
+                        Alert.alert(
+                          "Hạ cấp phó nhóm",
+                          `Bạn có muốn hạ cấp ${selectedMember.fullName} xuống thành viên thường?`,
+                          [
+                            { text: "Hủy", style: "cancel" },
+                            {
+                              text: "Hạ cấp",
+                              onPress: async () => {
+                                try {
+                                  setIsUpdating(true);
+                                  // Gọi API để cập nhật vai trò thành viên
+                                  await groupService.updateMemberRole(
+                                    groupId,
+                                    selectedMember.userId,
+                                    "MEMBER",
+                                  );
+                                  // Cập nhật lại thông tin nhóm
+                                  await fetchGroupDetails();
+                                  Alert.alert(
+                                    "Thành công",
+                                    `Đã hạ cấp ${selectedMember.fullName} xuống thành viên thường`,
+                                  );
+                                } catch (error) {
+                                  console.error(
+                                    "Error updating member role:",
+                                    error,
+                                  );
+                                  Alert.alert(
+                                    "Lỗi",
+                                    "Không thể hạ cấp phó nhóm",
+                                  );
+                                } finally {
+                                  setIsUpdating(false);
+                                }
+                              },
+                            },
+                          ],
+                        );
+                      }}
+                    >
+                      <ShieldAlert size={20} color="#6B7280" />
+                      <Text className="ml-3 text-base">
+                        Hạ cấp xuống thành viên
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {isGroupLeader &&
+                    selectedMember.userId !== currentUser?.userId && (
+                      <TouchableOpacity
+                        className="flex-row items-center py-4 border-t border-gray-200"
+                        onPress={() => {
+                          setShowMemberInfo(false);
+                          Alert.alert(
+                            "Xóa thành viên",
+                            `Bạn có chắc chắn muốn xóa ${selectedMember.fullName || "thành viên này"} khỏi nhóm?`,
+                            [
+                              { text: "Hủy", style: "cancel" },
+                              {
+                                text: "Xóa",
+                                style: "destructive",
+                                onPress: async () => {
+                                  try {
+                                    await groupService.removeMember(
+                                      groupId,
+                                      selectedMember.userId,
+                                    );
+                                    fetchGroupDetails();
+                                  } catch (error) {
+                                    console.error(
+                                      "Error removing member:",
+                                      error,
+                                    );
+                                    Alert.alert(
+                                      "Lỗi",
+                                      "Không thể xóa thành viên",
+                                    );
+                                  }
+                                },
+                              },
+                            ],
+                          );
+                        }}
+                      >
+                        <Trash2 size={20} color="red" />
+                        <Text className="ml-3 text-red-500">Xóa khỏi nhóm</Text>
+                      </TouchableOpacity>
+                    )}
+                </View>
+              </View>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
