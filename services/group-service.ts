@@ -267,7 +267,10 @@ export const removeMemberFromGroup = async (
  */
 export const leaveGroup = async (groupId: string): Promise<any> => {
   try {
+    console.log(`Calling API to leave group ${groupId}`);
     const token = await SecureStore.getItemAsync("accessToken");
+    console.log("Token retrieved for leave group API call");
+
     const response = await axiosInstance.post(
       `/groups/${groupId}/leave`,
       {},
@@ -277,9 +280,15 @@ export const leaveGroup = async (groupId: string): Promise<any> => {
         },
       },
     );
-    return response.data;
-  } catch (error) {
-    console.error("Error leaving group:", error);
+
+    console.log("Leave group API response:", response.status, response.data);
+    return true; // Trả về true để xác nhận thành công
+  } catch (error: any) {
+    console.error(
+      "Error leaving group:",
+      error?.response?.status,
+      error?.response?.data || error.message,
+    );
     throw error;
   }
 };
@@ -363,11 +372,25 @@ export const groupService = {
   leaveGroup,
   deleteGroup: async (groupId: string): Promise<boolean> => {
     try {
-      await axiosInstance.delete(`/groups/${groupId}`);
+      console.log(`Calling API to delete group ${groupId}`);
+      const token = await SecureStore.getItemAsync("accessToken");
+      console.log("Token retrieved for delete group API call");
+
+      const response = await axiosInstance.delete(`/groups/${groupId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Delete group API response:", response.status, response.data);
       return true;
-    } catch (error) {
-      console.error("Error deleting group:", error);
-      return false;
+    } catch (error: any) {
+      console.error(
+        "Error deleting group:",
+        error?.response?.status,
+        error?.response?.data || error.message,
+      );
+      throw error;
     }
   },
   updateGroupAvatar,

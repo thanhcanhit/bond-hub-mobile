@@ -12,6 +12,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import CustomToast from "@/components/CustomToast";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
@@ -35,6 +36,7 @@ import { useAuthStore } from "@/store/authStore";
 export default function CreateGroupScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
+  const [showToast, setShowToast] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -277,6 +279,12 @@ export default function CreateGroupScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
+      {showToast && (
+        <CustomToast
+          message="Tạo nhóm thành công"
+          onHide={() => setShowToast(false)}
+        />
+      )}
       <View
         style={[styles.header, { paddingTop: insets.top, paddingBottom: 10 }]}
       >
@@ -428,13 +436,31 @@ export default function CreateGroupScreen() {
                 groupAvatar ? "Has avatar" : "No avatar",
               );
 
+              console.log("Bước 1: Bắt đầu tạo nhóm");
               const newGroup = await createGroup(
                 groupName.trim(),
                 memberIds,
                 groupAvatar,
               );
+              console.log("Bước 2: Tạo nhóm thành công, ID:", newGroup.id);
 
-              router.push(`/chat/${newGroup.id}`);
+              // Hiển thị thông báo tạo nhóm thành công
+              console.log("Bước 3: Hiển thị thông báo tạo nhóm thành công");
+
+              // Hiển thị thông báo tạo nhóm thành công
+              console.log("Bước 4: Hiển thị thông báo tạo nhóm thành công");
+              setShowToast(true);
+
+              // Chờ 1 giây rồi chuyển hướng về màn hình chính
+              console.log(
+                "Bước 5: Chờ 1 giây rồi chuyển hướng về màn hình chính",
+              );
+              setTimeout(() => {
+                router.replace("/(tabs)");
+                console.log("Bước 6: Đã gọi router.replace");
+              }, 1000);
+
+              // Không cần setTimeout nữa vì đã chuyển hướng khi nhấn OK
             } catch (err) {
               console.error("Lỗi khi tạo nhóm:", err);
               alert("Không thể tạo nhóm. Vui lòng thử lại sau.");

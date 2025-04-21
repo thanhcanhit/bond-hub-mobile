@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import CustomToastRed from "@/components/CustomToastRed";
 import {
   View,
   Text,
@@ -30,12 +31,12 @@ import {
   X,
   User,
   ShieldAlert,
+  Home,
 } from "lucide-react-native";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
 import { groupService } from "@/services/group-service";
-import axiosInstance from "@/lib/axios";
-import * as SecureStore from "expo-secure-store";
+// Removed unused imports
 import { Group, GroupMember } from "@/types";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -50,13 +51,13 @@ export default function GroupInfoScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const [selectedMember, setSelectedMember] =
     useState<ExtendedGroupMember | null>(null);
   const [showMemberInfo, setShowMemberInfo] = useState(false);
   const [showTransferLeadershipModal, setShowTransferLeadershipModal] =
     useState(false);
-  const [transferConfirmMember, setTransferConfirmMember] =
-    useState<ExtendedGroupMember | null>(null);
   const currentUser = useAuthStore((state) => state.user);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -70,51 +71,17 @@ export default function GroupInfoScreen() {
     }
   }, [groupId]);
 
+  // Không cần useEffect chuyển hướng nữa vì đã chuyển hướng trực tiếp
+
   const fetchGroupDetails = async () => {
     setIsLoading(true);
     try {
-      console.log("Fetching group details for ID:", groupId);
+      // Sử dụng groupService để lấy thông tin nhóm
+      const groupData = await groupService.getGroupDetails(groupId);
 
-      try {
-        // Phương pháp 1: Sử dụng groupService.getGroupDetails
-        const groupData = await groupService.getGroupDetails(groupId);
-        console.log("Group data received from service:", groupData);
-
-        if (groupData) {
-          setGroup(groupData);
-          setNewGroupName(groupData.name);
-          return; // Thoát khỏi hàm nếu thành công
-        }
-      } catch (serviceError) {
-        console.error("Error using groupService:", serviceError);
-      }
-
-      try {
-        // Phương pháp 2: Gọi trực tiếp API
-        const token = await SecureStore.getItemAsync("accessToken");
-        console.log(
-          "Trying direct API call with token:",
-          token ? "Token exists" : "No token",
-        );
-
-        // Thử gọi API với đường dẫn từ .env
-        const response = await axiosInstance.get(`/groups/${groupId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        console.log("Direct API call status:", response.status);
-        const directData = response.data;
-        console.log("Direct API data:", directData);
-
-        if (directData) {
-          setGroup(directData);
-          setNewGroupName(directData.name);
-        }
-      } catch (directError) {
-        console.error("Error with direct API call:", directError);
-        throw directError; // Re-throw để xử lý ở catch bên ngoài
+      if (groupData) {
+        setGroup(groupData);
+        setNewGroupName(groupData.name);
       }
     } catch (error) {
       console.error("Error fetching group details:", error);
@@ -157,7 +124,7 @@ export default function GroupInfoScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images as any,
+      mediaTypes: "images",
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -216,14 +183,68 @@ export default function GroupInfoScreen() {
         onPress: async () => {
           setIsUpdating(true);
           try {
-            // Gọi API rời nhóm
-            const success = await groupService.leaveGroup(groupId);
-            if (success) {
-              router.replace("/");
+            console.log("Bước 1: Bắt đầu quá trình rời nhóm");
+
+            try {
+              // Gọi API rời nhóm
+              await groupService.leaveGroup(groupId);
+              console.log("Bước 2: Rời nhóm thành công");
+
+              // Hiển thị thông báo rời nhóm thành công
+              console.log("Bước 3: Hiển thị thông báo rời nhóm thành công");
+              setToastMessage("Rời nhóm thành công");
+              setShowToast(true);
+
+              // Chờ 1 giây rồi chuyển hướng về màn hình chính
+              console.log(
+                "Bước 4: Chờ 1 giây rồi chuyển hướng về màn hình chính",
+              );
+              setTimeout(() => {
+                router.replace("/(tabs)");
+                console.log("Bước 5: Đã gọi router.replace");
+              }, 1000);
+
+              // Cập nhật danh sách cuộc trò chuyện (không chờ kết quả)
+              try {
+                const conversationsStore =
+                  require("@/store/conversationsStore").useConversationsStore.getState();
+                conversationsStore.fetchConversations(1);
+                console.log(
+                  "Bước 5: Đã gọi cập nhật danh sách cuộc trò chuyện",
+                );
+              } catch (storeError) {
+                console.error(
+                  "Lỗi khi cập nhật danh sách cuộc trò chuyện:",
+                  storeError,
+                );
+              }
+            } catch (apiError: any) {
+              console.error(
+                "Lỗi khi gọi API rời nhóm:",
+                apiError?.response?.status,
+                apiError?.response?.data || apiError.message,
+              );
+              throw apiError; // Chuyển tiếp lỗi để xử lý ở catch bên ngoài
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error("Error leaving group:", error);
-            Alert.alert("Lỗi", "Không thể rời khỏi nhóm");
+
+            // Kiểm tra nếu lỗi là 403 (Forbidden) - trường hợp trưởng nhóm cố gắng rời nhóm
+            if (error.response && error.response.status === 403) {
+              Alert.alert(
+                "Không thể rời nhóm",
+                "Bạn đang là trưởng nhóm. Vui lòng chuyển quyền trưởng nhóm cho thành viên khác trước khi rời nhóm.",
+                [
+                  { text: "Hủy", style: "cancel" },
+                  {
+                    text: "Chuyển quyền ngay",
+                    onPress: handleTransferLeadership,
+                  },
+                ],
+              );
+            } else {
+              Alert.alert("Lỗi", "Không thể rời khỏi nhóm");
+            }
           } finally {
             setIsUpdating(false);
           }
@@ -244,9 +265,48 @@ export default function GroupInfoScreen() {
           onPress: async () => {
             setIsUpdating(true);
             try {
-              const success = await groupService.deleteGroup(groupId);
-              if (success) {
-                router.replace("/");
+              console.log("Bước 1: Bắt đầu quá trình xóa nhóm");
+
+              try {
+                // Gọi API xóa nhóm
+                await groupService.deleteGroup(groupId);
+                console.log("Bước 2: Xóa nhóm thành công");
+
+                // Hiển thị thông báo xóa nhóm thành công
+                console.log("Bước 3: Hiển thị thông báo xóa nhóm thành công");
+                setToastMessage("Xóa nhóm thành công");
+                setShowToast(true);
+
+                // Chờ 1 giây rồi chuyển hướng về màn hình chính
+                console.log(
+                  "Bước 4: Chờ 1 giây rồi chuyển hướng về màn hình chính",
+                );
+                setTimeout(() => {
+                  router.replace("/(tabs)");
+                  console.log("Bước 5: Đã gọi router.replace");
+                }, 1000);
+
+                // Cập nhật danh sách cuộc trò chuyện (không chờ kết quả)
+                try {
+                  const conversationsStore =
+                    require("@/store/conversationsStore").useConversationsStore.getState();
+                  conversationsStore.fetchConversations(1);
+                  console.log(
+                    "Bước 5: Đã gọi cập nhật danh sách cuộc trò chuyện",
+                  );
+                } catch (storeError) {
+                  console.error(
+                    "Lỗi khi cập nhật danh sách cuộc trò chuyện:",
+                    storeError,
+                  );
+                }
+              } catch (apiError: any) {
+                console.error(
+                  "Lỗi khi gọi API xóa nhóm:",
+                  apiError?.response?.status,
+                  apiError?.response?.data || apiError.message,
+                );
+                throw apiError; // Chuyển tiếp lỗi để xử lý ở catch bên ngoài
               }
             } catch (error) {
               console.error("Error deleting group:", error);
@@ -280,7 +340,6 @@ export default function GroupInfoScreen() {
   const handleConfirmTransferLeadership = async (
     member: ExtendedGroupMember,
   ) => {
-    setTransferConfirmMember(null);
     setShowTransferLeadershipModal(false);
 
     Alert.alert(
@@ -293,17 +352,33 @@ export default function GroupInfoScreen() {
           onPress: async () => {
             try {
               setIsUpdating(true);
+              console.log("Bước 1: Bắt đầu quá trình chuyển quyền trưởng nhóm");
+
               // Gọi API để cập nhật vai trò thành viên
               await groupService.updateMemberRole(
                 groupId,
                 member.userId,
                 "LEADER",
               );
+              console.log("Bước 2: Chuyển quyền trưởng nhóm thành công");
+
+              // Hiển thị thông báo thành công
+              // Hiển thị thông báo chuyển quyền thành công
+              console.log("Bước 3: Hiển thị thông báo chuyển quyền thành công");
+              setToastMessage(
+                `Đã chuyển quyền trưởng nhóm cho ${member.fullName}`,
+              );
+              setShowToast(true);
+
               // Cập nhật lại thông tin nhóm
+              console.log("Bước 4: Cập nhật lại thông tin nhóm");
               await fetchGroupDetails();
+
+              // Hiển thị thông báo thành công
               Alert.alert(
                 "Thành công",
-                `Đã chuyển quyền trưởng nhóm cho ${member.fullName}`,
+                `Đã chuyển quyền trưởng nhóm cho ${member.fullName}.`,
+                [{ text: "OK" }],
               );
             } catch (error) {
               console.error("Error transferring leadership:", error);
@@ -415,8 +490,16 @@ export default function GroupInfoScreen() {
     );
   };
 
+  // Không cần màn hình loading nữa vì đã chuyển hướng trực tiếp
+
   return (
     <View className="flex-1 bg-white">
+      {showToast && (
+        <CustomToastRed
+          message={toastMessage}
+          onHide={() => setShowToast(false)}
+        />
+      )}
       <LinearGradient
         start={{ x: 0.03, y: 0 }}
         end={{ x: 0.99, y: 2.5 }}
@@ -433,7 +516,9 @@ export default function GroupInfoScreen() {
           <Text className="text-lg text-white font-semibold">
             Thông tin nhóm
           </Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
+            <Home size={24} color={"white"} />
+          </TouchableOpacity>
         </HStack>
       </LinearGradient>
 
