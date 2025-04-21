@@ -121,14 +121,35 @@ export default function GroupInfoScreen() {
           });
           socket.emit("joinGroup", { userId: currentUser.userId, groupId });
 
+          // Tham gia vào phòng cá nhân của người dùng để nhận các sự kiện cá nhân
+          console.log(
+            "[SOCKET] Joining user room with userId:",
+            currentUser.userId,
+          );
+          socket.emit("joinUserRoom", { userId: currentUser.userId });
+
+          // Lắng nghe sự kiện xác nhận tham gia phòng nhóm
+          socket.on("joinedGroup", (data) => {
+            console.log("[SOCKET] Joined group confirmation received:", data);
+          });
+
+          // Lắng nghe sự kiện xác nhận tham gia phòng cá nhân
+          socket.on("joinedUserRoom", (data) => {
+            console.log(
+              "[SOCKET] Joined user room confirmation received:",
+              data,
+            );
+          });
+
           // Thêm sự kiện connect và disconnect để debug
           socket.on("connect", () => {
             console.log(
               "[SOCKET] Socket connected event fired, ID:",
               socket.id,
             );
-            // Thử tham gia lại phòng nhóm sau khi kết nối
+            // Thử tham gia lại phòng nhóm và phòng cá nhân sau khi kết nối
             socket.emit("joinGroup", { userId: currentUser.userId, groupId });
+            socket.emit("joinUserRoom", { userId: currentUser.userId });
           });
 
           socket.on("disconnect", (reason) => {
@@ -378,6 +399,8 @@ export default function GroupInfoScreen() {
         socketRef.current.off("disconnect");
         socketRef.current.off("connect_error");
         socketRef.current.off("pong");
+        socketRef.current.off("joinedGroup");
+        socketRef.current.off("joinedUserRoom");
         socketRef.current.off("groupUpdated");
         socketRef.current.off("memberAdded");
         socketRef.current.off("memberRemoved");
