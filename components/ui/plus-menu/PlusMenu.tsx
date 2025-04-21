@@ -71,7 +71,8 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
       title: "Thêm bạn",
       onPress: () => {
         onClose();
-        // Navigate to add friend screen
+        // Chuyển hướng đến trang tìm kiếm người dùng
+        router.push("/friend-contact/search-user");
       },
     },
     {
