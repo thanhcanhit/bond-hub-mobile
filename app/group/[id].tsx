@@ -65,7 +65,6 @@ export default function GroupInfoScreen() {
       try {
         // Phương pháp 1: Sử dụng groupService.getGroupDetails
         const groupData = await groupService.getGroupDetails(groupId);
-        console.log("Group data received from service:", groupData);
 
         if (groupData) {
           setGroup(groupData);
