@@ -377,6 +377,62 @@ export const getUserGroups = async (): Promise<GroupChat[]> => {
 };
 
 /**
+ * Get public information about a group
+ */
+export const getPublicGroupInfo = async (
+  groupId: string,
+): Promise<{
+  id: string;
+  name: string;
+  memberCount: number;
+  avatarUrl?: string;
+}> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    console.log(`Calling API to get public info for group ${groupId}`);
+    const response = await axiosInstance.get(`/groups/${groupId}/info`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("Group public info API response:", response.status);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching group public info:", error);
+    throw error;
+  }
+};
+
+/**
+ * Join a group via link or QR code
+ */
+export const joinGroup = async (
+  groupId: string,
+): Promise<{
+  groupId: string;
+  role: string;
+}> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    console.log(`Calling API to join group ${groupId}`);
+    const response = await axiosInstance.post(
+      `/groups/join`,
+      { groupId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    console.log("Join group API response:", response.status);
+    return response.data;
+  } catch (error) {
+    console.error("Error joining group:", error);
+    throw error;
+  }
+};
+
+/**
  * Group service object for components that expect an object-based API
  */
 export const groupService = {
@@ -391,6 +447,8 @@ export const groupService = {
   removeMemberFromGroup,
   leaveGroup,
   getUserGroups,
+  getPublicGroupInfo,
+  joinGroup,
   deleteGroup: async (groupId: string): Promise<boolean> => {
     try {
       console.log(`Calling API to delete group ${groupId}`);

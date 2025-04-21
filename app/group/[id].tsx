@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CustomToastRed from "@/components/CustomToastRed";
+import QRCode from "react-native-qrcode-svg";
 import {
   View,
   Text,
@@ -32,6 +33,7 @@ import {
   User,
   ShieldAlert,
   Home,
+  QrCode,
 } from "lucide-react-native";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
@@ -58,6 +60,7 @@ export default function GroupInfoScreen() {
   const [showMemberInfo, setShowMemberInfo] = useState(false);
   const [showTransferLeadershipModal, setShowTransferLeadershipModal] =
     useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const currentUser = useAuthStore((state) => state.user);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -621,6 +624,14 @@ export default function GroupInfoScreen() {
 
           {/* Actions */}
           <VStack className="p-4 border-t border-gray-200 mt-4">
+            <TouchableOpacity
+              onPress={() => setShowQRModal(true)}
+              className="flex-row items-center py-3"
+            >
+              <QrCode size={20} color={Colors.light.PRIMARY_BLUE} />
+              <Text className="ml-3 text-blue-500">Mã QR nhóm</Text>
+            </TouchableOpacity>
+
             {isGroupLeader && (
               <TouchableOpacity
                 onPress={handleTransferLeadership}
@@ -957,6 +968,44 @@ export default function GroupInfoScreen() {
             />
           </Pressable>
         </Pressable>
+      </Modal>
+
+      {/* QR Code Modal */}
+      <Modal
+        visible={showQRModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowQRModal(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          activeOpacity={1}
+          onPress={() => setShowQRModal(false)}
+        >
+          <View
+            className="m-auto bg-white rounded-xl p-6 items-center"
+            style={{ width: "80%" }}
+          >
+            <Text className="text-xl font-bold mb-4">Mã QR nhóm</Text>
+            <Text className="text-sm text-gray-500 mb-4 text-center">
+              Chia sẻ mã QR này để mời người khác tham gia nhóm
+            </Text>
+            <View className="p-3 bg-white rounded-lg shadow-sm mb-4">
+              <QRCode
+                value={`group-${groupId}`}
+                size={200}
+                color="black"
+                backgroundColor="white"
+              />
+            </View>
+            <TouchableOpacity
+              className="bg-blue-500 py-3 px-6 rounded-full"
+              onPress={() => setShowQRModal(false)}
+            >
+              <Text className="text-white font-bold">Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
