@@ -213,25 +213,69 @@ export const updateGroupInfo = async (
 };
 
 /**
- * Add members to a group
+ * Add a single member to a group
+ */
+export const addMemberToGroup = async (
+  groupId: string,
+  userId: string,
+): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const userStr = await SecureStore.getItemAsync("user");
+
+    if (!userStr) {
+      throw new Error("User data not found");
+    }
+
+    // Parse user information to get current user ID
+    const userData = JSON.parse(userStr);
+    const currentUserId = userData.userId;
+
+    if (!currentUserId) {
+      throw new Error("Current user ID not found");
+    }
+
+    // Prepare the request payload
+    const payload = {
+      groupId,
+      userId,
+      addedById: currentUserId,
+      role: "MEMBER",
+    };
+
+    console.log("Adding member to group with payload:", payload);
+
+    const response = await axiosInstance.post(`/groups/members`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding member to group:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add multiple members to a group
  */
 export const addMembersToGroup = async (
   groupId: string,
   memberIds: string[],
 ): Promise<any> => {
   try {
-    const token = await SecureStore.getItemAsync("accessToken");
-    const response = await axiosInstance.post(
-      `/groups/${groupId}/members`,
-      { memberIds },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response.data;
+    console.log(`Adding ${memberIds.length} members to group ${groupId}`);
+
+    // Add members one by one
+    const results = [];
+    for (const userId of memberIds) {
+      const result = await addMemberToGroup(groupId, userId);
+      results.push(result);
+    }
+
+    return results;
   } catch (error) {
     console.error("Error adding members to group:", error);
     throw error;
@@ -442,6 +486,7 @@ export const groupService = {
   getGroupInfo,
   updateGroup: updateGroupInfo, // Alias for compatibility
   updateGroupInfo,
+  addMemberToGroup,
   addMembersToGroup,
   removeMember: removeMemberFromGroup, // Alias for compatibility
   removeMemberFromGroup,
