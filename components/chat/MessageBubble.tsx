@@ -402,7 +402,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         onClose={() => setShowForwardModal(false)}
         messageId={message.id}
         currentRecipientId={
-          !isMyMessage ? message.senderId : message.receiverId
+          !isMyMessage && message.messageType === "USER"
+            ? message.senderId
+            : message.receiverId
+        }
+        currentGroupId={
+          message.messageType === "GROUP" ? message.groupId : undefined
         }
       />
     </>

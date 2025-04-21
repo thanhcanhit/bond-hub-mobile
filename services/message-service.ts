@@ -9,8 +9,8 @@ import {
 interface ForwardMessageRequest {
   messageId: string;
   targets: Array<{
-    type: "USER" | "GROUP";
-    id: string;
+    userId?: string;
+    groupId?: string;
   }>;
 }
 

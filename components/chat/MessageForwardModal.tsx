@@ -9,12 +9,15 @@ import {
 } from "react-native";
 import { getFriendList, Friend } from "@/services/friend-service";
 import { messageService } from "@/services/message-service";
-import { Check, Search } from "lucide-react-native";
+import { conversationService } from "@/services/conversation-service";
+import { Check, Search, MessageCircle, User } from "lucide-react-native";
 import { VStack } from "../ui/vstack";
 import { HStack } from "../ui/hstack";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
+import { Colors } from "@/constants/Colors";
 
 import { useAuthStore } from "@/store/authStore";
+import { Conversation } from "@/types";
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -28,20 +31,34 @@ interface MessageForwardModalProps {
   onClose: () => void;
   messageId: string;
   currentRecipientId?: string; // ID của người đang nhắn tin với mình
+  currentGroupId?: string; // ID của nhóm đang nhắn tin
 }
+
+type TargetType = "USER" | "GROUP";
+
+interface SelectedTarget {
+  id: string;
+  type: TargetType;
+}
+
+type TabType = "conversations" | "friends";
 
 export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
   isOpen,
   onClose,
   messageId,
   currentRecipientId,
+  currentGroupId,
 }) => {
+  const [activeTab, setActiveTab] = useState<TabType>("conversations");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [filteredConversations, setFilteredConversations] = useState<
+    Conversation[]
+  >([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedTargets, setSelectedTargets] = useState<SelectedTarget[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isForwarding, setIsForwarding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,17 +66,22 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      loadFriends();
+      if (activeTab === "conversations") {
+        loadConversations();
+      } else {
+        loadFriends();
+      }
       // Reset search and selection when modal opens
       setSearchQuery("");
-      setSelectedFriends(new Set());
+      setSelectedTargets([]);
     }
-  }, [isOpen]);
+  }, [isOpen, activeTab]);
 
-  // Filter friends based on search query
+  // Filter items based on search query
   useEffect(() => {
-    if (friends.length > 0) {
-      const query = searchQuery.toLowerCase().trim();
+    const query = searchQuery.toLowerCase().trim();
+
+    if (activeTab === "friends" && friends.length > 0) {
       if (query === "") {
         setFilteredFriends(friends);
       } else {
@@ -68,8 +90,51 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
         );
         setFilteredFriends(filtered);
       }
+    } else if (activeTab === "conversations" && conversations.length > 0) {
+      if (query === "") {
+        setFilteredConversations(conversations);
+      } else {
+        const filtered = conversations.filter((conv) => {
+          if (conv.type === "USER" && conv.user) {
+            return conv.user.fullName.toLowerCase().includes(query);
+          } else if (conv.type === "GROUP" && conv.group) {
+            return conv.group.name.toLowerCase().includes(query);
+          }
+          return false;
+        });
+        setFilteredConversations(filtered);
+      }
     }
-  }, [friends, searchQuery]);
+  }, [friends, conversations, searchQuery, activeTab]);
+
+  const loadConversations = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await conversationService.getConversations(1, 50);
+      if (result && result.conversations) {
+        // Filter out the current conversation if needed
+        const filteredList = result.conversations.filter((conv) => {
+          // Không hiển thị cuộc trò chuyện hiện tại
+          if (conv.type === "USER" && conv.user && currentRecipientId) {
+            return conv.user.id !== currentRecipientId;
+          }
+          if (conv.type === "GROUP" && conv.group && currentGroupId) {
+            return conv.group.id !== currentGroupId;
+          }
+          return true;
+        });
+
+        setConversations(filteredList);
+        setFilteredConversations(filteredList);
+      }
+    } catch (err) {
+      console.error("Error loading conversations:", err);
+      setError("Không thể tải danh sách cuộc trò chuyện");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadFriends = async () => {
     try {
@@ -94,18 +159,30 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
     }
   };
 
-  const toggleFriendSelection = (friendId: string) => {
-    const newSelected = new Set(selectedFriends);
-    if (newSelected.has(friendId)) {
-      newSelected.delete(friendId);
+  const toggleTargetSelection = (id: string, type: TargetType) => {
+    const targetIndex = selectedTargets.findIndex(
+      (target) => target.id === id && target.type === type,
+    );
+
+    if (targetIndex >= 0) {
+      // Remove if already selected
+      const newSelected = [...selectedTargets];
+      newSelected.splice(targetIndex, 1);
+      setSelectedTargets(newSelected);
     } else {
-      newSelected.add(friendId);
+      // Add if not selected
+      setSelectedTargets([...selectedTargets, { id, type }]);
     }
-    setSelectedFriends(newSelected);
+  };
+
+  const isTargetSelected = (id: string, type: TargetType): boolean => {
+    return selectedTargets.some(
+      (target) => target.id === id && target.type === type,
+    );
   };
 
   const handleForward = async () => {
-    if (selectedFriends.size === 0) return;
+    if (selectedTargets.length === 0) return;
 
     try {
       setIsForwarding(true);
@@ -113,11 +190,13 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
 
       await messageService.forwardMessage({
         messageId,
-        targets: Array.from(selectedFriends).map((userId) => ({
-          // Đổi từ 'recipients' thành 'targets'
-
-          userId,
-        })),
+        targets: selectedTargets.map((target) => {
+          if (target.type === "USER") {
+            return { userId: target.id };
+          } else {
+            return { groupId: target.id };
+          }
+        }),
       });
 
       onClose();
@@ -146,12 +225,56 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
             <Text className="text-red-500 text-center mb-2">{error}</Text>
           )}
 
+          {/* Tab Selector */}
+          <View className="flex-row mb-4 border border-gray-200 rounded-lg overflow-hidden">
+            <TouchableOpacity
+              onPress={() => setActiveTab("conversations")}
+              className={`flex-1 flex-row items-center justify-center py-2 ${activeTab === "conversations" ? "bg-blue-50" : "bg-white"}`}
+            >
+              <MessageCircle
+                size={18}
+                color={
+                  activeTab === "conversations"
+                    ? Colors.light.PRIMARY_BLUE
+                    : "#6B7280"
+                }
+              />
+              <Text
+                className={`ml-2 ${activeTab === "conversations" ? "text-blue-500 font-medium" : "text-gray-500"}`}
+              >
+                Cuộc trò chuyện
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab("friends")}
+              className={`flex-1 flex-row items-center justify-center py-2 ${activeTab === "friends" ? "bg-blue-50" : "bg-white"}`}
+            >
+              <User
+                size={18}
+                color={
+                  activeTab === "friends"
+                    ? Colors.light.PRIMARY_BLUE
+                    : "#6B7280"
+                }
+              />
+              <Text
+                className={`ml-2 ${activeTab === "friends" ? "text-blue-500 font-medium" : "text-gray-500"}`}
+              >
+                Bạn bè
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Thanh tìm kiếm */}
           <View className="mb-4 px-2 flex-row items-center border border-gray-300 rounded-full overflow-hidden">
             <Search size={20} color="#6B7280" className="ml-2" />
             <TextInput
               className="flex-1 py-2 px-3 text-base"
-              placeholder="Tìm kiếm bạn bè..."
+              placeholder={
+                activeTab === "conversations"
+                  ? "Tìm kiếm cuộc trò chuyện..."
+                  : "Tìm kiếm bạn bè..."
+              }
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -162,7 +285,72 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
           ) : (
             <ScrollView className="max-h-96">
               <VStack space="md">
-                {filteredFriends.length === 0 ? (
+                {activeTab === "conversations" ? (
+                  // Conversations Tab
+                  filteredConversations.length === 0 ? (
+                    <Text className="text-center text-gray-500 py-4">
+                      {searchQuery
+                        ? "Không tìm thấy cuộc trò chuyện nào"
+                        : "Bạn chưa có cuộc trò chuyện nào"}
+                    </Text>
+                  ) : (
+                    filteredConversations.map((conversation) => {
+                      const isUserConversation = conversation.type === "USER";
+                      const name = isUserConversation
+                        ? conversation.user?.fullName
+                        : conversation.group?.name;
+                      const avatarUrl = isUserConversation
+                        ? conversation.user?.profilePictureUrl
+                        : conversation.group?.avatarUrl;
+                      const id = isUserConversation
+                        ? conversation.user?.id
+                        : conversation.group?.id;
+
+                      if (!id) return null;
+
+                      return (
+                        <TouchableOpacity
+                          key={conversation.id}
+                          onPress={() =>
+                            toggleTargetSelection(id, conversation.type)
+                          }
+                          className="flex-row items-center p-2 rounded-lg"
+                        >
+                          <HStack space="md" className="items-center flex-1">
+                            <Avatar size="md">
+                              {avatarUrl ? (
+                                <AvatarImage
+                                  source={{
+                                    uri: avatarUrl,
+                                  }}
+                                />
+                              ) : (
+                                <AvatarFallbackText>
+                                  {name?.slice(0, 2).toUpperCase() || "??"}
+                                </AvatarFallbackText>
+                              )}
+                            </Avatar>
+                            <View className="flex-1">
+                              <Text className="text-base">{name}</Text>
+                              {conversation.type === "GROUP" && (
+                                <Text className="text-xs text-gray-500">
+                                  Nhóm
+                                </Text>
+                              )}
+                            </View>
+                            {isTargetSelected(id, conversation.type) && (
+                              <Check
+                                color={Colors.light.PRIMARY_BLUE}
+                                size={24}
+                              />
+                            )}
+                          </HStack>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )
+                ) : // Friends Tab
+                filteredFriends.length === 0 ? (
                   <Text className="text-center text-gray-500 py-4">
                     {searchQuery
                       ? "Không tìm thấy bạn bè nào"
@@ -172,7 +360,9 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
                   filteredFriends.map((friend) => (
                     <TouchableOpacity
                       key={friend.friend.id}
-                      onPress={() => toggleFriendSelection(friend.friend.id)}
+                      onPress={() =>
+                        toggleTargetSelection(friend.friend.id, "USER")
+                      }
                       className="flex-row items-center p-2 rounded-lg"
                     >
                       <HStack space="md" className="items-center flex-1">
@@ -194,8 +384,8 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
                         <Text className="flex-1 text-base">
                           {friend.friend.userInfo.fullName}
                         </Text>
-                        {selectedFriends.has(friend.friend.id) && (
-                          <Check color={"#297eff"} size={24} />
+                        {isTargetSelected(friend.friend.id, "USER") && (
+                          <Check color={Colors.light.PRIMARY_BLUE} size={24} />
                         )}
                       </HStack>
                     </TouchableOpacity>
@@ -207,14 +397,14 @@ export const MessageForwardModal: React.FC<MessageForwardModalProps> = ({
 
           <TouchableOpacity
             onPress={handleForward}
-            disabled={selectedFriends.size === 0 || isForwarding}
-            className={`mt-4 p-3 rounded-full mx-12 items-center justify-center ${selectedFriends.size > 0 ? "bg-blue-500" : "bg-gray-400"}`}
+            disabled={selectedTargets.length === 0 || isForwarding}
+            className={`mt-4 p-3 rounded-full mx-12 items-center justify-center ${selectedTargets.length > 0 ? "bg-blue-500" : "bg-gray-400"}`}
           >
             <Text className="text-white font-medium text-lg">
               {isForwarding
                 ? "Đang chuyển tiếp..."
-                : selectedFriends.size > 0
-                  ? `Chuyển tiếp (${selectedFriends.size})`
+                : selectedTargets.length > 0
+                  ? `Chuyển tiếp (${selectedTargets.length})`
                   : "Chuyển tiếp"}
             </Text>
           </TouchableOpacity>
