@@ -4,18 +4,14 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Alert,
   ActivityIndicator,
-  RefreshControl,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   Text,
   Modal,
+  ListRenderItem,
 } from "react-native";
-// import uuid from "react-native-uuid"; // Not needed
-import { VStack } from "@/components/ui/vstack";
 import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
 import {
   Image as ImageIcon,
@@ -32,6 +28,7 @@ import { Message, GroupMember } from "@/types";
 import { useConversationsStore } from "@/store/conversationsStore";
 import { groupService } from "@/services/group-service";
 import * as ImagePicker from "expo-image-picker";
+import { MediaTypeOptions } from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
@@ -63,12 +60,12 @@ const ChatScreen = () => {
     setSelectedGroup,
   } = useChatStore();
 
-  const scrollViewRef = useRef<ScrollView>(null);
-  const shouldAutoScroll = useRef<boolean>(true);
+  const flatListRef = useRef<FlatList>(null);
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
@@ -127,13 +124,27 @@ const ChatScreen = () => {
     }
   }, [chatId, type]);
 
+  // Biến để theo dõi xem đang tải thêm tin nhắn cũ hay không
+  const isLoadingMore = useRef(false);
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Chỉ cuộn xuống dưới khi có tin nhắn mới và không phải đang tải thêm tin nhắn cũ
+    if (!isFirstLoad && messages.length > 0 && !isLoadingMore.current) {
+      scrollToBottom();
+    }
+    if (isFirstLoad && messages.length > 0) {
+      setIsFirstLoad(false);
+      scrollToBottom(false); // Cuộn xuống dưới không có animation khi lần đầu tải
+    }
+  }, [messages, isFirstLoad]);
 
   const scrollToBottom = (animated = true) => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollToEnd({ animated });
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToIndex({
+        index: 0,
+        animated,
+        viewPosition: 1,
+      });
     }
   };
 
@@ -162,9 +173,15 @@ const ChatScreen = () => {
     }
 
     try {
+      isLoadingMore.current = true;
       await loadMessages(chatId as string, page + 1);
     } catch (error) {
       console.error("Error loading more messages:", error);
+    } finally {
+      // Đặt lại biến sau khi tải xong
+      setTimeout(() => {
+        isLoadingMore.current = false;
+      }, 500);
     }
   };
 
@@ -172,7 +189,7 @@ const ChatScreen = () => {
     if (!message.trim() || !user) return;
     await sendMessage(chatId as string, message, user.userId);
     setMessage("");
-    scrollToBottom();
+    setTimeout(() => scrollToBottom(), 100); // Delay to ensure message is rendered
   };
 
   const handleSendMediaMessage = async () => {
@@ -185,7 +202,7 @@ const ChatScreen = () => {
     );
     setMessage("");
     setSelectedMedia([]);
-    scrollToBottom();
+    setTimeout(() => scrollToBottom(), 100); // Delay to ensure message is rendered
   };
 
   const handleDocumentPick = async () => {
@@ -233,7 +250,7 @@ const ChatScreen = () => {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: MediaTypeOptions.All,
         allowsMultipleSelection: true,
         quality: 0.8,
         videoMaxDuration: 60,
@@ -267,17 +284,28 @@ const ChatScreen = () => {
     }
   };
 
-  // Xử lý khi scroll manually
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+  // Render item cho FlatList
+  const renderItem: ListRenderItem<Message> = ({ item: msg, index }) => {
+    const senderInfo = getSenderInfo(msg.senderId);
+    return (
+      <MessageBubble
+        key={msg.id}
+        message={msg}
+        profilePictureUrl={senderInfo.profilePic}
+        senderName={senderInfo.name}
+        isGroupChat={isGroupChat}
+        onReaction={handleReaction}
+        onRecall={handleRecall}
+        onDelete={handleDelete}
+        onUnReaction={handleUnReaction}
+        isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
+      />
+    );
+  };
 
-    // Check if scroll is near bottom
-    const isCloseToBottom =
-      layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
-    shouldAutoScroll.current = isCloseToBottom;
-
-    // Load more when scrolling up
-    if (contentOffset.y <= 20 && hasMore && !loading) {
+  // Xử lý khi người dùng cuộn đến đầu danh sách để tải thêm tin nhắn cũ
+  const handleEndReached = () => {
+    if (hasMore && !loading) {
       handleLoadMore();
     }
   };
@@ -395,36 +423,24 @@ const ChatScreen = () => {
         onBack={() => router.back()}
       />
 
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1 px-4"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      <FlatList
+        ref={flatListRef}
+        data={[...messages].reverse()} // Đảo ngược mảng để tin nhắn mới nhất ở dưới cùng
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+        inverted={true} // Hiển thị danh sách đảo ngược (tin nhắn mới nhất ở dưới cùng)
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.2}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        ListFooterComponent={
+          loading ? <ActivityIndicator className="py-4" /> : null
         }
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {loading && <ActivityIndicator className="py-4" />}
-        <VStack className="py-4">
-          {messages.map((msg, index) => {
-            const senderInfo = getSenderInfo(msg.senderId);
-            return (
-              <MessageBubble
-                key={msg.id}
-                message={msg}
-                profilePictureUrl={senderInfo.profilePic}
-                senderName={senderInfo.name}
-                isGroupChat={isGroupChat}
-                onReaction={handleReaction}
-                onRecall={handleRecall}
-                onDelete={handleDelete}
-                onUnReaction={handleUnReaction}
-                isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
-              />
-            );
-          })}
-        </VStack>
-      </ScrollView>
+        initialNumToRender={20}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+      />
 
       {showEmoji && (
         <EmojiPicker

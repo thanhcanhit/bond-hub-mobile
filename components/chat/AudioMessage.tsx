@@ -91,39 +91,36 @@ const AudioMessage: React.FC<AudioMessageProps> = ({ url }) => {
   const progressPercentage = duration > 0 ? (position / duration) * 100 : 0;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Volume2 size={24} color={Colors.light.PRIMARY_BLUE} />
-      </View>
-
+    <TouchableOpacity onPress={togglePlayback} style={styles.container}>
       <View style={styles.contentContainer}>
+        <View style={styles.controlsContainer}>
+          <View style={styles.controlsContainer}>
+            <Volume2 size={20} color={Colors.light.PRIMARY_BLUE} />
+            <TouchableOpacity
+              onPress={togglePlayback}
+              disabled={isLoading}
+              style={styles.playButton}
+            >
+              {isLoading ? (
+                <Text style={styles.loadingText}>...</Text>
+              ) : isPlaying ? (
+                <Pause size={20} color={Colors.light.PRIMARY_BLUE} />
+              ) : (
+                <Play size={20} color={Colors.light.PRIMARY_BLUE} />
+              )}
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.timeText}>
+            {formatTime(position)} / {formatTime(duration)}
+          </Text>
+        </View>
         <View style={styles.progressContainer}>
           <View
             style={[styles.progressBar, { width: `${progressPercentage}%` }]}
           />
         </View>
-
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity
-            onPress={togglePlayback}
-            disabled={isLoading}
-            style={styles.playButton}
-          >
-            {isLoading ? (
-              <Text style={styles.loadingText}>Loading...</Text>
-            ) : isPlaying ? (
-              <Pause size={20} color={Colors.light.PRIMARY_BLUE} />
-            ) : (
-              <Play size={20} color={Colors.light.PRIMARY_BLUE} />
-            )}
-          </TouchableOpacity>
-
-          <Text style={styles.timeText}>
-            {formatTime(position)} / {formatTime(duration)}
-          </Text>
-        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -147,7 +144,7 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: "#ddd",
     borderRadius: 2,
-    marginBottom: 8,
+    marginTop: 8,
     overflow: "hidden",
   },
   progressBar: {
@@ -157,6 +154,7 @@ const styles = StyleSheet.create({
   controlsContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   playButton: {
     width: 32,
@@ -165,7 +163,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e0e0e0",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginLeft: 15,
   },
   timeText: {
     fontSize: 12,

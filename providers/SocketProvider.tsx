@@ -370,8 +370,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
         timestamp: string | Date;
         lastActivity?: string | Date;
       }) => {
-        console.log("User status changed:", data);
-
         // Chuyển đổi timestamp thành Date object nếu nó là string
         const timestamp =
           typeof data.timestamp === "string"
