@@ -357,6 +357,26 @@ export const updateMemberRole = async (
 };
 
 /**
+ * Get list of groups for the current user
+ */
+export const getUserGroups = async (): Promise<GroupChat[]> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    console.log("Calling API to get user groups");
+    const response = await axiosInstance.get(`/groups/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("User groups API response:", response.status);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user groups:", error);
+    throw error;
+  }
+};
+
+/**
  * Group service object for components that expect an object-based API
  */
 export const groupService = {
@@ -370,6 +390,7 @@ export const groupService = {
   removeMember: removeMemberFromGroup, // Alias for compatibility
   removeMemberFromGroup,
   leaveGroup,
+  getUserGroups,
   deleteGroup: async (groupId: string): Promise<boolean> => {
     try {
       console.log(`Calling API to delete group ${groupId}`);
