@@ -183,7 +183,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       "messageReactionUpdated",
       (data: {
         messageId: string;
-        reactions: Array<{ userId: string; reaction: string }>;
+        reactions: Array<{ userId: string; reaction: string; count?: number }>;
         userId: string;
         timestamp: Date;
       }) => {
@@ -195,13 +195,20 @@ export function SocketProvider({ children }: SocketProviderProps) {
         const message = chatStore.messages.find((m) => m.id === data.messageId);
 
         if (message && currentChat) {
-          // Chỉ cập nhật reactions của tin nhắn nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+          // Chuyển đổi dữ liệu từ server thành định dạng MessageReaction
+          const updatedReactions = data.reactions.map((r) => ({
+            userId: r.userId,
+            reaction: r.reaction as ReactionType,
+            count: r.count || 1, // Sử dụng count từ server hoặc mặc định là 1
+          }));
+
+          // Cập nhật tin nhắn với reactions mới
           updateMessage(data.messageId, {
-            reactions: data.reactions.map((r) => ({
-              userId: r.userId,
-              reaction: r.reaction as ReactionType,
-            })),
+            reactions: updatedReactions,
           });
+
+          // In ra log để debug
+          console.log("[SocketProvider] Updated reactions:", updatedReactions);
         }
 
         // Cập nhật trạng thái người dùng thêm reaction thành online
@@ -218,7 +225,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       "messageUnReaction",
       (data: {
         messageId: string;
-        reactions: Array<{ userId: string; reaction: string }>;
+        reactions: Array<{ userId: string; reaction: string; count?: number }>;
         userId: string;
         timestamp: Date;
       }) => {
@@ -230,13 +237,23 @@ export function SocketProvider({ children }: SocketProviderProps) {
         const message = chatStore.messages.find((m) => m.id === data.messageId);
 
         if (message && currentChat) {
-          // Chỉ cập nhật reactions của tin nhắn nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+          // Chuyển đổi dữ liệu từ server thành định dạng MessageReaction
+          const updatedReactions = data.reactions.map((r) => ({
+            userId: r.userId,
+            reaction: r.reaction as ReactionType,
+            count: r.count || 1, // Sử dụng count từ server hoặc mặc định là 1
+          }));
+
+          // Cập nhật tin nhắn với reactions mới
           updateMessage(data.messageId, {
-            reactions: data.reactions.map((r) => ({
-              userId: r.userId,
-              reaction: r.reaction as ReactionType,
-            })),
+            reactions: updatedReactions,
           });
+
+          // In ra log để debug
+          console.log(
+            "[SocketProvider] Updated reactions after removal:",
+            updatedReactions,
+          );
         }
 
         // Cập nhật trạng thái người dùng bỏ reaction thành online
