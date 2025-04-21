@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import CustomToastRed from "@/components/CustomToastRed";
 import QRCode from "react-native-qrcode-svg";
-import { io, Socket } from "socket.io-client";
+
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   ScrollView,
   Modal,
   Pressable,
-  Platform,
 } from "react-native";
 import {
   Avatar,
@@ -48,7 +47,8 @@ import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Constants from "expo-constants";
+import { Socket } from "socket.io-client";
+import { socketManager } from "@/lib/socket";
 
 export default function GroupInfoScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -76,324 +76,277 @@ export default function GroupInfoScreen() {
   const [isLoadingFriends, setIsLoadingFriends] = useState(false);
   const [addMembersLoading, setAddMembersLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+
   const currentUser = useAuthStore((state) => state.user);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Thiết lập kết nối WebSocket
-  const setupWebSocket = () => {
-    // Kiểm tra nếu socket đã tồn tại và đã kết nối, không cần tạo lại
-    if (socketRef.current?.connected) {
-      console.log("Socket already connected, reusing existing connection");
-      return;
-    }
-    console.log("Setting up WebSocket", Constants.expoConfig?.extra?.apiUrl);
-    try {
-      // Lấy URL gốc từ Constants.expoConfig.extra.apiUrl hoặc trực tiếp từ biến môi trường
-      let apiUrl;
-
-      // Thử lấy từ Constants.expoConfig
-      if (Constants.expoConfig?.extra?.apiUrl) {
-        apiUrl = Constants.expoConfig.extra.apiUrl;
-      }
-      // Thử lấy trực tiếp từ biến môi trường
-      else if (
-        typeof process !== "undefined" &&
-        process.env &&
-        process.env.EXPO_PUBLIC_API_URL
-      ) {
-        apiUrl = process.env.EXPO_PUBLIC_API_URL;
-      }
-      // Sử dụng URL cứng nếu không có cách nào khác
-      else {
-        apiUrl = "http://bondhub.cloud:3000/api/v1";
-      }
-
-      // Log ra URL gốc để debug
-      console.log("Original API URL:", apiUrl);
-
-      // Loại bỏ "/api/v1" nếu có
-      if (apiUrl.includes("/api/v1")) {
-        apiUrl = apiUrl.replace("/api/v1", "");
-      }
-
-      // Nếu URL là bondhub.cloud, sử dụng trực tiếp
-      if (apiUrl.includes("bondhub.cloud")) {
-        // Tách URL thành các phần
-        const urlParts = apiUrl.split("/");
-        // Lấy phần domain và port (nếu có)
-        apiUrl = urlParts[0] + "//" + urlParts[2];
-      }
-
-      console.log("Base API URL after processing:", apiUrl);
-      console.log("Connecting to WebSocket at:", `${apiUrl}/groups`);
-      console.log("Current user ID:", currentUser?.userId);
-
-      // Sử dụng URL cứng để đảm bảo kết nối hoạt động
-
-      // Sử dụng URL cứng đã được xác nhận hoạt động
-      apiUrl = "http://bondhub.cloud:3000";
-      console.log("Using confirmed working URL:", apiUrl);
-
-      // Log ra thông tin để debug
-      console.log("Group ID:", groupId);
-      console.log("User ID:", currentUser?.userId);
-      console.log("Device info:", Platform.OS, Platform.Version);
-
-      // Tạo kết nối socket trực tiếp đến URL của server
-      console.log("Final WebSocket URL:", `${apiUrl}/groups`);
-
-      // Tạo kết nối socket
-      const socket = io(`${apiUrl}/groups`, {
-        transports: ["websocket"],
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-
-      socketRef.current = socket;
-
-      // Xử lý sự kiện kết nối
-      socket.on("connect", () => {
-        console.log("WebSocket connected, socket ID:", socket.id);
-        console.log("Socket connected:", socket.connected);
-        // Không sử dụng socket.nsp vì nó là thuộc tính private
-
-        // Tham gia vào phòng nhóm
-        if (currentUser?.userId) {
-          console.log(`Joining group room: group:${groupId}`);
-
-          // Tham gia vào phòng nhóm
-          try {
-            socket.emit("joinGroup", { userId: currentUser.userId, groupId });
-            console.log("Emitted joinGroup event");
-          } catch (error) {
-            console.error("Error emitting joinGroup event:", error);
-          }
-
-          // Gửi ping để kiểm tra kết nối
-          try {
-            socket.emit(
-              "ping",
-              { message: "Hello from client" },
-              (response: any) => {
-                console.log("Ping response:", response);
-              },
-            );
-            console.log("Emitted ping event");
-          } catch (error) {
-            console.error("Error emitting ping event:", error);
-          }
-        }
-      });
-
-      // Xử lý sự kiện ngắt kết nối
-      socket.on("disconnect", (reason) => {
-        console.log("WebSocket disconnected:", reason);
-      });
-
-      // Xử lý sự kiện lỗi
-      socket.on("connect_error", (error) => {
-        console.error("WebSocket connection error:", error.message);
-        console.error("Error details:", error);
-
-        // Thử kết nối lại với URL khác
-        console.log("Trying to reconnect with different URL");
-        setTimeout(() => {
-          // Ngắt kết nối hiện tại
-          socket.disconnect();
-
-          // Thử tạo kết nối mới với URL khác
-          try {
-            const newUrl = "http://bondhub.cloud";
-            console.log("Creating new connection to:", newUrl);
-
-            // Tạo kết nối mới thay vì thay đổi URL của kết nối hiện tại
-            const newSocket = io(newUrl, {
-              transports: ["websocket"],
-              autoConnect: true,
-              reconnection: true,
-            });
-
-            // Cập nhật tham chiếu socket
-            socketRef.current = newSocket;
-
-            // Xử lý sự kiện kết nối của socket mới
-            newSocket.on("connect", () => {
-              console.log("New socket connected successfully");
-            });
-
-            // Xử lý lỗi kết nối của socket mới
-            newSocket.on("connect_error", (newError) => {
-              console.error("New socket connection error:", newError.message);
-            });
-          } catch (reconnectError) {
-            console.error("Error creating new connection:", reconnectError);
-          }
-        }, 2000);
-      });
-
-      // Lắng nghe sự kiện cập nhật nhóm
-      socket.on("groupUpdated", (data) => {
-        console.log("Group updated event received:", data);
-        fetchGroupDetails(); // Cập nhật lại thông tin nhóm
-      });
-
-      // Lắng nghe sự kiện thêm thành viên
-      socket.on("memberAdded", (data) => {
-        console.log("Member added event received:", data);
-        fetchGroupDetails(); // Cập nhật lại thông tin nhóm
-      });
-
-      // Lắng nghe sự kiện xóa thành viên
-      socket.on("memberRemoved", (data) => {
-        console.log("Member removed event received:", data);
-        fetchGroupDetails(); // Cập nhật lại thông tin nhóm
-      });
-
-      // Lắng nghe sự kiện thay đổi vai trò
-      socket.on("roleChanged", (data) => {
-        console.log("Role changed event received:", data);
-        fetchGroupDetails(); // Cập nhật lại thông tin nhóm
-      });
-
-      // Lắng nghe sự kiện cập nhật avatar
-      socket.on("avatarUpdated", (data) => {
-        console.log("Avatar updated event received:", data);
-        fetchGroupDetails(); // Cập nhật lại thông tin nhóm
-      });
-
-      // Lắng nghe sự kiện bị xóa khỏi nhóm
-      socket.on("removedFromGroup", (data) => {
-        console.log("Removed from group event received:", data);
-        if (data.groupId === groupId) {
-          // Hiển thị thông báo
-          setToastMessage("Bạn đã bị xóa khỏi nhóm");
-          setShowToast(true);
-
-          // Chờ 1 giây rồi chuyển hướng về màn hình chính
-          setTimeout(() => {
-            router.replace("/(tabs)");
-          }, 1000);
-        }
-      });
-
-      // Lắng nghe sự kiện nhóm bị giải tán
-      socket.on("groupDissolved", (data) => {
-        console.log("Group dissolved event received:", data);
-        if (data.groupId === groupId) {
-          // Hiển thị thông báo
-          setToastMessage(`Nhóm ${data.groupName || ""} đã bị giải tán`);
-          setShowToast(true);
-
-          // Chờ 1 giây rồi chuyển hướng về màn hình chính
-          setTimeout(() => {
-            router.replace("/(tabs)");
-          }, 1000);
-        }
-      });
-
-      // Đảm bảo socket được kết nối ngay lập tức
-      socket.connect();
-      console.log("Socket connection initiated");
-
-      // Thêm sự kiện để kiểm tra trạng thái kết nối
-      setTimeout(() => {
-        if (socket.connected) {
-          console.log("Socket successfully connected after timeout");
-          // Gửi ping để kiểm tra kết nối
-          socket.emit(
-            "ping",
-            { message: "Ping after timeout" },
-            (response: any) => {
-              console.log("Ping after timeout response:", response);
-            },
-          );
-        } else {
-          console.log("Socket still not connected after timeout");
-          // Thử kết nối lại
-          socket.connect();
-        }
-      }, 3000);
-
-      // Thêm sự kiện lắng nghe ping từ server
-      socket.on("pong", (data) => {
-        console.log("Received pong from server:", data);
-      });
-    } catch (error) {
-      console.error("Error setting up WebSocket:", error);
-    }
-  };
-
-  // Kết nối socket ngay khi component render
-  useEffect(() => {
-    // Kết nối socket ngay lập tức khi component render lần đầu tiên
-    if (groupId && currentUser?.userId) {
-      console.log("Initializing socket connection immediately");
-
-      // Thử kết nối socket ngay lập tức
-      setupWebSocket();
-
-      // Thử kết nối lại sau 1 giây nếu cần
-      const retryTimer = setTimeout(() => {
-        if (!socketRef.current?.connected) {
-          console.log("Retrying socket connection after delay");
-          setupWebSocket();
-        }
-      }, 1000);
-
-      // Cleanup timer
-      return () => {
-        clearTimeout(retryTimer);
-        if (socketRef.current) {
-          console.log("Disconnecting socket");
-          socketRef.current.disconnect();
-          socketRef.current = null;
-        }
-      };
-    }
-
-    // Cleanup khi component unmount
-    return () => {
-      if (socketRef.current) {
-        console.log("Disconnecting socket");
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-    };
-  }, [groupId, currentUser?.userId]); // Dependency array includes groupId and currentUser?.userId
-
-  // Fetch group details when groupId or currentUser changes
-  useEffect(() => {
-    if (groupId) {
-      console.log("Fetching group details for ID:", groupId);
-      fetchGroupDetails();
-
-      // Log ra thông tin để debug
-      console.log("Socket reference exists:", !!socketRef.current);
-      if (socketRef.current) {
-        console.log("Socket connected status:", socketRef.current.connected);
-      }
-    } else {
-      console.error("No group ID provided");
-    }
-  }, [groupId, currentUser?.userId]);
-
-  // Kiểm tra trạng thái kết nối socket định kỳ
+  // Thiết lập kết nối socket và lắng nghe sự kiện
   useEffect(() => {
     if (!groupId || !currentUser?.userId) return;
 
-    const intervalId = setInterval(() => {
-      console.log("Periodic socket check:");
-      console.log("- Socket reference exists:", !!socketRef.current);
-      if (socketRef.current) {
-        console.log("- Socket connected status:", socketRef.current.connected);
-        console.log("- Socket ID:", socketRef.current.id || "not available");
-      }
-    }, 10000); // Kiểm tra mỗi 10 giây
+    const setupSocket = async () => {
+      try {
+        console.log("[SOCKET] Starting socket setup for group:", groupId);
+        console.log("[SOCKET] Current user ID:", currentUser?.userId);
 
-    return () => clearInterval(intervalId);
+        // Lấy URL API từ biến môi trường
+        let apiUrl =
+          process.env.EXPO_PUBLIC_API_URL || "http://bondhub.cloud:3000/api/v1";
+        console.log("[SOCKET] Original API URL:", apiUrl);
+
+        // Loại bỏ "/api/v1" để lấy URL cơ sở
+        if (apiUrl.includes("/api/v1")) {
+          apiUrl = apiUrl.replace("/api/v1", "");
+        }
+        console.log("[SOCKET] Base URL after processing:", apiUrl);
+
+        // Kết nối với namespace /groups
+        console.log("[SOCKET] Attempting to connect to namespace 'groups'...");
+        const socket = await socketManager.connectToNamespace("groups");
+        console.log(
+          "[SOCKET] Socket connection result:",
+          socket ? "Success" : "Failed",
+        );
+
+        if (socket) {
+          console.log("[SOCKET] Socket ID:", socket.id);
+          console.log("[SOCKET] Socket connected status:", socket.connected);
+          socketRef.current = socket;
+
+          // Tham gia vào phòng nhóm
+          console.log("[SOCKET] Joining group room with data:", {
+            userId: currentUser.userId,
+            groupId,
+          });
+          socket.emit("joinGroup", { userId: currentUser.userId, groupId });
+
+          // Thêm sự kiện connect và disconnect để debug
+          socket.on("connect", () => {
+            console.log(
+              "[SOCKET] Socket connected event fired, ID:",
+              socket.id,
+            );
+            // Thử tham gia lại phòng nhóm sau khi kết nối
+            socket.emit("joinGroup", { userId: currentUser.userId, groupId });
+          });
+
+          socket.on("disconnect", (reason) => {
+            console.log("[SOCKET] Socket disconnected, reason:", reason);
+          });
+
+          socket.on("connect_error", (error) => {
+            console.log("[SOCKET] Connection error:", error.message);
+          });
+
+          // Thêm sự kiện ping/pong để kiểm tra kết nối
+          socket.on("pong", (data) => {
+            console.log("[SOCKET] Received pong from server:", data);
+          });
+
+          // Gửi ping để kiểm tra kết nối
+          socket.emit("ping", { message: "Hello from client" }, (response) => {
+            console.log("[SOCKET] Ping response:", response);
+          });
+
+          // Lắng nghe sự kiện cập nhật nhóm
+          console.log("[SOCKET] Setting up groupUpdated listener");
+          socket.on("groupUpdated", (data) => {
+            console.log("[SOCKET] Group updated event received:", data);
+            if (data.groupId === groupId) {
+              console.log(
+                "[SOCKET] Updating group details due to groupUpdated event",
+              );
+              fetchGroupDetails();
+            }
+          });
+
+          // Lắng nghe sự kiện thêm thành viên
+          console.log("[SOCKET] Setting up memberAdded listener");
+          socket.on("memberAdded", (data) => {
+            console.log("[SOCKET] Member added event received:", data);
+            if (data.groupId === groupId) {
+              console.log(
+                "[SOCKET] Updating group details due to memberAdded event",
+              );
+              fetchGroupDetails();
+
+              // Hiển thị thông báo nếu không phải người dùng hiện tại thêm
+              if (data.addedById !== currentUser.userId) {
+                setToastMessage("Có thành viên mới được thêm vào nhóm");
+                setShowToast(true);
+              }
+            }
+          });
+
+          // Lắng nghe sự kiện xóa thành viên
+          console.log("[SOCKET] Setting up memberRemoved listener");
+          socket.on("memberRemoved", (data) => {
+            console.log("[SOCKET] Member removed event received:", data);
+            if (data.groupId === groupId) {
+              console.log("[SOCKET] Group ID matches current group");
+
+              // Nếu người bị xóa là người dùng hiện tại, chuyển hướng về màn hình chính
+              if (data.userId === currentUser.userId) {
+                console.log("[SOCKET] Current user was removed from the group");
+                // Hiển thị thông báo
+                let message = "Bạn đã bị xóa khỏi nhóm";
+                if (data.left) {
+                  message = "Bạn đã rời khỏi nhóm";
+                } else if (data.kicked) {
+                  message = "Bạn đã bị đuổi khỏi nhóm";
+                }
+
+                console.log("[SOCKET] Showing toast message:", message);
+                setToastMessage(message);
+                setShowToast(true);
+
+                // Chuyển hướng ngay lập tức về màn hình chính
+                console.log("[SOCKET] Navigating to home screen");
+                router.replace("/(tabs)");
+              } else {
+                // Nếu là thành viên khác bị xóa, cập nhật lại danh sách thành viên
+                console.log(
+                  "[SOCKET] Another member was removed, updating group details",
+                );
+                fetchGroupDetails();
+
+                // Hiển thị thông báo
+                setToastMessage("Một thành viên đã bị xóa khỏi nhóm");
+                setShowToast(true);
+              }
+            }
+          });
+
+          // Lắng nghe sự kiện thay đổi vai trò
+          console.log("[SOCKET] Setting up roleChanged listener");
+          socket.on("roleChanged", (data) => {
+            console.log("[SOCKET] Role changed event received:", data);
+            if (data.groupId === groupId) {
+              console.log(
+                "[SOCKET] Updating group details due to roleChanged event",
+              );
+              fetchGroupDetails();
+
+              // Hiển thị thông báo nếu là người dùng hiện tại
+              if (data.userId === currentUser.userId) {
+                let roleMessage = "";
+                if (data.role === "LEADER") {
+                  roleMessage = "Bạn đã trở thành trưởng nhóm";
+                } else if (data.role === "CO_LEADER") {
+                  roleMessage = "Bạn đã trở thành phó nhóm";
+                } else if (data.role === "MEMBER") {
+                  roleMessage =
+                    "Vai trò của bạn đã được thay đổi thành thành viên";
+                }
+
+                setToastMessage(roleMessage);
+                setShowToast(true);
+              }
+            }
+          });
+
+          // Lắng nghe sự kiện cập nhật avatar
+          console.log("[SOCKET] Setting up avatarUpdated listener");
+          socket.on("avatarUpdated", (data) => {
+            console.log("[SOCKET] Avatar updated event received:", data);
+            if (data.groupId === groupId) {
+              console.log(
+                "[SOCKET] Updating group details due to avatarUpdated event",
+              );
+              fetchGroupDetails();
+            }
+          });
+
+          // Lắng nghe sự kiện bị xóa khỏi nhóm
+          console.log("[SOCKET] Setting up removedFromGroup listener");
+          socket.on("removedFromGroup", (data) => {
+            console.log("[SOCKET] Removed from group event received:", data);
+            if (data.groupId === groupId) {
+              console.log("[SOCKET] Current user was removed from the group");
+
+              // Hiển thị thông báo
+              let message = "Bạn đã bị xóa khỏi nhóm";
+              if (data.left) {
+                message = "Bạn đã rời khỏi nhóm";
+              } else if (data.kicked) {
+                message = "Bạn đã bị đuổi khỏi nhóm";
+              }
+
+              setToastMessage(message);
+              setShowToast(true);
+
+              // Chuyển hướng ngay lập tức về màn hình chính
+              router.replace("/(tabs)");
+            }
+          });
+
+          // Lắng nghe sự kiện nhóm bị giải tán
+          console.log("[SOCKET] Setting up groupDissolved listener");
+          socket.on("groupDissolved", (data) => {
+            console.log("[SOCKET] Group dissolved event received:", data);
+            if (data.groupId === groupId) {
+              console.log("[SOCKET] Group was dissolved");
+
+              // Hiển thị thông báo
+              setToastMessage(`Nhóm ${data.groupName || ""} đã bị giải tán`);
+              setShowToast(true);
+
+              // Chuyển hướng ngay lập tức về màn hình chính
+              router.replace("/(tabs)");
+            }
+          });
+
+          // Thêm sự kiện lắng nghe bất kỳ để debug
+          socket.onAny((event, ...args) => {
+            console.log(`[SOCKET] Received event '${event}':`, args);
+          });
+
+          console.log("[SOCKET] All event listeners set up successfully");
+        } else {
+          console.log(
+            "[SOCKET] Failed to get socket instance from socketManager",
+          );
+        }
+      } catch (error) {
+        console.error("[SOCKET] Error setting up socket connection:", error);
+      }
+    };
+
+    setupSocket();
+
+    // Fetch group details
+    fetchGroupDetails();
+
+    // Cleanup function
+    return () => {
+      console.log("[SOCKET] Component unmounting, cleaning up socket");
+      if (socketRef.current) {
+        console.log(
+          "[SOCKET] Socket exists, removing listeners and disconnecting",
+        );
+        // Remove all listeners
+        socketRef.current.off("connect");
+        socketRef.current.off("disconnect");
+        socketRef.current.off("connect_error");
+        socketRef.current.off("pong");
+        socketRef.current.off("groupUpdated");
+        socketRef.current.off("memberAdded");
+        socketRef.current.off("memberRemoved");
+        socketRef.current.off("roleChanged");
+        socketRef.current.off("avatarUpdated");
+        socketRef.current.off("removedFromGroup");
+        socketRef.current.off("groupDissolved");
+        socketRef.current.offAny();
+
+        // Disconnect socket
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        console.log("[SOCKET] Socket cleanup complete");
+      } else {
+        console.log("[SOCKET] No socket to clean up");
+      }
+    };
   }, [groupId, currentUser?.userId]);
 
   // Không cần useEffect chuyển hướng nữa vì đã chuyển hướng trực tiếp
