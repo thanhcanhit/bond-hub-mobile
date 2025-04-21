@@ -25,6 +25,16 @@ interface PlusMenuProps {
   position?: { top: number; right: number };
 }
 
+// Hàm kiểm tra xem một mục có bị vô hiệu hóa không
+const isDisabledItem = (id: string): boolean => {
+  return [
+    "my-cloud",
+    "zalo-calendar",
+    "create-group-call",
+    "login-devices",
+  ].includes(id);
+};
+
 const PlusMenu: React.FC<PlusMenuProps> = ({
   visible,
   onClose,
@@ -61,7 +71,8 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
       title: "Thêm bạn",
       onPress: () => {
         onClose();
-        // Navigate to add friend screen
+        // Chuyển hướng đến trang tìm kiếm người dùng
+        router.push("/friend-contact/search-user");
       },
     },
     {
@@ -79,7 +90,7 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
     },
     {
       id: "my-cloud",
-      icon: <Cloud size={24} color={Colors.light.PRIMARY_BLUE} />,
+      icon: <Cloud size={24} color="#9CA3AF" />,
       title: "Cloud của tôi",
       onPress: () => {
         onClose();
@@ -88,8 +99,8 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
     },
     {
       id: "zalo-calendar",
-      icon: <Calendar size={24} color={Colors.light.PRIMARY_BLUE} />,
-      title: "Lịch Zalo",
+      icon: <Calendar size={24} color="#9CA3AF" />,
+      title: "Lịch vodka",
       onPress: () => {
         onClose();
         // Navigate to calendar screen
@@ -101,7 +112,7 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
     },
     {
       id: "create-group-call",
-      icon: <Video size={24} color={Colors.light.PRIMARY_BLUE} />,
+      icon: <Video size={24} color="#9CA3AF" />,
       title: "Tạo cuộc gọi nhóm",
       onPress: () => {
         onClose();
@@ -110,7 +121,7 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
     },
     {
       id: "login-devices",
-      icon: <MonitorSmartphone size={24} color={Colors.light.PRIMARY_BLUE} />,
+      icon: <MonitorSmartphone size={24} color="#9CA3AF" />,
       title: "Thiết bị đăng nhập",
       onPress: () => {
         onClose();
@@ -152,12 +163,26 @@ const PlusMenu: React.FC<PlusMenuProps> = ({
             return (
               <TouchableOpacity
                 key={item.id}
-                style={styles.menuItem}
-                onPress={item.onPress}
-                activeOpacity={0.7}
+                style={[
+                  styles.menuItem,
+                  isDisabledItem(item.id) && styles.disabledMenuItem,
+                ]}
+                onPress={isDisabledItem(item.id) ? undefined : item.onPress}
+                activeOpacity={isDisabledItem(item.id) ? 1 : 0.7}
+                disabled={isDisabledItem(item.id)}
               >
                 <View style={styles.iconContainer}>{item.icon}</View>
-                <Text style={styles.menuItemText}>{item.title}</Text>
+                <Text
+                  style={[
+                    styles.menuItemText,
+                    // Đổi màu chữ cho các mục chưa được triển khai
+                    isDisabledItem(item.id)
+                      ? styles.disabledMenuItemText
+                      : null,
+                  ]}
+                >
+                  {item.title}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -201,6 +226,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     fontWeight: "500",
+  },
+  disabledMenuItemText: {
+    color: "#9CA3AF",
+  },
+  disabledMenuItem: {
+    opacity: 0.8,
   },
   separator: {
     height: 1,

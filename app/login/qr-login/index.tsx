@@ -7,9 +7,10 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Users } from "lucide-react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/select/select-actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
 import axiosInstance from "@/lib/axios";
+import { groupService } from "@/services/group-service";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -29,6 +31,14 @@ export default function QRLoginScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showGroupJoinConfirmation, setShowGroupJoinConfirmation] =
+    useState(false);
+  const [groupInfo, setGroupInfo] = useState<{
+    id: string;
+    name: string;
+    memberCount: number;
+    avatarUrl?: string;
+  } | null>(null);
   const [scannedData, setScannedData] = useState<{
     type: string;
     data: string;
@@ -78,16 +88,57 @@ export default function QRLoginScreen() {
     setCameraActive(false);
     setScannedData({ type, data });
 
-    console.log(data);
-    await axiosInstance.post(`${API_URL}/qrcode/scan`, {
-      qrToken: data,
-    });
+    console.log("Scanned data:", data);
 
-    // Navigate to submitLogin page with the scanned QR data
-    router.push({
-      pathname: "/login/qr-login/submitLogin",
-      params: { qrToken: data },
-    });
+    // Kiểm tra nếu là mã QR nhóm (format: group-{groupId})
+    if (data.startsWith("group-")) {
+      try {
+        const groupId = data.replace("group-", "");
+        console.log("Detected group QR code with ID:", groupId);
+
+        // Lấy thông tin nhóm
+        const groupInfoData = await groupService.getPublicGroupInfo(groupId);
+        setGroupInfo(groupInfoData);
+
+        // Hiển thị xác nhận tham gia nhóm
+        setShowGroupJoinConfirmation(true);
+      } catch (error) {
+        console.error("Error processing group QR code:", error);
+        Alert.alert("Lỗi", "Không thể lấy thông tin nhóm. Vui lòng thử lại.", [
+          {
+            text: "OK",
+            onPress: () => {
+              setScanned(false);
+              setCameraActive(true);
+            },
+          },
+        ]);
+      }
+    } else {
+      // Xử lý mã QR đăng nhập như bình thường
+      try {
+        await axiosInstance.post(`${API_URL}/qrcode/scan`, {
+          qrToken: data,
+        });
+
+        // Navigate to submitLogin page with the scanned QR data
+        router.push({
+          pathname: "/login/qr-login/submitLogin",
+          params: { qrToken: data },
+        });
+      } catch (error) {
+        console.error("Error processing login QR code:", error);
+        Alert.alert("Lỗi", "Mã QR không hợp lệ hoặc đã hết hạn.", [
+          {
+            text: "OK",
+            onPress: () => {
+              setScanned(false);
+              setCameraActive(true);
+            },
+          },
+        ]);
+      }
+    }
   };
 
   const handleConfirmLogin = async () => {
@@ -321,6 +372,120 @@ export default function QRLoginScreen() {
                 className="flex-1 bg-blue-500 rounded-full"
               >
                 <ButtonText>Xác nhận</ButtonText>
+              </Button>
+            </View>
+          </View>
+        </ActionsheetContent>
+      </Actionsheet>
+
+      {/* Group Join Confirmation ActionSheet */}
+      <Actionsheet
+        isOpen={showGroupJoinConfirmation}
+        onClose={() => {
+          setShowGroupJoinConfirmation(false);
+          setScanned(false);
+          setCameraActive(true);
+        }}
+      >
+        <ActionsheetBackdrop />
+        <ActionsheetContent className="px-4 pb-6">
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
+
+          <View className="items-center w-full mt-2 mb-6">
+            <Text className="mb-4 text-xl font-bold text-center">
+              Tham gia nhóm
+            </Text>
+
+            {groupInfo && (
+              <View className="items-center mb-4">
+                <View className="items-center justify-center w-16 h-16 mb-2 bg-blue-100 rounded-full">
+                  {groupInfo.avatarUrl ? (
+                    <Image
+                      source={{ uri: groupInfo.avatarUrl }}
+                      style={{ width: 64, height: 64, borderRadius: 32 }}
+                    />
+                  ) : (
+                    <Users size={32} color="#3b82f6" />
+                  )}
+                </View>
+                <Text className="text-lg font-bold">{groupInfo.name}</Text>
+                <Text className="text-sm text-gray-500">
+                  {groupInfo.memberCount} thành viên
+                </Text>
+              </View>
+            )}
+
+            <Text className="mb-6 text-base text-center text-gray-600">
+              Bạn có muốn tham gia vào nhóm này không?
+            </Text>
+
+            <View className="flex-row justify-between w-full gap-4">
+              <Button
+                action="negative"
+                variant="outline"
+                onPress={() => {
+                  setShowGroupJoinConfirmation(false);
+                  setScanned(false);
+                  setCameraActive(true);
+                }}
+                className="flex-1 rounded-full"
+              >
+                <ButtonText className="text-red-500">Huỷ bỏ</ButtonText>
+              </Button>
+              <Button
+                action="primary"
+                onPress={async () => {
+                  try {
+                    if (groupInfo) {
+                      await groupService.joinGroup(groupInfo.id);
+                      setShowGroupJoinConfirmation(false);
+
+                      // Hiển thị thông báo thành công
+                      Alert.alert(
+                        "Thành công",
+                        `Bạn đã tham gia nhóm ${groupInfo.name}`,
+                        [
+                          {
+                            text: "OK",
+                            onPress: () => {
+                              // Chuyển hướng đến màn hình chat của nhóm
+                              router.push({
+                                pathname: "../chat/[id]",
+                                params: {
+                                  id: groupInfo.id,
+                                  type: "GROUP",
+                                  name: groupInfo.name,
+                                  avatarUrl: groupInfo.avatarUrl || undefined,
+                                },
+                              });
+                            },
+                          },
+                        ],
+                      );
+                    }
+                  } catch (error) {
+                    console.error("Error joining group:", error);
+                    Alert.alert(
+                      "Lỗi",
+                      "Không thể tham gia nhóm. Vui lòng thử lại.",
+                      [
+                        {
+                          text: "OK",
+                          onPress: () => {
+                            setShowGroupJoinConfirmation(false);
+                            setScanned(false);
+                            setCameraActive(true);
+                          },
+                        },
+                      ],
+                    );
+                  }
+                }}
+                className="flex-1 bg-blue-500 rounded-full"
+              >
+                <ButtonText>Tham gia</ButtonText>
               </Button>
             </View>
           </View>

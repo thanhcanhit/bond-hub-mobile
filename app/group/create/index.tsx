@@ -12,11 +12,13 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import CustomToast from "@/components/CustomToast";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, Camera, Search, Check, Trash2 } from "lucide-react-native";
+import { Camera, Search, Check, Trash2, ArrowLeft } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
 import {
   Avatar,
@@ -35,6 +37,7 @@ import { useAuthStore } from "@/store/authStore";
 export default function CreateGroupScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
+  const [showToast, setShowToast] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -277,22 +280,27 @@ export default function CreateGroupScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
-      <View
-        style={[styles.header, { paddingTop: insets.top, paddingBottom: 10 }]}
+      {showToast && (
+        <CustomToast
+          message="Tạo nhóm thành công"
+          onHide={() => setShowToast(false)}
+        />
+      )}
+      <LinearGradient
+        start={{ x: 0.03, y: 0 }}
+        end={{ x: 0.99, y: 2.5 }}
+        colors={["#297eff", "#228eff", "#00d4ff"]}
       >
-        <TouchableOpacity onPress={() => router.back()}>
-          <X size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nhóm mới</Text>
-        <Text
-          style={[
-            styles.selectedCount,
-            selectedFriends.size < 2 && styles.warningText,
-          ]}
+        <View
+          className="flex-row items-center p-4"
+          style={{ paddingTop: insets.top }}
         >
-          Đã chọn: {selectedFriends.size}/2+
-        </Text>
-      </View>
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color="white" />
+          </TouchableOpacity>
+          <Text className="text-lg text-white font-medium ml-4">Nhóm mới</Text>
+        </View>
+      </LinearGradient>
 
       <View style={styles.groupNameContainer}>
         <View style={styles.groupAvatarContainer}>
@@ -428,13 +436,31 @@ export default function CreateGroupScreen() {
                 groupAvatar ? "Has avatar" : "No avatar",
               );
 
+              console.log("Bước 1: Bắt đầu tạo nhóm");
               const newGroup = await createGroup(
                 groupName.trim(),
                 memberIds,
                 groupAvatar,
               );
+              console.log("Bước 2: Tạo nhóm thành công, ID:", newGroup.id);
 
-              router.push(`/chat/${newGroup.id}`);
+              // Hiển thị thông báo tạo nhóm thành công
+              console.log("Bước 3: Hiển thị thông báo tạo nhóm thành công");
+
+              // Hiển thị thông báo tạo nhóm thành công
+              console.log("Bước 4: Hiển thị thông báo tạo nhóm thành công");
+              setShowToast(true);
+
+              // Chờ 1 giây rồi chuyển hướng về màn hình chính
+              console.log(
+                "Bước 5: Chờ 1 giây rồi chuyển hướng về màn hình chính",
+              );
+              setTimeout(() => {
+                router.replace("/(tabs)");
+                console.log("Bước 6: Đã gọi router.replace");
+              }, 1000);
+
+              // Không cần setTimeout nữa vì đã chuyển hướng khi nhấn OK
             } catch (err) {
               console.error("Lỗi khi tạo nhóm:", err);
               alert("Không thể tạo nhóm. Vui lòng thử lại sau.");
@@ -461,19 +487,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#EFEFEF",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  // Header styles removed as we're using LinearGradient with className
   selectedCount: {
     fontSize: 14,
     color: "#666",

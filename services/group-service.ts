@@ -213,25 +213,69 @@ export const updateGroupInfo = async (
 };
 
 /**
- * Add members to a group
+ * Add a single member to a group
+ */
+export const addMemberToGroup = async (
+  groupId: string,
+  userId: string,
+): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const userStr = await SecureStore.getItemAsync("user");
+
+    if (!userStr) {
+      throw new Error("User data not found");
+    }
+
+    // Parse user information to get current user ID
+    const userData = JSON.parse(userStr);
+    const currentUserId = userData.userId;
+
+    if (!currentUserId) {
+      throw new Error("Current user ID not found");
+    }
+
+    // Prepare the request payload
+    const payload = {
+      groupId,
+      userId,
+      addedById: currentUserId,
+      role: "MEMBER",
+    };
+
+    console.log("Adding member to group with payload:", payload);
+
+    const response = await axiosInstance.post(`/groups/members`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding member to group:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add multiple members to a group
  */
 export const addMembersToGroup = async (
   groupId: string,
   memberIds: string[],
 ): Promise<any> => {
   try {
-    const token = await SecureStore.getItemAsync("accessToken");
-    const response = await axiosInstance.post(
-      `/groups/${groupId}/members`,
-      { memberIds },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response.data;
+    console.log(`Adding ${memberIds.length} members to group ${groupId}`);
+
+    // Add members one by one
+    const results = [];
+    for (const userId of memberIds) {
+      const result = await addMemberToGroup(groupId, userId);
+      results.push(result);
+    }
+
+    return results;
   } catch (error) {
     console.error("Error adding members to group:", error);
     throw error;
@@ -267,15 +311,28 @@ export const removeMemberFromGroup = async (
  */
 export const leaveGroup = async (groupId: string): Promise<any> => {
   try {
+    console.log(`Calling API to leave group ${groupId}`);
     const token = await SecureStore.getItemAsync("accessToken");
-    const response = await axiosInstance.delete(`/groups/${groupId}/leave`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+    console.log("Token retrieved for leave group API call");
+
+    const response = await axiosInstance.post(
+      `/groups/${groupId}/leave`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error leaving group:", error);
+    );
+
+    console.log("Leave group API response:", response.status, response.data);
+    return true; // Trả về true để xác nhận thành công
+  } catch (error: any) {
+    console.error(
+      "Error leaving group:",
+      error?.response?.status,
+      error?.response?.data || error.message,
+    );
     throw error;
   }
 };
@@ -317,6 +374,109 @@ export const updateGroupAvatar = async (
 };
 
 /**
+ * Update a member's role in a group
+ */
+export const updateMemberRole = async (
+  groupId: string,
+  memberId: string,
+  role: "MEMBER" | "CO_LEADER" | "LEADER",
+): Promise<any> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    const response = await axiosInstance.patch(
+      `/groups/${groupId}/members/${memberId}/role`,
+      { role },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating member role:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get list of groups for the current user
+ */
+export const getUserGroups = async (): Promise<GroupChat[]> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    console.log("Calling API to get user groups");
+    const response = await axiosInstance.get(`/groups/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("User groups API response:", response.status);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user groups:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get public information about a group
+ */
+export const getPublicGroupInfo = async (
+  groupId: string,
+): Promise<{
+  id: string;
+  name: string;
+  memberCount: number;
+  avatarUrl?: string;
+}> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    console.log(`Calling API to get public info for group ${groupId}`);
+    const response = await axiosInstance.get(`/groups/${groupId}/info`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("Group public info API response:", response.status);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching group public info:", error);
+    throw error;
+  }
+};
+
+/**
+ * Join a group via link or QR code
+ */
+export const joinGroup = async (
+  groupId: string,
+): Promise<{
+  groupId: string;
+  role: string;
+}> => {
+  try {
+    const token = await SecureStore.getItemAsync("accessToken");
+    console.log(`Calling API to join group ${groupId}`);
+    const response = await axiosInstance.post(
+      `/groups/join`,
+      { groupId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    console.log("Join group API response:", response.status);
+    return response.data;
+  } catch (error) {
+    console.error("Error joining group:", error);
+    throw error;
+  }
+};
+
+/**
  * Group service object for components that expect an object-based API
  */
 export const groupService = {
@@ -326,18 +486,37 @@ export const groupService = {
   getGroupInfo,
   updateGroup: updateGroupInfo, // Alias for compatibility
   updateGroupInfo,
+  addMemberToGroup,
   addMembersToGroup,
   removeMember: removeMemberFromGroup, // Alias for compatibility
   removeMemberFromGroup,
   leaveGroup,
+  getUserGroups,
+  getPublicGroupInfo,
+  joinGroup,
   deleteGroup: async (groupId: string): Promise<boolean> => {
     try {
-      await axiosInstance.delete(`/groups/${groupId}`);
+      console.log(`Calling API to delete group ${groupId}`);
+      const token = await SecureStore.getItemAsync("accessToken");
+      console.log("Token retrieved for delete group API call");
+
+      const response = await axiosInstance.delete(`/groups/${groupId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Delete group API response:", response.status, response.data);
       return true;
-    } catch (error) {
-      console.error("Error deleting group:", error);
-      return false;
+    } catch (error: any) {
+      console.error(
+        "Error deleting group:",
+        error?.response?.status,
+        error?.response?.data || error.message,
+      );
+      throw error;
     }
   },
   updateGroupAvatar,
+  updateMemberRole,
 };
