@@ -216,11 +216,21 @@ class SocketManager {
       //   return null;
       // }
 
-      console.log(`Connecting to namespace: ${namespace}`);
+      // Lấy userId từ store
+      const { user } = useAuthStore.getState();
+      const userId = user?.userId;
+
+      console.log(
+        `Connecting to namespace: ${namespace} with userId: ${userId}`,
+      );
       const namespaceSocket = io(`${this.baseUrl}/${namespace}`, {
         auth: {
           token,
           deviceId,
+          userId, // Thêm userId vào auth để backend có thể xác định người dùng
+        },
+        query: {
+          userId, // Thêm userId vào query params cũng để đề phòng
         },
         transports: ["websocket", "polling"],
         path: "/socket.io", // Remove the API prefix

@@ -145,9 +145,13 @@ export default function GroupInfoScreen() {
           });
 
           // Gửi ping để kiểm tra kết nối
-          socket.emit("ping", { message: "Hello from client" }, (response) => {
-            console.log("[SOCKET] Ping response:", response);
-          });
+          socket.emit(
+            "ping",
+            { message: "Hello from client" },
+            (response: any) => {
+              console.log("[SOCKET] Ping response:", response);
+            },
+          );
 
           // Lắng nghe sự kiện cập nhật nhóm
           console.log("[SOCKET] Setting up groupUpdated listener");
@@ -281,21 +285,65 @@ export default function GroupInfoScreen() {
             }
           });
 
-          // Lắng nghe sự kiện nhóm bị giải tán
+          // Lắng nghe sự kiện nhóm bị giải tán - phương pháp 1: trực tiếp
           console.log("[SOCKET] Setting up groupDissolved listener");
           socket.on("groupDissolved", (data) => {
             console.log("[SOCKET] Group dissolved event received:", data);
             if (data.groupId === groupId) {
               console.log("[SOCKET] Group was dissolved");
-
-              // Hiển thị thông báo
-              setToastMessage(`Nhóm ${data.groupName || ""} đã bị giải tán`);
-              setShowToast(true);
-
-              // Chuyển hướng ngay lập tức về màn hình chính
-              router.replace("/(tabs)");
+              handleGroupDissolvedEvent(data);
             }
           });
+
+          // Lắng nghe sự kiện nhóm bị giải tán - phương pháp 2: broadcast
+          console.log("[SOCKET] Setting up groupDissolvedBroadcast listener");
+          socket.on("groupDissolvedBroadcast", (data) => {
+            console.log("[SOCKET] Group dissolved broadcast received:", data);
+            // Kiểm tra xem broadcast có dành cho người dùng hiện tại không
+            if (
+              data.targetUserId === currentUser?.userId &&
+              data.groupId === groupId
+            ) {
+              console.log(
+                "[SOCKET] Group dissolved broadcast is for current user",
+              );
+              handleGroupDissolvedEvent(data);
+            }
+          });
+
+          // Hàm xử lý sự kiện nhóm bị giải tán
+          const handleGroupDissolvedEvent = (data: any) => {
+            // Hiển thị thông báo chi tiết hơn
+            const dissolvedBy =
+              data.dissolvedBy === currentUser?.userId ? "bạn" : "trưởng nhóm";
+            setToastMessage(
+              `Nhóm ${data.groupName || ""} đã bị giải tán bởi ${dissolvedBy}`,
+            );
+            setShowToast(true);
+
+            // Cập nhật danh sách cuộc trò chuyện
+            try {
+              const conversationsStore =
+                require("@/store/conversationsStore").useConversationsStore.getState();
+              conversationsStore.fetchConversations(1);
+              console.log(
+                "[SOCKET] Đã gọi cập nhật danh sách cuộc trò chuyện sau khi nhóm bị giải tán",
+              );
+            } catch (storeError) {
+              console.error(
+                "[SOCKET] Lỗi khi cập nhật danh sách cuộc trò chuyện:",
+                storeError,
+              );
+            }
+
+            // Chuyển hướng về màn hình chính sau một khoảng thời gian ngắn
+            setTimeout(() => {
+              console.log(
+                "[SOCKET] Chuyển hướng về màn hình chính sau khi nhóm bị giải tán",
+              );
+              router.replace("/(tabs)");
+            }, 1000);
+          };
 
           // Thêm sự kiện lắng nghe bất kỳ để debug
           socket.onAny((event, ...args) => {
@@ -337,6 +385,7 @@ export default function GroupInfoScreen() {
         socketRef.current.off("avatarUpdated");
         socketRef.current.off("removedFromGroup");
         socketRef.current.off("groupDissolved");
+        socketRef.current.off("groupDissolvedBroadcast");
         socketRef.current.offAny();
 
         // Disconnect socket
