@@ -17,7 +17,7 @@ interface CustomApiConfig extends AxiosRequestConfig {
 class ApiConfig {
   static readonly BASE_URL: string =
     process.env.EXPO_PUBLIC_API_URL || "https://api.bondhub.cloud/api/v1";
-  static readonly DEFAULT_TIMEOUT: number = 15000;
+  static readonly DEFAULT_TIMEOUT: number = 30000; // Tăng thời gian chờ lên 30 giây
 }
 
 // Function to get JWT token from SecureStore
@@ -69,11 +69,11 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
             const timeLeft =
               (expirationTime.getTime() - currentTime.getTime()) / 1000;
 
-            console.log("Token Info:", {
-              expirationTime: expirationTime.toISOString(),
-              currentTime: currentTime.toISOString(),
-              timeLeftInSeconds: timeLeft.toFixed(2),
-            });
+            // console.log("Token Info:", {
+            //   expirationTime: expirationTime.toISOString(),
+            //   currentTime: currentTime.toISOString(),
+            //   timeLeftInSeconds: timeLeft.toFixed(2),
+            // });
           }
           reqConfig.headers.Authorization = `Bearer ${token}`;
         }
@@ -164,6 +164,27 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
       } else if (error.request) {
         // Request was made but no response was received
         console.error("Request error (no response):", error.request);
+
+        // Get network status
+        const isOnline = typeof navigator !== "undefined" && navigator.onLine;
+
+        console.error("Network info:", {
+          method: error.config?.method,
+          url: error.config?.url,
+          online: isOnline,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Kiểm tra kết nối mạng
+        if (!isOnline) {
+          console.error("Network is offline. Please check your connection.");
+          // Create a custom error with network status information
+          const networkError = new Error(
+            "Network is offline. Please check your connection.",
+          );
+          networkError.name = "NetworkError";
+          return Promise.reject(networkError);
+        }
       } else {
         // Something happened in setting up the request
         console.error("Error setting up request:", error.message);

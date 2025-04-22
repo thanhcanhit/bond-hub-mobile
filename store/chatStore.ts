@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import { Message, MessageReaction, ReactionType, User } from "@/types";
+import {
+  GroupInfo,
+  Message,
+  MessageReaction,
+  ReactionType,
+  User,
+} from "@/types";
 import { messageService } from "@/services/message-service";
 import uuid from "react-native-uuid";
 import { useSocket } from "@/providers/SocketProvider";
@@ -33,7 +39,7 @@ interface ChatState {
   } | null;
   currentChatType: "USER" | "GROUP" | null;
   selectedContact: any | null;
-  selectedGroup: any | null;
+  selectedGroup: GroupInfo | null;
 
   // Actions
   setMessages: (messages: Message[]) => void;
@@ -305,7 +311,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       state.setLoading(true);
-      const data = await messageService.getMessageHistory(chatId, pageNum);
+
+      // Check if we have a valid chatId
+      if (!chatId) {
+        console.error("Cannot load messages: Invalid chat ID");
+        state.setMessages([]);
+        state.setLoading(false);
+        return;
+      }
+
+      console.log(`Loading messages for chat ${chatId}, page ${pageNum}`);
+
+      // Determine if this is a group chat or user chat
+      const chatType = state.currentChatType;
+      let data: Message[] = [];
+
+      if (chatType === "GROUP") {
+        data = await messageService.getGroupMessageHistory(chatId, pageNum);
+      } else {
+        data = await messageService.getMessageHistory(chatId, pageNum);
+      }
 
       if (!data || data.length < 20) {
         state.setHasMore(false);
@@ -318,19 +343,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       state.setPage(pageNum);
+      console.log(
+        `Successfully loaded ${data?.length || 0} messages for chat ${chatId}`,
+      );
     } catch (error) {
       console.error("Error loading messages:", error);
+      // Trả về mảng rỗng để tránh crash app
+      if (pageNum === 1) {
+        state.setMessages([]);
+      }
     } finally {
       state.setLoading(false);
     }
   },
 
   sendMessage: async (chatId, text) => {
+    const state = get();
     try {
-      await messageService.sendMessage({
-        receiverId: chatId,
-        content: { text },
-      });
+      // Determine if this is a group chat or user chat
+      const chatType = state.currentChatType;
+
+      if (chatType === "GROUP") {
+        await messageService.sendGroupMessage({
+          groupId: chatId,
+          content: { text },
+        });
+      } else {
+        await messageService.sendMessage({
+          receiverId: chatId,
+          content: { text },
+        });
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -344,7 +387,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       state.setIsLoadingMedia(true);
 
       const formData = new FormData();
-      formData.append("receiverId", chatId);
+
+      // Determine if this is a group chat or user chat
+      const chatType = state.currentChatType;
+
+      if (chatType === "GROUP") {
+        formData.append("groupId", chatId);
+      } else {
+        formData.append("receiverId", chatId);
+      }
+
       formData.append("content[text]", text);
 
       media.forEach((m) => {
@@ -354,12 +406,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (m.type === "DOCUMENT") {
           fileType = m.mimeType || "application/octet-stream";
           fileName = m.name || `document_${Date.now()}`;
+        } else if (m.type === "AUDIO") {
+          fileType = "audio/m4a";
+          fileName = `audio_${Date.now()}.m4a`;
         } else {
           fileType = m.type === "VIDEO" ? "video/mp4" : "image/jpeg";
           fileName = `${m.type.toLowerCase()}_${Date.now()}.${m.type === "VIDEO" ? "mp4" : "jpg"}`;
         }
 
-        formData.append("mediaType", m.type);
         formData.append("files", {
           uri: m.uri,
           type: fileType,
@@ -372,9 +426,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }),
         } as any);
       });
+      console.log("formData", formData);
+      let response;
+      if (chatType === "GROUP") {
+        response = await messageService.sendGroupMediaMessage(formData);
+      } else {
+        response = await messageService.sendMediaMessage(formData);
+      }
 
-      const response = await messageService.sendMediaMessage(formData);
-      state.updateMessage(tempId, { ...response, isMe: true });
+      if (response) {
+        state.updateMessage(tempId, { ...response, isMe: true });
+      }
       state.setSelectedMedia([]);
     } catch (error) {
       console.error("Media upload error:", error);
@@ -388,17 +450,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       await messageService.addReaction(messageId, reaction);
-      state.updateMessage(messageId, {
-        reactions: [
-          ...(state.messages.find((m) => m.id === messageId)?.reactions || []),
-          {
-            userId:
-              state.messages.find((m) => m.id === messageId)?.senderId || "",
-            reaction,
-            count: 1,
-          },
-        ],
-      });
+
+      // Tìm tin nhắn cần cập nhật
+      const message = state.messages.find((m) => m.id === messageId);
+      if (!message) return;
+
+      // Lấy thông tin người dùng hiện tại từ authStore
+      const currentUserId = message.isMe
+        ? message.senderId
+        : message.receiverId;
+
+      // Kiểm tra xem người dùng đã thả reaction chưa
+      const existingReactionIndex = message.reactions?.findIndex(
+        (r) => r.userId === currentUserId,
+      );
+
+      let updatedReactions = [...(message.reactions || [])];
+
+      if (existingReactionIndex !== undefined && existingReactionIndex >= 0) {
+        // Nếu đã có reaction, cập nhật count và giữ nguyên loại reaction
+        updatedReactions[existingReactionIndex] = {
+          ...updatedReactions[existingReactionIndex],
+          count: (updatedReactions[existingReactionIndex].count || 1) + 1,
+        };
+      } else {
+        // Nếu chưa có reaction, thêm mới
+        updatedReactions.push({
+          userId: currentUserId,
+          reaction,
+          count: 1,
+        });
+      }
+
+      // Cập nhật tin nhắn với reactions mới
+      state.updateMessage(messageId, { reactions: updatedReactions });
     } catch (error) {
       console.error("Error adding reaction:", error);
     }
@@ -408,14 +493,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
     try {
       await messageService.removeReaction(messageId);
+
+      // Tìm tin nhắn cần cập nhật
       const message = state.messages.find((m) => m.id === messageId);
-      if (message) {
-        state.updateMessage(messageId, {
-          reactions: message.reactions?.filter(
-            (r) => r.userId !== message.senderId,
-          ),
-        });
-      }
+      if (!message) return;
+
+      // Lấy thông tin người dùng hiện tại từ authStore
+      const currentUserId = message.isMe
+        ? message.senderId
+        : message.receiverId;
+
+      // Lọc bỏ reaction của người dùng hiện tại
+      const updatedReactions =
+        message.reactions?.filter((r) => r.userId !== currentUserId) || [];
+
+      // Cập nhật tin nhắn với reactions mới
+      state.updateMessage(messageId, { reactions: updatedReactions });
     } catch (error) {
       console.error("Error removing reaction:", error);
     }

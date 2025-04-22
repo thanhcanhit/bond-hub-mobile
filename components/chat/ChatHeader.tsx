@@ -1,13 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, TouchableOpacity, Text, Platform } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
-import { ArrowLeft, Phone, Video, Search, Logs } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Phone,
+  Video,
+  Search,
+  Logs,
+  Users,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { ChatHeaderProps } from "@/types";
+import type { ChatHeaderProps, GroupInfo } from "@/types";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
 import { useUserStatusStore } from "@/store/userStatusStore";
+// Removed GroupDetailsModal import
+import { useRouter } from "expo-router";
+import { groupService } from "@/services/group-service";
 const formatLastSeen = (lastSeenDate: string) => {
   const date = new Date(lastSeenDate);
   const now = new Date();
@@ -31,11 +41,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onBack,
 }) => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  // Removed showGroupDetails state
   const isOnline = useUserStatusStore((state) => state.isUserOnline(chatId));
   const userStatus = useUserStatusStore((state) => state.getUserStatus(chatId));
+  const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
+
+  React.useEffect(() => {
+    if (isGroup) {
+      groupService.getGroupInfo(chatId).then((info) => {
+        setGroupInfo(info);
+      });
+    }
+  }, [isGroup, chatId]);
+
   const getStatusText = () => {
-    if (isGroup) return `${name}`; // Không hiển thị trạng thái cho group
-    if (isOnline) return "Đang hoạt động";
+    if (isGroup) return `Số thành viên: ${groupInfo?.memberCount}`; // Không hiển thị trạng thái cho group
+    if (isOnline && !isGroup) return "Đang hoạt động";
     if (!userStatus?.timestamp) return "Không hoạt động";
     return `${formatLastSeen(userStatus.timestamp.toISOString())}`;
   };
@@ -44,6 +66,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (isGroup) return "bg-transparent";
     return isOnline ? "bg-green-500" : "bg-gray-400";
   };
+
+  // Removed handleLeaveGroup and handleDeleteGroup functions
   return (
     <LinearGradient
       start={{ x: 0.03, y: 0 }}
@@ -92,19 +116,29 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             ) : (
               <>
                 <TouchableOpacity className="px-2.5">
-                  <Video size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity className="px-2.5">
                   <Search size={24} color="white" />
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity className="pl-2.5">
+            <TouchableOpacity
+              className="pl-2.5"
+              onPress={() => {
+                if (isGroup) {
+                  // Sử dụng định tuyến động
+                  router.push(`/group/${chatId}`);
+                } else {
+                  // Xử lý khi không phải là nhóm
+                  console.log("Logs pressed for non-group chat");
+                }
+              }}
+            >
               <Logs size={24} color="white" />
             </TouchableOpacity>
           </HStack>
         </HStack>
       </View>
+
+      {/* Removed Group Details Modal */}
     </LinearGradient>
   );
 };

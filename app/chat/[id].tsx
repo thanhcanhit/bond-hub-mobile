@@ -4,17 +4,14 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Alert,
   ActivityIndicator,
-  RefreshControl,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   Text,
+  Modal,
+  ListRenderItem,
 } from "react-native";
-import uuid from "react-native-uuid";
-import { VStack } from "@/components/ui/vstack";
 import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
 import {
   Image as ImageIcon,
@@ -27,18 +24,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sticker from "@/assets/svgs/sticker.svg";
 import { Colors } from "@/constants/Colors";
 import { useAuthStore } from "@/store/authStore";
-import { Message } from "@/types";
+import { Message, GroupMember } from "@/types";
+import { useConversationsStore } from "@/store/conversationsStore";
+import { groupService } from "@/services/group-service";
 import * as ImagePicker from "expo-image-picker";
+import { MediaTypeOptions } from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { MediaPreview } from "@/components/chat/MediaPreview";
+import VoiceRecorder from "@/components/chat/VoiceRecorder";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
-import { useSocket } from "@/providers/SocketProvider";
 
 const ChatScreen = () => {
-  const { messageSocket } = useSocket();
   const {
     loading,
     messages,
@@ -57,29 +56,32 @@ const ChatScreen = () => {
     handleDelete,
     setRefreshing,
     setSelectedMedia,
-    sendTypingIndicator,
     setSelectedContact,
     setSelectedGroup,
-    currentChat,
   } = useChatStore();
 
-  const scrollViewRef = useRef<ScrollView>(null);
-  const shouldAutoScroll = useRef<boolean>(true);
+  const flatListRef = useRef<FlatList>(null);
   const [message, setMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
-  const {
-    id: chatId,
-    fullName: name,
-    profilePictureUrl,
-    type,
-  } = useLocalSearchParams();
-
+  const { id: chatId, name, avatarUrl, type } = useLocalSearchParams();
+  const isGroupChat = type === "GROUP";
   useEffect(() => {
     if (chatId) {
-      const chatType = (type as "USER") || "GROUP" ? "USER" : "GROUP";
+      const chatType = type === "GROUP" ? "GROUP" : "USER";
+
+      // Cập nhật thông tin cuộc trò chuyện hiện tại
+      useChatStore.getState().setCurrentChat({
+        id: chatId as string,
+        name: name as string,
+        type: chatType as "USER" | "GROUP",
+      });
+      useChatStore.getState().setCurrentChatType(chatType as "USER" | "GROUP");
 
       if (chatType === "USER") {
         setSelectedContact({
@@ -94,43 +96,100 @@ const ChatScreen = () => {
         setSelectedGroup({
           id: chatId as string,
           name: name as string,
-          profilePictureUrl: profilePictureUrl as string,
+          profilePictureUrl: avatarUrl as string,
         });
+
+        // Fetch group members for group chats
+        fetchGroupMembers(chatId as string);
       }
     }
-  }, [chatId, name, profilePictureUrl, type]);
+
+    // Khi rời khỏi màn hình chat, xóa thông tin cuộc trò chuyện hiện tại
+    return () => {
+      useChatStore.getState().setCurrentChat(null);
+      useChatStore.getState().setCurrentChatType(null);
+    };
+  }, [chatId, name, avatarUrl, type]);
 
   useEffect(() => {
-    loadMessages(chatId as string);
-    console.log(chatId, name);
-  }, [chatId]);
+    if (chatId) {
+      console.log(`Initializing chat screen for ${chatId}`);
+      loadMessages(chatId as string);
+
+      // Mark conversation as read when entering chat
+      const conversationsStore = useConversationsStore.getState();
+      conversationsStore.markAsRead(chatId as string, type as "USER" | "GROUP");
+    } else {
+      console.error("Cannot load messages: No chat ID provided");
+    }
+  }, [chatId, type]);
+
+  // Biến để theo dõi xem đang tải thêm tin nhắn cũ hay không
+  const isLoadingMore = useRef(false);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Chỉ cuộn xuống dưới khi có tin nhắn mới và không phải đang tải thêm tin nhắn cũ
+    if (!isFirstLoad && messages.length > 0 && !isLoadingMore.current) {
+      scrollToBottom();
+    }
+    if (isFirstLoad && messages.length > 0) {
+      setIsFirstLoad(false);
+      scrollToBottom(false); // Cuộn xuống dưới không có animation khi lần đầu tải
+    }
+  }, [messages, isFirstLoad]);
 
   const scrollToBottom = (animated = true) => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollToEnd({ animated });
+    if (flatListRef.current && messages.length > 0) {
+      flatListRef.current.scrollToIndex({
+        index: 0,
+        animated,
+        viewPosition: 1,
+      });
     }
   };
 
   const handleRefresh = async () => {
+    if (!chatId) {
+      console.error("Cannot refresh: No chat ID provided");
+      return;
+    }
+
     setRefreshing(true);
-    await loadMessages(chatId as string, 1);
-    setRefreshing(false);
+    try {
+      await loadMessages(chatId as string, 1);
+    } catch (error) {
+      console.error("Error refreshing messages:", error);
+      Alert.alert("Error", "Could not load messages. Please try again.");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleLoadMore = async () => {
     if (!hasMore || loading) return;
-    await loadMessages(chatId as string, page + 1);
+    if (!chatId) {
+      console.error("Cannot load more: No chat ID provided");
+      return;
+    }
+
+    try {
+      isLoadingMore.current = true;
+      await loadMessages(chatId as string, page + 1);
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    } finally {
+      // Đặt lại biến sau khi tải xong
+      setTimeout(() => {
+        isLoadingMore.current = false;
+      }, 500);
+    }
   };
 
   const handleSend = async () => {
     if (!message.trim() || !user) return;
     await sendMessage(chatId as string, message, user.userId);
     setMessage("");
-    scrollToBottom();
+    setTimeout(() => scrollToBottom(), 100); // Delay to ensure message is rendered
   };
 
   const handleSendMediaMessage = async () => {
@@ -143,7 +202,7 @@ const ChatScreen = () => {
     );
     setMessage("");
     setSelectedMedia([]);
-    scrollToBottom();
+    setTimeout(() => scrollToBottom(), 100); // Delay to ensure message is rendered
   };
 
   const handleDocumentPick = async () => {
@@ -191,7 +250,7 @@ const ChatScreen = () => {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: MediaTypeOptions.All,
         allowsMultipleSelection: true,
         quality: 0.8,
         videoMaxDuration: 60,
@@ -225,19 +284,61 @@ const ChatScreen = () => {
     }
   };
 
-  // Xử lý khi scroll manually
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+  // Render item cho FlatList
+  const renderItem: ListRenderItem<Message> = ({ item: msg, index }) => {
+    const senderInfo = getSenderInfo(msg.senderId);
+    return (
+      <MessageBubble
+        key={msg.id}
+        message={msg}
+        profilePictureUrl={senderInfo.profilePic}
+        senderName={senderInfo.name}
+        isGroupChat={isGroupChat}
+        onReaction={handleReaction}
+        onRecall={handleRecall}
+        onDelete={handleDelete}
+        onUnReaction={handleUnReaction}
+        isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
+      />
+    );
+  };
 
-    // Check if scroll is near bottom
-    const isCloseToBottom =
-      layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
-    shouldAutoScroll.current = isCloseToBottom;
-
-    // Load more when scrolling up
-    if (contentOffset.y <= 20 && hasMore && !loading) {
+  // Xử lý khi người dùng cuộn đến đầu danh sách để tải thêm tin nhắn cũ
+  const handleEndReached = () => {
+    if (hasMore && !loading) {
       handleLoadMore();
     }
+  };
+
+  // Fetch group members
+  const fetchGroupMembers = async (groupId: string) => {
+    try {
+      const groupDetails = await groupService.getGroupDetails(groupId);
+      if (groupDetails && groupDetails.members) {
+        setGroupMembers(groupDetails.members);
+      }
+    } catch (error) {
+      console.error("Error fetching group members:", error);
+    }
+  };
+
+  // Get sender name and profile picture from group members
+  const getSenderInfo = (senderId: string) => {
+    if (!isGroupChat)
+      return { name: undefined, profilePic: avatarUrl as string };
+
+    const member = groupMembers.find((member) => member.userId === senderId);
+    if (member) {
+      // Handle both possible structures of GroupMember using type assertion
+      // Some implementations have user property, others have fullName directly
+      const memberAny = member as any;
+      return {
+        name: memberAny.user?.fullName || memberAny.fullName,
+        profilePic:
+          memberAny.user?.profilePictureUrl || memberAny.profilePictureUrl,
+      };
+    }
+    return { name: undefined, profilePic: undefined };
   };
 
   // Hàm để xác định tin nhắn cuối cùng của mỗi người dùng
@@ -250,13 +351,51 @@ const ChatScreen = () => {
 
   // Render typing indicator
   const renderTypingIndicator = () => {
-    const typingUsersArray = Array.from(typingUsers.values());
+    // Get typing users and filter out current user
+    const typingUsersMap = new Map(typingUsers);
+    // Remove current user from the map to avoid showing your own typing status
+    if (user?.userId) {
+      typingUsersMap.delete(user.userId);
+    }
+
+    // Convert to array for easier processing
+    const typingUsersArray = Array.from(typingUsersMap.entries()).map(
+      ([userId, data]) => ({ userId, ...data }),
+    );
+
     if (typingUsersArray.length > 0) {
-      return (
-        <Text className="text-gray-500 text-sm p-2 bg-none ">
-          đang soạn tin ...
-        </Text>
-      );
+      // For group chats, show who is typing
+      if (isGroupChat) {
+        const typingNames = typingUsersArray.map((typingUser) => {
+          const member = groupMembers.find(
+            (m) => m.userId === typingUser.userId,
+          );
+          if (!member) return "Someone";
+          const memberAny = member as any;
+          return memberAny.user?.fullName || memberAny.fullName || "Someone";
+        });
+
+        let typingText = "";
+        if (typingNames.length === 1) {
+          typingText = `${typingNames[0]} đang soạn tin ...`;
+        } else if (typingNames.length === 2) {
+          typingText = `${typingNames[0]} và ${typingNames[1]} đang soạn tin ...`;
+        } else if (typingNames.length > 2) {
+          typingText = `${typingNames[0]} và ${typingNames.length - 1} người khác đang soạn tin ...`;
+        }
+
+        return (
+          <Text className="text-blue-300 py-0.5 px-2 text-sm bg-transparent">
+            {typingText}
+          </Text>
+        );
+      } else {
+        return (
+          <Text className="text-gray-500 text-sm p-2 bg-none">
+            đang soạn tin...
+          </Text>
+        );
+      }
     }
     return null;
   };
@@ -264,12 +403,15 @@ const ChatScreen = () => {
   // Add debounce function
   const debouncedTyping = useCallback(
     debounce((isTyping: boolean) => {
-      if (messageSocket) {
+      try {
         console.log("Typing...", isTyping);
-        sendTypingIndicator(isTyping, messageSocket);
+        // Use the chatStore function directly
+        useChatStore.getState().handleTypingStatus(isTyping);
+      } catch (error) {
+        console.error("Error sending typing indicator:", error);
       }
     }, 500),
-    [messageSocket],
+    [],
   );
 
   return (
@@ -277,34 +419,28 @@ const ChatScreen = () => {
       <ChatHeader
         chatId={chatId as string}
         name={name as string}
+        isGroup={type === "GROUP"}
         onBack={() => router.back()}
       />
 
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1 px-4"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      <FlatList
+        ref={flatListRef}
+        data={[...messages].reverse()} // Đảo ngược mảng để tin nhắn mới nhất ở dưới cùng
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+        inverted={true} // Hiển thị danh sách đảo ngược (tin nhắn mới nhất ở dưới cùng)
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.2}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        ListFooterComponent={
+          loading ? <ActivityIndicator className="py-4" /> : null
         }
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {loading && <ActivityIndicator className="py-4" />}
-        <VStack className="py-4">
-          {messages.map((msg, index) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              profilePictureUrl={profilePictureUrl as string}
-              onReaction={handleReaction}
-              onRecall={handleRecall}
-              onDelete={handleDelete}
-              onUnReaction={handleUnReaction}
-              isLastMessageOfUser={getIsLastMessageOfUser(msg, index)}
-            />
-          ))}
-        </VStack>
-      </ScrollView>
+        initialNumToRender={20}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+      />
 
       {showEmoji && (
         <EmojiPicker
@@ -337,12 +473,10 @@ const ChatScreen = () => {
           />
         )}
         <View
-          className="flex-row justify-center items-center bg-white px-4 pt-4"
-          style={
-            Platform.OS === "ios"
-              ? { paddingBottom: 25 }
-              : { paddingBottom: 10 }
-          }
+          className="flex-row justify-center items-center bg-white px-4 pt-2"
+          style={{
+            paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          }}
         >
           <TouchableOpacity
             className="ml-2.5"
@@ -353,7 +487,7 @@ const ChatScreen = () => {
           </TouchableOpacity>
 
           <TextInput
-            className="flex-1 ml-2.5 p-1 h-full bg-transparent justify-center text-gray-700 text-base"
+            className="flex-1 ml-2.5 p-1 bg-transparent justify-center text-gray-700 text-base"
             placeholder="Nhập tin nhắn..."
             value={message}
             onChangeText={(text) => {
@@ -361,11 +495,20 @@ const ChatScreen = () => {
               debouncedTyping(text.length > 0);
             }}
             multiline
-            maxLength={1000}
+            numberOfLines={message.length > 100 ? 4 : 1}
+            textAlignVertical="center"
+            style={{
+              minHeight: 40,
+              maxHeight: 70,
+            }}
           />
           {!message.trim() && selectedMedia.length === 0 ? (
             <View className="flex-row relative">
-              <TouchableOpacity className="mx-2" disabled={isLoadingMedia}>
+              <TouchableOpacity
+                className="mx-2"
+                disabled={isLoadingMedia}
+                onPress={() => setShowVoiceRecorder(true)}
+              >
                 <Mic
                   size={26}
                   color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
@@ -410,6 +553,41 @@ const ChatScreen = () => {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* Voice Recorder Modal */}
+      <Modal
+        visible={showVoiceRecorder}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowVoiceRecorder(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <VoiceRecorder
+            onClose={() => setShowVoiceRecorder(false)}
+            onSend={(uri) => {
+              // Handle the voice message
+              if (user) {
+                const voiceMedia = [
+                  {
+                    uri,
+                    type: "AUDIO" as const,
+                    name: `voice_message_${Date.now()}.m4a`,
+                    mediaType: "AUDIO",
+                  },
+                ];
+                console.log("---- voice: ", voiceMedia);
+                sendMediaMessage(
+                  chatId as string,
+                  "", // No text for voice messages
+                  user.userId,
+                  voiceMedia,
+                );
+                setShowVoiceRecorder(false);
+              }
+            }}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };

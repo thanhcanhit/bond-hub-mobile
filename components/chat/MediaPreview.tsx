@@ -46,9 +46,9 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 80,
-    backgroundColor: "#f3f4f6",
-    padding: 8,
+    backgroundColor: "white",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
   },
   previewItem: {
     width: 60,

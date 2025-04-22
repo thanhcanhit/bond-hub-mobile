@@ -54,8 +54,8 @@ export default function AccountSecurityScreen() {
               strokeWidth={1.5}
             />
           }
-          title="Yêu cầu đổi email"
-          onPress={() => {}}
+          title="Đổi email"
+          onPress={() => router.push("/settings/account-security/change-email")}
           showBottomBorder={true}
         />
 
@@ -67,8 +67,8 @@ export default function AccountSecurityScreen() {
               strokeWidth={1.5}
             />
           }
-          title="Yêu cầu đổi số điện thoại"
-          onPress={() => {}}
+          title="Đổi số điện thoại"
+          onPress={() => router.push("/settings/account-security/change-phone")}
         />
       </ScrollView>
     </View>

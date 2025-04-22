@@ -79,8 +79,8 @@ export const MediaGrid: React.FC<MediaGridProps> = ({
           style={[
             styles.gridItemContainer,
             getImageStyle(idx, Math.min(imageItems.length, 4)),
-            idx % 2 === 0 ? { marginRight: 4 } : { marginLeft: 4 },
-            idx < 2 && imageItems.length >= 3 ? { marginBottom: 4 } : null,
+            idx % 2 === 0 ? { marginRight: 3 } : { marginLeft: 3 },
+            idx < 2 && imageItems.length >= 3 ? { marginBottom: 3 } : null,
           ]}
         >
           <View className="flex">

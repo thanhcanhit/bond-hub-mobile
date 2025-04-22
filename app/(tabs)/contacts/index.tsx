@@ -24,9 +24,10 @@ import {
   UserRoundPlus,
   Cake,
 } from "lucide-react-native";
-import ListChatItem from "@/components/ListChatItem";
 import { router, useFocusEffect } from "expo-router";
 import { getFriendList } from "@/services/friend-service";
+import { groupService, GroupChat } from "@/services/group-service";
+import { useConversationsStore } from "@/store/conversationsStore";
 
 // Interface for friend items in UI
 interface FriendItem {
@@ -42,22 +43,29 @@ export default function ContactScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"friends" | "groups">("friends");
   const [friends, setFriends] = useState<FriendItem[]>([]);
+  const [groups, setGroups] = useState<GroupChat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [groupError, setGroupError] = useState<string | null>(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const { fetchConversations } = useConversationsStore();
 
   // Kết nối đến namespace friends của WebSocket
   const { socket, isConnected, error: socketError } = useSocket("friends");
 
-  // Fetch friend list on component mount and when screen comes into focus
+  // Fetch friend list and groups on component mount
   useEffect(() => {
     fetchFriendList("mount");
+    fetchUserGroups("mount");
   }, []);
 
-  // Refetch friend list when screen comes into focus
+  // Refetch friend list and groups when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      console.log("Contacts screen focused, refreshing friend list");
+      console.log("Contacts screen focused, refreshing data");
       fetchFriendList("focus");
+      fetchUserGroups("focus");
       return () => {};
     }, []),
   );
@@ -79,8 +87,9 @@ export default function ContactScreen() {
 
     // Lắng nghe sự kiện reload
     const handleReload = () => {
-      console.log("Received reload event from server, refreshing friend list");
+      console.log("Received reload event from server, refreshing data");
       fetchFriendList("websocket");
+      fetchUserGroups("websocket");
     };
 
     socket.on("reload", handleReload);
@@ -114,6 +123,21 @@ export default function ContactScreen() {
       setError("Không thể tải danh sách bạn bè. Vui lòng thử lại sau.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUserGroups = async (source: string = "manual") => {
+    try {
+      console.log(`Fetching user groups (source: ${source})`);
+      setIsLoadingGroups(true);
+      setGroupError(null);
+      const response = await groupService.getUserGroups();
+      setGroups(response);
+    } catch (err) {
+      console.error("Failed to fetch user groups:", err);
+      setGroupError("Không thể tải danh sách nhóm. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoadingGroups(false);
     }
   };
 
@@ -285,10 +309,10 @@ export default function ContactScreen() {
           )}
         </ScrollView>
       ) : (
-        <View>
+        <ScrollView className="bg-white">
           <TouchableOpacity
-            className="flex-row items-center px-4 py-3  bg-white"
-            onPress={() => {}}
+            className="flex-row items-center px-4 py-3 bg-white"
+            onPress={() => router.push("/group/create")}
           >
             <View className="items-center justify-center w-14 h-14 bg-blue-50 rounded-full">
               <Users size={24} color={Colors.light.PRIMARY_BLUE} />
@@ -296,8 +320,65 @@ export default function ContactScreen() {
             <Text className="ml-4 text-md text-gray-600">Tạo nhóm mới</Text>
           </TouchableOpacity>
 
-          <View className="mt-1 pb-10 h-full bg-white"></View>
-        </View>
+          {isLoadingGroups ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <ActivityIndicator
+                size="large"
+                color={Colors.light.PRIMARY_BLUE}
+              />
+              <Text className="text-gray-500 mt-2">
+                Đang tải danh sách nhóm...
+              </Text>
+            </View>
+          ) : groupError ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Text className="text-red-500">{groupError}</Text>
+              <TouchableOpacity
+                onPress={() => fetchUserGroups("retry")}
+                className="mt-4 bg-blue-50 px-4 py-2 rounded-full"
+              >
+                <Text className="text-blue-500">Thử lại</Text>
+              </TouchableOpacity>
+            </View>
+          ) : groups.length === 0 ? (
+            <View className="flex-1 items-center justify-center py-8">
+              <Text className="text-gray-500">Bạn chưa tham gia nhóm nào</Text>
+            </View>
+          ) : (
+            <View className="mt-1 pb-10">
+              {groups.map((group) => (
+                <TouchableOpacity
+                  key={group.id}
+                  className="flex-row items-center px-4 py-3 border-b border-gray-100"
+                  onPress={() =>
+                    router.push({
+                      pathname: "../chat/[id]",
+                      params: {
+                        id: group.id,
+                        type: "GROUP",
+                        name: group.name,
+                        avatarUrl: group.avatarUrl || undefined,
+                      },
+                    })
+                  }
+                >
+                  <Avatar size="lg">
+                    <AvatarFallbackText>{group.name}</AvatarFallbackText>
+                    {group.avatarUrl && (
+                      <AvatarImage source={{ uri: group.avatarUrl }} />
+                    )}
+                  </Avatar>
+                  <View className="ml-4 flex-1">
+                    <Text className="text-lg font-medium">{group.name}</Text>
+                    <Text className="text-sm text-gray-500">
+                      {group.memberCount} thành viên
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       )}
     </View>
   );

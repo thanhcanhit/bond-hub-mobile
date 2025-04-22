@@ -284,3 +284,33 @@ export const unfriend = async (userId: string): Promise<void> => {
     throw error;
   }
 };
+
+// Tìm kiếm bạn bè
+export const searchFriends = async (query: string): Promise<Friend[]> => {
+  try {
+    // Lấy danh sách bạn bè
+    const friends = await getFriendList();
+
+    // Nếu query rỗng, trả về tất cả bạn bè
+    if (!query || query.trim() === "") {
+      return friends;
+    }
+
+    // Tìm kiếm bạn bè theo tên hoặc số điện thoại
+    const normalizedQuery = query.toLowerCase().trim();
+    return friends.filter((friend) => {
+      const fullName = friend.friend.userInfo.fullName?.toLowerCase() || "";
+      const phoneNumber = friend.friend.phoneNumber?.toLowerCase() || "";
+      const email = friend.friend.email?.toLowerCase() || "";
+
+      return (
+        fullName.includes(normalizedQuery) ||
+        phoneNumber.includes(normalizedQuery) ||
+        email.includes(normalizedQuery)
+      );
+    });
+  } catch (error) {
+    console.error("Error searching friends:", error);
+    throw error;
+  }
+};
