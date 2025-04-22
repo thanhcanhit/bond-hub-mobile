@@ -221,33 +221,33 @@ export default function QRScanFriendScreen() {
               paddingRight: insets.right,
             }}
           >
-            {/* Scan frame decoration - only corners */}
+            {/* Scan frame decoration - only corners with thicker edges */}
             <View
               className="absolute top-1/2 left-1/2 w-[280px] h-[280px]"
               style={{ marginLeft: -140, marginTop: -140 }}
             >
               {/* Top-left corner */}
               <View className="absolute top-0 left-0 flex-row">
-                <View className="w-[50px] h-[6px] bg-gray-400 rounded-full" />
-                <View className="w-[6px] h-[50px] bg-gray-400 rounded-full absolute top-0 left-0" />
+                <View className="w-[50px] h-[8px] bg-gray-500 rounded-full" />
+                <View className="w-[8px] h-[50px] bg-gray-500 rounded-full absolute top-0 left-0" />
               </View>
 
               {/* Top-right corner */}
               <View className="absolute top-0 right-0 flex-row">
-                <View className="w-[50px] h-[6px] bg-gray-400 rounded-full absolute right-0" />
-                <View className="w-[6px] h-[50px] bg-gray-400 rounded-full absolute top-0 right-0" />
+                <View className="w-[50px] h-[8px] bg-gray-500 rounded-full absolute right-0" />
+                <View className="w-[8px] h-[50px] bg-gray-500 rounded-full absolute top-0 right-0" />
               </View>
 
               {/* Bottom-left corner */}
               <View className="absolute bottom-0 left-0 flex-row">
-                <View className="w-[50px] h-[6px] bg-gray-400 rounded-full absolute bottom-0" />
-                <View className="w-[6px] h-[50px] bg-gray-400 rounded-full absolute bottom-0 left-0" />
+                <View className="w-[50px] h-[8px] bg-gray-500 rounded-full absolute bottom-0" />
+                <View className="w-[8px] h-[50px] bg-gray-500 rounded-full absolute bottom-0 left-0" />
               </View>
 
               {/* Bottom-right corner */}
               <View className="absolute bottom-0 right-0 flex-row">
-                <View className="w-[50px] h-[6px] bg-gray-400 rounded-full absolute bottom-0 right-0" />
-                <View className="w-[6px] h-[50px] bg-gray-400 rounded-full absolute bottom-0 right-0" />
+                <View className="w-[50px] h-[8px] bg-gray-500 rounded-full absolute bottom-0 right-0" />
+                <View className="w-[8px] h-[50px] bg-gray-500 rounded-full absolute bottom-0 right-0" />
               </View>
 
               {/* Scanning animation line */}
@@ -278,21 +278,22 @@ export default function QRScanFriendScreen() {
                 </Text>
               </View>
             </View>
-            <View className="absolute top-10 right-5 flex-row items-center bg-black/70 px-3 py-1.5 rounded-full">
+            {/* Scanning indicator */}
+            <View className="absolute top-10 right-5 flex-row items-center bg-black/70 px-4 py-2 rounded-full">
               <Animated.View
                 style={{
-                  width: 8,
-                  height: 8,
+                  width: 10,
+                  height: 10,
                   marginRight: 8,
                   backgroundColor: "#22c55e",
-                  borderRadius: 4,
+                  borderRadius: 5,
                   opacity: scanAnimation.interpolate({
                     inputRange: [0, 0.5, 1],
                     outputRange: [1, 0.3, 1],
                   }),
                 }}
               />
-              <Text className="text-xs text-white">Đang quét</Text>
+              <Text className="text-sm font-medium text-white">Đang quét</Text>
             </View>
           </View>
         </CameraView>
@@ -300,11 +301,11 @@ export default function QRScanFriendScreen() {
 
       {/* Back button that's always visible, even during loading */}
       <TouchableOpacity
-        className="absolute z-20 items-center justify-center w-10 h-10 rounded-full top-12 left-5 bg-black/50"
+        className="absolute z-20 items-center justify-center w-12 h-12 rounded-full top-12 left-5 bg-black/60"
         onPress={() => router.back()}
         style={{ top: insets.top + 10 }}
       >
-        <ArrowLeft size={24} color="white" />
+        <ArrowLeft size={26} color="white" />
       </TouchableOpacity>
 
       {/* Đã xóa hộp thoại xác nhận */}
