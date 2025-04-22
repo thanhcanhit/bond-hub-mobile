@@ -121,15 +121,94 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
         // Cập nhật danh sách cuộc trò chuyện
         reloadConversationList();
+      },
+    );
 
-        // Nếu đang ở trong màn hình chat của nhóm này, chuyển về màn hình khác
-        const chatStore = useChatStore.getState();
-        if (
-          chatStore.currentChat?.type === "GROUP" &&
-          chatStore.currentChat?.id === data.groupId
-        ) {
-          router.replace("/");
-        }
+    // Handle khi nhóm được cập nhật (tên, mô tả, v.v.)
+    socket.on(
+      "groupUpdated",
+      (data: {
+        groupId: string;
+        groupName: string;
+        updatedBy: string;
+        timestamp: Date;
+      }) => {
+        console.log("[SocketProvider] Received groupUpdated event:", data);
+        console.log("[SocketProvider] Current user ID:", currentUser?.userId);
+
+        // Cập nhật danh sách cuộc trò chuyện
+        reloadConversationList();
+      },
+    );
+
+    // Handle khi có thành viên mới được thêm vào nhóm
+    socket.on(
+      "memberAdded",
+      (data: {
+        groupId: string;
+        groupName: string;
+        addedById: string;
+        userId: string;
+        timestamp: Date;
+      }) => {
+        console.log("[SocketProvider] Received memberAdded event:", data);
+
+        // Cập nhật danh sách cuộc trò chuyện
+        reloadConversationList();
+      },
+    );
+
+    // Handle khi có thành viên bị xóa khỏi nhóm
+    socket.on(
+      "memberRemoved",
+      (data: {
+        groupId: string;
+        groupName: string;
+        removedById: string;
+        userId: string;
+        kicked: boolean;
+        left: boolean;
+        timestamp: Date;
+      }) => {
+        console.log("[SocketProvider] Received memberRemoved event:", data);
+
+        // Cập nhật danh sách cuộc trò chuyện
+        reloadConversationList();
+      },
+    );
+
+    // Handle khi vai trò của thành viên thay đổi
+    socket.on(
+      "roleChanged",
+      (data: {
+        groupId: string;
+        groupName: string;
+        changedById: string;
+        userId: string;
+        role: string;
+        timestamp: Date;
+      }) => {
+        console.log("[SocketProvider] Received roleChanged event:", data);
+
+        // Cập nhật danh sách cuộc trò chuyện
+        reloadConversationList();
+      },
+    );
+
+    // Handle khi avatar của nhóm được cập nhật
+    socket.on(
+      "avatarUpdated",
+      (data: {
+        groupId: string;
+        groupName: string;
+        updatedBy: string;
+        avatarUrl: string;
+        timestamp: Date;
+      }) => {
+        console.log("[SocketProvider] Received avatarUpdated event:", data);
+
+        // Cập nhật danh sách cuộc trò chuyện
+        reloadConversationList();
       },
     );
 
@@ -160,7 +239,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
           );
         }
 
-        // Update conversation list
+        // Cập nhật danh sách cuộc trò chuyện
         reloadConversationList();
 
         // Navigate away if currently in this group's chat
@@ -184,13 +263,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
         console.log("[SocketProvider] Received updateGroupList event:", data);
         console.log("[SocketProvider] Current user ID:", currentUser?.userId);
 
-        if (data.action === "added_to_group") {
-          // Cập nhật danh sách cuộc trò chuyện khi được thêm vào nhóm mới
-          reloadConversationList();
-        } else if (data.action === "removed_from_group") {
-          // Cập nhật danh sách cuộc trò chuyện
-          reloadConversationList();
-        }
+        // Cập nhật danh sách cuộc trò chuyện cho tất cả các hành động liên quan đến nhóm
+        reloadConversationList();
       },
     );
 
@@ -200,10 +274,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
       (data: { action: string; groupId?: string; timestamp: Date }) => {
         console.log("[SocketProvider] Update conversation list:", data);
 
-        if (data.action === "group_dissolved") {
-          // Cập nhật danh sách cuộc trò chuyện
-          reloadConversationList();
-        }
+        // Cập nhật danh sách cuộc trò chuyện cho tất cả các hành động
+        reloadConversationList();
       },
     );
     // Handle new message
@@ -214,7 +286,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
         type: "user" | "group";
         timestamp: string;
       }) => {
-        console.log("New message received:", data);
         // Chuyển đổi cấu trúc message trước khi thêm vào store
         const normalizedMessage: Message = {
           ...data.message,
@@ -463,8 +534,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.on(
       "userTypingStopped",
       (data: { userId: string; receiverId?: string; groupId?: string }) => {
-        console.log("User stopped typing:", data);
-
         // Xử lý trạng thái ngừng typing cho cả chat screen và conversation list
         const chatStore = useChatStore.getState();
         const currentChat = chatStore.currentChat;
@@ -636,7 +705,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
     const main = io(baseUrl, socketConfig);
     setMainSocket(main);
     console.log(baseUrl);
-    console.log("socketconfig", socketConfig);
 
     // Kết nối message socket
     console.log("[SocketProvider] Connecting to message socket");
@@ -725,9 +793,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     // Thiết lập listeners cho group socket
     group.on("connect", () => {
       console.log("[SocketProvider] Group socket connected:", group.id);
-      console.log(
-        "[SocketProvider] Group socket connected to namespace: /groups",
-      );
+
       setIsGroupConnected(true);
       setupGroupSocketListeners(group);
 
@@ -750,6 +816,27 @@ export function SocketProvider({ children }: SocketProviderProps) {
           `[SocketProvider] Group socket received event: ${event}`,
           args,
         );
+
+        // Danh sách các sự kiện nhóm cần reload danh sách cuộc trò chuyện
+        const groupEventsNeedReload = [
+          "groupUpdated",
+          "memberAdded",
+          "memberRemoved",
+          "roleChanged",
+          "avatarUpdated",
+          "removedFromGroup",
+          "groupDissolved",
+          "groupDissolvedBroadcast",
+          "addedToGroup",
+        ];
+
+        // Nếu sự kiện thuộc danh sách cần reload, thực hiện reload
+        if (groupEventsNeedReload.includes(event)) {
+          console.log(
+            `[SocketProvider] Reloading conversation list due to ${event} event`,
+          );
+          reloadConversationList();
+        }
       });
 
       // Thiết lập heartbeat cho group socket - giảm xuống 15 giây

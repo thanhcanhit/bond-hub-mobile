@@ -69,9 +69,7 @@ export const messageService = {
         params: { page, limit },
         timeout: 30000, // Tăng thời gian chờ lên 30 giây
       });
-      console.log(
-        `Successfully fetched ${response.data?.length || 0} messages`,
-      );
+
       return response.data || [];
     } catch (error: any) {
       // Check if it's a network error and we should retry
@@ -112,9 +110,7 @@ export const messageService = {
         params: { page, limit },
         timeout: 30000, // Tăng thời gian chờ lên 30 giây
       });
-      console.log(
-        `Successfully fetched ${response.data?.length || 0} group messages`,
-      );
+
       return response.data || [];
     } catch (error: any) {
       // Check if it's a network error and we should retry
@@ -278,7 +274,7 @@ export const messageService = {
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log("Send group media message", response.data);
+
       return response.data;
     } catch (error) {
       handleError(error, "sendGroupMediaMessage");
