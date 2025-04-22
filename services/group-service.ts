@@ -199,12 +199,16 @@ export const updateGroupInfo = async (
 ): Promise<any> => {
   try {
     const token = await SecureStore.getItemAsync("accessToken");
-    const response = await axiosInstance.put(`/groups/${groupId}`, updateData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+    const response = await axiosInstance.patch(
+      `/groups/${groupId}`,
+      updateData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
     return response.data;
   } catch (error) {
     console.error("Error updating group info:", error);
