@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import CustomToastRed from "@/components/CustomToastRed";
+import CustomToast from "@/components/CustomToast";
 import QRCode from "react-native-qrcode-svg";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -56,10 +57,11 @@ export default function GroupInfoScreen() {
   const groupId = params.id;
   const [group, setGroup] = useState<Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [showRedToast, setShowRedToast] = useState(false);
+  const [showBlueToast, setShowBlueToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [selectedMember, setSelectedMember] =
     useState<ExtendedGroupMember | null>(null);
@@ -200,7 +202,7 @@ export default function GroupInfoScreen() {
               // Hiển thị thông báo nếu không phải người dùng hiện tại thêm
               if (data.addedById !== currentUser.userId) {
                 setToastMessage("Có thành viên mới được thêm vào nhóm");
-                setShowToast(true);
+                setShowBlueToast(true);
               }
             }
           });
@@ -225,7 +227,7 @@ export default function GroupInfoScreen() {
 
                 console.log("[SOCKET] Showing toast message:", message);
                 setToastMessage(message);
-                setShowToast(true);
+                setShowRedToast(true);
 
                 // Chuyển hướng ngay lập tức về màn hình chính
                 console.log("[SOCKET] Navigating to home screen");
@@ -239,7 +241,7 @@ export default function GroupInfoScreen() {
 
                 // Hiển thị thông báo
                 setToastMessage("Một thành viên đã bị xóa khỏi nhóm");
-                setShowToast(true);
+                setShowRedToast(true);
               }
             }
           });
@@ -267,7 +269,7 @@ export default function GroupInfoScreen() {
                 }
 
                 setToastMessage(roleMessage);
-                setShowToast(true);
+                setShowBlueToast(true);
               }
             }
           });
@@ -300,7 +302,7 @@ export default function GroupInfoScreen() {
               }
 
               setToastMessage(message);
-              setShowToast(true);
+              setShowRedToast(true);
 
               // Chuyển hướng ngay lập tức về màn hình chính
               router.replace("/(tabs)");
@@ -341,7 +343,7 @@ export default function GroupInfoScreen() {
             setToastMessage(
               `Nhóm ${data.groupName || ""} đã bị giải tán bởi ${dissolvedBy}`,
             );
-            setShowToast(true);
+            setShowRedToast(true);
 
             // Cập nhật danh sách cuộc trò chuyện
             try {
@@ -488,7 +490,11 @@ export default function GroupInfoScreen() {
       });
       if (updatedGroup) {
         setGroup(updatedGroup);
-        setIsEditing(false);
+        setShowEditNameModal(false);
+
+        // Hiển thị thông báo thành công
+        setToastMessage("Đã cập nhật tên nhóm thành công");
+        setShowBlueToast(true);
       }
     } catch (error) {
       console.error("Error updating group name:", error);
@@ -533,6 +539,10 @@ export default function GroupInfoScreen() {
         );
         if (updatedGroup) {
           setGroup(updatedGroup);
+
+          // Hiển thị thông báo thành công
+          setToastMessage("Đã cập nhật ảnh đại diện nhóm thành công");
+          setShowBlueToast(true);
         }
       } catch (error) {
         console.error("Error updating group avatar:", error);
@@ -580,7 +590,7 @@ export default function GroupInfoScreen() {
               // Hiển thị thông báo rời nhóm thành công
               console.log("Bước 3: Hiển thị thông báo rời nhóm thành công");
               setToastMessage("Rời nhóm thành công");
-              setShowToast(true);
+              setShowRedToast(true);
 
               // Chờ 1 giây rồi chuyển hướng về màn hình chính
               console.log(
@@ -662,7 +672,7 @@ export default function GroupInfoScreen() {
                 // Hiển thị thông báo xóa nhóm thành công
                 console.log("Bước 3: Hiển thị thông báo xóa nhóm thành công");
                 setToastMessage("Xóa nhóm thành công");
-                setShowToast(true);
+                setShowRedToast(true);
 
                 // Chờ 1 giây rồi chuyển hướng về màn hình chính
                 console.log(
@@ -755,7 +765,7 @@ export default function GroupInfoScreen() {
               setToastMessage(
                 `Đã chuyển quyền trưởng nhóm cho ${member.fullName}`,
               );
-              setShowToast(true);
+              setShowBlueToast(true);
 
               // Cập nhật lại thông tin nhóm
               console.log("Bước 4: Cập nhật lại thông tin nhóm");
@@ -867,6 +877,12 @@ export default function GroupInfoScreen() {
                         try {
                           await groupService.removeMember(groupId, item.userId);
                           fetchGroupDetails();
+
+                          // Hiển thị thông báo thành công
+                          setToastMessage(
+                            `Đã xóa ${(item as ExtendedGroupMember).fullName || "thành viên"} khỏi nhóm`,
+                          );
+                          setShowRedToast(true);
                         } catch (error) {
                           console.error("Error removing member:", error);
                           Alert.alert("Lỗi", "Không thể xóa thành viên");
@@ -889,10 +905,16 @@ export default function GroupInfoScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      {showToast && (
+      {showRedToast && (
         <CustomToastRed
           message={toastMessage}
-          onHide={() => setShowToast(false)}
+          onHide={() => setShowRedToast(false)}
+        />
+      )}
+      {showBlueToast && (
+        <CustomToast
+          message={toastMessage}
+          onHide={() => setShowBlueToast(false)}
         />
       )}
       <LinearGradient
@@ -946,46 +968,20 @@ export default function GroupInfoScreen() {
               )}
             </TouchableOpacity>
 
-            {isEditing ? (
-              <HStack className="mt-3 items-center">
-                <TextInput
-                  className="flex-1 p-2 border border-gray-300 rounded-lg"
-                  value={newGroupName}
-                  onChangeText={setNewGroupName}
-                  autoFocus
-                />
-                <TouchableOpacity
-                  onPress={handleUpdateGroupName}
-                  disabled={isUpdating}
-                  className="ml-2"
-                >
-                  <Text className="text-blue-500 font-medium">Lưu</Text>
-                </TouchableOpacity>
+            <HStack className="mt-3 items-center">
+              <Text className="text-xl font-semibold">{group?.name || ""}</Text>
+              {isGroupLeader && (
                 <TouchableOpacity
                   onPress={() => {
-                    setIsEditing(false);
                     setNewGroupName(group?.name || "");
+                    setShowEditNameModal(true);
                   }}
                   className="ml-2"
                 >
-                  <Text className="text-gray-500">Hủy</Text>
+                  <Edit2 size={16} color={Colors.light.PRIMARY_BLUE} />
                 </TouchableOpacity>
-              </HStack>
-            ) : (
-              <HStack className="mt-3 items-center">
-                <Text className="text-xl font-semibold">
-                  {group?.name || ""}
-                </Text>
-                {isGroupLeader && (
-                  <TouchableOpacity
-                    onPress={() => setIsEditing(true)}
-                    className="ml-2"
-                  >
-                    <Edit2 size={16} color={Colors.light.PRIMARY_BLUE} />
-                  </TouchableOpacity>
-                )}
-              </HStack>
-            )}
+              )}
+            </HStack>
 
             <Text className="text-gray-500 mt-1">
               {group?.members?.length || 0} thành viên
@@ -1128,12 +1124,37 @@ export default function GroupInfoScreen() {
                 </Text>
 
                 <View className="w-full">
-                  <TouchableOpacity className="flex-row items-center py-4 border-t border-gray-200">
+                  <TouchableOpacity
+                    className="flex-row items-center py-4 border-t border-gray-200"
+                    onPress={() => {
+                      setShowMemberInfo(false); // Đóng modal thông tin thành viên
+                      // Điều hướng đến trang thông tin cá nhân của thành viên
+                      router.push({
+                        pathname: "/user-info/[id]",
+                        params: { id: selectedMember.userId },
+                      });
+                    }}
+                  >
                     <User size={20} color={Colors.light.PRIMARY_BLUE} />
                     <Text className="ml-3 text-base">Xem trang cá nhân</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity className="flex-row items-center py-4 border-t border-gray-200">
+                  <TouchableOpacity
+                    className="flex-row items-center py-4 border-t border-gray-200"
+                    onPress={() => {
+                      setShowMemberInfo(false); // Đóng modal thông tin thành viên
+                      // Điều hướng đến trang chat với thành viên
+                      router.push({
+                        pathname: "/chat/[id]",
+                        params: {
+                          id: selectedMember.userId,
+                          name: selectedMember.fullName || "Thành viên",
+                          avatarUrl: selectedMember.profilePictureUrl || "",
+                          type: "USER",
+                        },
+                      });
+                    }}
+                  >
                     <MessageSquare
                       size={20}
                       color={Colors.light.PRIMARY_BLUE}
@@ -1141,9 +1162,20 @@ export default function GroupInfoScreen() {
                     <Text className="ml-3 text-base">Nhắn tin</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity className="flex-row items-center py-4 border-t border-gray-200">
-                    <Phone size={20} color={Colors.light.PRIMARY_BLUE} />
-                    <Text className="ml-3 text-base">Gọi điện</Text>
+                  <TouchableOpacity
+                    className="flex-row items-center py-4 border-t border-gray-200"
+                    disabled={true}
+                    activeOpacity={0.5}
+                  >
+                    <Phone size={20} color="#9CA3AF" /* gray-400 */ />
+                    <View className="flex-row items-center">
+                      <Text className="ml-3 text-base text-gray-400">
+                        Gọi điện
+                      </Text>
+                      <Text className="ml-2 text-xs text-gray-400 italic">
+                        (Chưa khả dụng)
+                      </Text>
+                    </View>
                   </TouchableOpacity>
 
                   {/* Bổ nhiệm làm phó nhóm */}
@@ -1172,6 +1204,13 @@ export default function GroupInfoScreen() {
                                     );
                                     // Cập nhật lại thông tin nhóm
                                     await fetchGroupDetails();
+
+                                    // Hiển thị thông báo thành công
+                                    setToastMessage(
+                                      `Đã bổ nhiệm ${selectedMember.fullName} làm phó nhóm`,
+                                    );
+                                    setShowBlueToast(true);
+
                                     Alert.alert(
                                       "Thành công",
                                       `Đã bổ nhiệm ${selectedMember.fullName} làm phó nhóm`,
@@ -1228,6 +1267,13 @@ export default function GroupInfoScreen() {
                                   );
                                   // Cập nhật lại thông tin nhóm
                                   await fetchGroupDetails();
+
+                                  // Hiển thị thông báo thành công
+                                  setToastMessage(
+                                    `Đã hạ cấp ${selectedMember.fullName} xuống thành viên thường`,
+                                  );
+                                  setShowBlueToast(true);
+
                                   Alert.alert(
                                     "Thành công",
                                     `Đã hạ cấp ${selectedMember.fullName} xuống thành viên thường`,
@@ -1278,6 +1324,12 @@ export default function GroupInfoScreen() {
                                       selectedMember.userId,
                                     );
                                     fetchGroupDetails();
+
+                                    // Hiển thị thông báo thành công
+                                    setToastMessage(
+                                      `Đã xóa ${selectedMember.fullName} khỏi nhóm`,
+                                    );
+                                    setShowRedToast(true);
                                   } catch (error) {
                                     console.error(
                                       "Error removing member:",
@@ -1529,6 +1581,93 @@ export default function GroupInfoScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Modal đổi tên nhóm */}
+      <Modal
+        visible={showEditNameModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowEditNameModal(false)}
+        statusBarTranslucent={true}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <View
+            style={{
+              width: "85%",
+              backgroundColor: "white",
+              borderRadius: 15,
+              padding: 20,
+              elevation: 5,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}
+          >
+            <View className="items-center mb-4">
+              <Text className="text-xl font-bold mb-4">Đổi tên nhóm</Text>
+
+              <TouchableOpacity
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  padding: 5,
+                }}
+                onPress={() => setShowEditNameModal(false)}
+              >
+                <X size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-gray-600 mb-2 font-medium">
+                Tên nhóm mới
+              </Text>
+              <TextInput
+                className="p-3 border border-gray-300 rounded-lg"
+                value={newGroupName}
+                onChangeText={setNewGroupName}
+                placeholder="Nhập tên nhóm mới"
+                autoFocus
+              />
+            </View>
+
+            <HStack className="justify-end space-x-3">
+              <TouchableOpacity
+                className="py-2 px-4 rounded-lg border border-gray-300"
+                onPress={() => {
+                  setNewGroupName(group?.name || "");
+                  setShowEditNameModal(false);
+                }}
+              >
+                <Text className="text-gray-600 font-medium">Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="py-2 px-4 rounded-lg bg-blue-500"
+                onPress={handleUpdateGroupName}
+                disabled={
+                  isUpdating ||
+                  !newGroupName.trim() ||
+                  newGroupName === group?.name
+                }
+              >
+                <Text className="text-white font-medium">
+                  {isUpdating ? "Đang lưu..." : "Lưu"}
+                </Text>
+              </TouchableOpacity>
+            </HStack>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 
@@ -1607,7 +1746,7 @@ export default function GroupInfoScreen() {
 
       // Show success message
       setToastMessage(`Đã thêm ${selectedFriends.size} thành viên vào nhóm`);
-      setShowToast(true);
+      setShowBlueToast(true);
 
       // Close modal and refresh group details
       handleCloseAddMembersModal();
