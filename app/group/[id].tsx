@@ -544,6 +544,24 @@ export default function GroupInfoScreen() {
   };
 
   const handleLeaveGroup = () => {
+    // Kiểm tra xem nhóm có chỉ còn 1 thành viên hay không
+    if (isLastMember) {
+      // Nếu chỉ còn 1 thành viên, gợi ý giải tán nhóm
+      Alert.alert(
+        "Không thể rời nhóm",
+        "Bạn là thành viên duy nhất còn lại trong nhóm. Bạn có muốn giải tán nhóm không?",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Giải tán nhóm",
+            style: "destructive",
+            onPress: handleDeleteGroup,
+          },
+        ],
+      );
+      return;
+    }
+
     // Kiểm tra xem người dùng có phải là trưởng nhóm không
     if (isGroupLeader) {
       // Nếu là trưởng nhóm, yêu cầu chuyển quyền trước
@@ -793,6 +811,9 @@ export default function GroupInfoScreen() {
 
   const canManageMembers = isGroupLeader || isGroupCoLeader;
 
+  // Kiểm tra xem nhóm có chỉ còn 1 thành viên hay không
+  const isLastMember = group?.members?.length === 1;
+
   // Sử dụng type casting để phù hợp với cấu trúc dữ liệu mới
   interface ExtendedGroupMember extends GroupMember {
     fullName?: string;
@@ -850,36 +871,42 @@ export default function GroupInfoScreen() {
             )}
           </VStack>
 
-          {isGroupLeader && item.userId !== currentUser?.userId && (
-            <TouchableOpacity
-              className="p-2"
-              onPress={(e) => {
-                e.stopPropagation(); // Ngăn sự kiện lan tỏa đến TouchableOpacity cha
-                Alert.alert(
-                  "Xóa thành viên",
-                  `Bạn có chắc chắn muốn xóa ${(item as ExtendedGroupMember).fullName || "thành viên này"} khỏi nhóm?`,
-                  [
-                    { text: "Hủy", style: "cancel" },
-                    {
-                      text: "Xóa",
-                      style: "destructive",
-                      onPress: async () => {
-                        try {
-                          await groupService.removeMember(groupId, item.userId);
-                          fetchGroupDetails();
-                        } catch (error) {
-                          console.error("Error removing member:", error);
-                          Alert.alert("Lỗi", "Không thể xóa thành viên");
-                        }
+          {/* Cho phép cả trưởng nhóm và phó nhóm đuổi thành viên, nhưng không thể đuổi trưởng nhóm */}
+          {canManageMembers &&
+            item.userId !== currentUser?.userId &&
+            item.role !== "LEADER" && (
+              <TouchableOpacity
+                className="p-2"
+                onPress={(e) => {
+                  e.stopPropagation(); // Ngăn sự kiện lan tỏa đến TouchableOpacity cha
+                  Alert.alert(
+                    "Xóa thành viên",
+                    `Bạn có chắc chắn muốn xóa ${(item as ExtendedGroupMember).fullName || "thành viên này"} khỏi nhóm?`,
+                    [
+                      { text: "Hủy", style: "cancel" },
+                      {
+                        text: "Xóa",
+                        style: "destructive",
+                        onPress: async () => {
+                          try {
+                            await groupService.removeMember(
+                              groupId,
+                              item.userId,
+                            );
+                            fetchGroupDetails();
+                          } catch (error) {
+                            console.error("Error removing member:", error);
+                            Alert.alert("Lỗi", "Không thể xóa thành viên");
+                          }
+                        },
                       },
-                    },
-                  ],
-                );
-              }}
-            >
-              <Trash2 size={20} color={"red"} />
-            </TouchableOpacity>
-          )}
+                    ],
+                  );
+                }}
+              >
+                <Trash2 size={20} color={"red"} />
+              </TouchableOpacity>
+            )}
         </HStack>
       </TouchableOpacity>
     );
@@ -911,9 +938,9 @@ export default function GroupInfoScreen() {
           <Text className="text-lg text-white font-semibold">
             Thông tin nhóm
           </Text>
-          <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
+          {/* <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
             <Home size={24} color={"white"} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </HStack>
       </LinearGradient>
 
@@ -1027,7 +1054,8 @@ export default function GroupInfoScreen() {
               <Text className="ml-3 text-blue-500">Mã QR nhóm</Text>
             </TouchableOpacity>
 
-            {isGroupLeader && (
+            {/* Chỉ hiển thị nút chuyển quyền trưởng nhóm khi có nhiều hơn 1 thành viên */}
+            {isGroupLeader && !isLastMember && (
               <TouchableOpacity
                 onPress={handleTransferLeadership}
                 className="flex-row items-center py-3"
@@ -1039,14 +1067,18 @@ export default function GroupInfoScreen() {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              onPress={handleLeaveGroup}
-              className="flex-row items-center py-3"
-            >
-              <LogOut size={20} color={"red"} />
-              <Text className="ml-3 text-red-500">Rời khỏi nhóm</Text>
-            </TouchableOpacity>
+            {/* Nếu nhóm có nhiều hơn 1 thành viên, hiển thị nút rời nhóm */}
+            {!isLastMember && (
+              <TouchableOpacity
+                onPress={handleLeaveGroup}
+                className="flex-row items-center py-3"
+              >
+                <LogOut size={20} color={"red"} />
+                <Text className="ml-3 text-red-500">Rời khỏi nhóm</Text>
+              </TouchableOpacity>
+            )}
 
+            {/* Nếu là trưởng nhóm hoặc là thành viên cuối cùng, hiển thị nút giải tán nhóm */}
             {isGroupLeader && (
               <TouchableOpacity
                 onPress={handleDeleteGroup}
@@ -1257,8 +1289,10 @@ export default function GroupInfoScreen() {
                     </TouchableOpacity>
                   )}
 
-                  {isGroupLeader &&
-                    selectedMember.userId !== currentUser?.userId && (
+                  {/* Cho phép cả trưởng nhóm và phó nhóm đuổi thành viên, nhưng không thể đuổi trưởng nhóm */}
+                  {canManageMembers &&
+                    selectedMember.userId !== currentUser?.userId &&
+                    selectedMember.role !== "LEADER" && (
                       <TouchableOpacity
                         className="flex-row items-center py-4 border-t border-gray-200"
                         onPress={() => {
