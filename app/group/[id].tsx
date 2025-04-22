@@ -685,20 +685,12 @@ export default function GroupInfoScreen() {
               try {
                 // Gọi API xóa nhóm
                 await groupService.deleteGroup(groupId);
-                console.log("Bước 2: Xóa nhóm thành công");
 
-                // Hiển thị thông báo xóa nhóm thành công
-                console.log("Bước 3: Hiển thị thông báo xóa nhóm thành công");
                 setToastMessage("Xóa nhóm thành công");
                 setShowRedToast(true);
 
-                // Chờ 1 giây rồi chuyển hướng về màn hình chính
-                console.log(
-                  "Bước 4: Chờ 1 giây rồi chuyển hướng về màn hình chính",
-                );
                 setTimeout(() => {
                   router.replace("/(tabs)");
-                  console.log("Bước 5: Đã gọi router.replace");
                 }, 1000);
 
                 // Cập nhật danh sách cuộc trò chuyện (không chờ kết quả)
@@ -706,9 +698,6 @@ export default function GroupInfoScreen() {
                   const conversationsStore =
                     require("@/store/conversationsStore").useConversationsStore.getState();
                   conversationsStore.fetchConversations(1);
-                  console.log(
-                    "Bước 5: Đã gọi cập nhật danh sách cuộc trò chuyện",
-                  );
                 } catch (storeError) {
                   console.error(
                     "Lỗi khi cập nhật danh sách cuộc trò chuyện:",

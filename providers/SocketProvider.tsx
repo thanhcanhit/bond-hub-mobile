@@ -23,6 +23,7 @@ interface SocketContextType {
   isMainConnected: boolean;
   isMessageConnected: boolean;
   isGroupConnected: boolean;
+  reconnectMessageSocket: () => void; // Thêm hàm reconnect message socket
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -32,6 +33,7 @@ const SocketContext = createContext<SocketContextType>({
   isMainConnected: false,
   isMessageConnected: false,
   isGroupConnected: false,
+  reconnectMessageSocket: () => {}, // Giá trị mặc định
 });
 
 // Hook để sử dụng socket trong các component
@@ -121,94 +123,15 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
         // Cập nhật danh sách cuộc trò chuyện
         reloadConversationList();
-      },
-    );
 
-    // Handle khi nhóm được cập nhật (tên, mô tả, v.v.)
-    socket.on(
-      "groupUpdated",
-      (data: {
-        groupId: string;
-        groupName: string;
-        updatedBy: string;
-        timestamp: Date;
-      }) => {
-        console.log("[SocketProvider] Received groupUpdated event:", data);
-        console.log("[SocketProvider] Current user ID:", currentUser?.userId);
-
-        // Cập nhật danh sách cuộc trò chuyện
-        reloadConversationList();
-      },
-    );
-
-    // Handle khi có thành viên mới được thêm vào nhóm
-    socket.on(
-      "memberAdded",
-      (data: {
-        groupId: string;
-        groupName: string;
-        addedById: string;
-        userId: string;
-        timestamp: Date;
-      }) => {
-        console.log("[SocketProvider] Received memberAdded event:", data);
-
-        // Cập nhật danh sách cuộc trò chuyện
-        reloadConversationList();
-      },
-    );
-
-    // Handle khi có thành viên bị xóa khỏi nhóm
-    socket.on(
-      "memberRemoved",
-      (data: {
-        groupId: string;
-        groupName: string;
-        removedById: string;
-        userId: string;
-        kicked: boolean;
-        left: boolean;
-        timestamp: Date;
-      }) => {
-        console.log("[SocketProvider] Received memberRemoved event:", data);
-
-        // Cập nhật danh sách cuộc trò chuyện
-        reloadConversationList();
-      },
-    );
-
-    // Handle khi vai trò của thành viên thay đổi
-    socket.on(
-      "roleChanged",
-      (data: {
-        groupId: string;
-        groupName: string;
-        changedById: string;
-        userId: string;
-        role: string;
-        timestamp: Date;
-      }) => {
-        console.log("[SocketProvider] Received roleChanged event:", data);
-
-        // Cập nhật danh sách cuộc trò chuyện
-        reloadConversationList();
-      },
-    );
-
-    // Handle khi avatar của nhóm được cập nhật
-    socket.on(
-      "avatarUpdated",
-      (data: {
-        groupId: string;
-        groupName: string;
-        updatedBy: string;
-        avatarUrl: string;
-        timestamp: Date;
-      }) => {
-        console.log("[SocketProvider] Received avatarUpdated event:", data);
-
-        // Cập nhật danh sách cuộc trò chuyện
-        reloadConversationList();
+        // Nếu đang ở trong màn hình chat của nhóm này, chuyển về màn hình khác
+        const chatStore = useChatStore.getState();
+        if (
+          chatStore.currentChat?.type === "GROUP" &&
+          chatStore.currentChat?.id === data.groupId
+        ) {
+          router.replace("/");
+        }
       },
     );
 
@@ -239,7 +162,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
           );
         }
 
-        // Cập nhật danh sách cuộc trò chuyện
+        // Update conversation list
         reloadConversationList();
 
         // Navigate away if currently in this group's chat
@@ -263,8 +186,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
         console.log("[SocketProvider] Received updateGroupList event:", data);
         console.log("[SocketProvider] Current user ID:", currentUser?.userId);
 
-        // Cập nhật danh sách cuộc trò chuyện cho tất cả các hành động liên quan đến nhóm
-        reloadConversationList();
+        if (data.action === "added_to_group") {
+          // Cập nhật danh sách cuộc trò chuyện khi được thêm vào nhóm mới
+          reloadConversationList();
+        } else if (data.action === "removed_from_group") {
+          // Cập nhật danh sách cuộc trò chuyện
+          reloadConversationList();
+        }
       },
     );
 
@@ -274,8 +202,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
       (data: { action: string; groupId?: string; timestamp: Date }) => {
         console.log("[SocketProvider] Update conversation list:", data);
 
-        // Cập nhật danh sách cuộc trò chuyện cho tất cả các hành động
-        reloadConversationList();
+        if (data.action === "group_dissolved") {
+          // Cập nhật danh sách cuộc trò chuyện
+          reloadConversationList();
+        }
       },
     );
     // Handle new message
@@ -286,6 +216,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         type: "user" | "group";
         timestamp: string;
       }) => {
+        console.log("New message received:", data);
         // Chuyển đổi cấu trúc message trước khi thêm vào store
         const normalizedMessage: Message = {
           ...data.message,
@@ -534,6 +465,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.on(
       "userTypingStopped",
       (data: { userId: string; receiverId?: string; groupId?: string }) => {
+        console.log("User stopped typing:", data);
+
         // Xử lý trạng thái ngừng typing cho cả chat screen và conversation list
         const chatStore = useChatStore.getState();
         const currentChat = chatStore.currentChat;
@@ -705,6 +638,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     const main = io(baseUrl, socketConfig);
     setMainSocket(main);
     console.log(baseUrl);
+    console.log("socketconfig", socketConfig);
 
     // Kết nối message socket
     console.log("[SocketProvider] Connecting to message socket");
@@ -793,7 +727,9 @@ export function SocketProvider({ children }: SocketProviderProps) {
     // Thiết lập listeners cho group socket
     group.on("connect", () => {
       console.log("[SocketProvider] Group socket connected:", group.id);
-
+      console.log(
+        "[SocketProvider] Group socket connected to namespace: /groups",
+      );
       setIsGroupConnected(true);
       setupGroupSocketListeners(group);
 
@@ -816,27 +752,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
           `[SocketProvider] Group socket received event: ${event}`,
           args,
         );
-
-        // Danh sách các sự kiện nhóm cần reload danh sách cuộc trò chuyện
-        const groupEventsNeedReload = [
-          "groupUpdated",
-          "memberAdded",
-          "memberRemoved",
-          "roleChanged",
-          "avatarUpdated",
-          "removedFromGroup",
-          "groupDissolved",
-          "groupDissolvedBroadcast",
-          "addedToGroup",
-        ];
-
-        // Nếu sự kiện thuộc danh sách cần reload, thực hiện reload
-        if (groupEventsNeedReload.includes(event)) {
-          console.log(
-            `[SocketProvider] Reloading conversation list due to ${event} event`,
-          );
-          reloadConversationList();
-        }
       });
 
       // Thiết lập heartbeat cho group socket - giảm xuống 15 giây
@@ -921,6 +836,73 @@ export function SocketProvider({ children }: SocketProviderProps) {
     }
   };
 
+  // Hàm để kết nối lại message socket
+  const reconnectMessageSocket = () => {
+    console.log(
+      "[SocketProvider] Reconnecting message socket after group creation",
+    );
+
+    if (!currentUser) {
+      console.log("[SocketProvider] Cannot reconnect: No current user");
+      return;
+    }
+
+    // Đóng kết nối hiện tại nếu có
+    if (messageSocket) {
+      console.log(
+        "[SocketProvider] Closing existing message socket connection",
+      );
+      messageSocket.disconnect();
+    }
+
+    // URL của server socket
+    const baseUrl = "http://bondhub.cloud:3000";
+    const socketConfig = {
+      auth: { userId: currentUser.userId },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
+      transports: ["websocket"],
+    };
+
+    // Kết nối message socket mới
+    console.log("[SocketProvider] Creating new message socket connection");
+    const message = io(`${baseUrl}/message`, socketConfig);
+
+    // Thiết lập listeners cho message socket
+    message.on("connect", () => {
+      console.log("[SocketProvider] New message socket connected:", message.id);
+      setIsMessageConnected(true);
+      setupMessageSocketListeners(message);
+
+      // Thiết lập window.messageSocket để các component khác có thể truy cập
+      if (typeof window !== "undefined") {
+        window.messageSocket = message;
+      }
+
+      // Cập nhật danh sách cuộc trò chuyện
+      reloadConversationList();
+    });
+
+    message.on("disconnect", (reason) => {
+      console.log("[SocketProvider] New message socket disconnected:", reason);
+      setIsMessageConnected(false);
+    });
+
+    message.on("connect_error", (error) => {
+      console.error(
+        "[SocketProvider] New message socket connection error:",
+        error,
+      );
+      setIsMessageConnected(false);
+    });
+
+    // Cập nhật state với socket mới
+    setMessageSocket(message);
+  };
+
   return (
     <SocketContext.Provider
       value={{
@@ -930,6 +912,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         isMainConnected,
         isMessageConnected,
         isGroupConnected,
+        reconnectMessageSocket,
       }}
     >
       {children}

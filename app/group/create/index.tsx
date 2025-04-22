@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, Search, Check, Trash2, ArrowLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
+// Removed RNRestart import as we won't need it anymore
 import {
   Avatar,
   AvatarFallbackText,
@@ -32,11 +33,13 @@ import {
   ContactUser,
 } from "@/services/friend-service";
 import { createGroup } from "@/services/group-service";
-import { useAuthStore } from "@/store/authStore";
+import { useSocket } from "@/providers/SocketProvider";
 
 export default function CreateGroupScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuthStore();
+  // We don't need to access the user directly in this component
+  // const { user } = useAuthStore();
+  const { reconnectMessageSocket } = useSocket(); // Get the reconnectMessageSocket function
   const [showToast, setShowToast] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -424,43 +427,23 @@ export default function CreateGroupScreen() {
             try {
               setLoading(true);
 
-              // In ra thông tin người dùng hiện tại
-              console.log("Current user from store:", user);
-              console.log("Current user ID from store:", user?.userId);
-
               const memberIds = Array.from(selectedFriends);
-              console.log("Selected member IDs:", memberIds);
-              console.log("Group name:", groupName.trim());
-              console.log(
-                "Group avatar:",
-                groupAvatar ? "Has avatar" : "No avatar",
-              );
 
-              console.log("Bước 1: Bắt đầu tạo nhóm");
-              const newGroup = await createGroup(
-                groupName.trim(),
-                memberIds,
-                groupAvatar,
-              );
-              console.log("Bước 2: Tạo nhóm thành công, ID:", newGroup.id);
+              // Tạo nhóm mới
+              await createGroup(groupName.trim(), memberIds, groupAvatar);
 
-              // Hiển thị thông báo tạo nhóm thành công
-              console.log("Bước 3: Hiển thị thông báo tạo nhóm thành công");
-
-              // Hiển thị thông báo tạo nhóm thành công
-              console.log("Bước 4: Hiển thị thông báo tạo nhóm thành công");
               setShowToast(true);
 
-              // Chờ 1 giây rồi chuyển hướng về màn hình chính
+              // Kết nối lại message socket để cập nhật với nhóm mới
               console.log(
-                "Bước 5: Chờ 1 giây rồi chuyển hướng về màn hình chính",
+                "[CreateGroup] Reconnecting message socket after group creation",
               );
+              reconnectMessageSocket();
+
+              // Chuyển hướng về màn hình chính sau khi hiển thị thông báo
               setTimeout(() => {
                 router.replace("/(tabs)");
-                console.log("Bước 6: Đã gọi router.replace");
               }, 1000);
-
-              // Không cần setTimeout nữa vì đã chuyển hướng khi nhấn OK
             } catch (err) {
               console.error("Lỗi khi tạo nhóm:", err);
               alert("Không thể tạo nhóm. Vui lòng thử lại sau.");
