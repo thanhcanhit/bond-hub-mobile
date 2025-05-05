@@ -633,19 +633,16 @@ export function SocketProvider({ children }: SocketProviderProps) {
     };
 
     // Kết nối main socket
-    console.log("[SocketProvider] Connecting to main socket");
     const main = io(baseUrl, socketConfig);
     setMainSocket(main);
     console.log(baseUrl);
     console.log("socketconfig", socketConfig);
 
     // Kết nối message socket
-    console.log("[SocketProvider] Connecting to message socket");
     const message = io(`${baseUrl}/message`, socketConfig);
     setMessageSocket(message);
 
     // Kết nối group socket
-    console.log("[SocketProvider] Connecting to group socket");
     const group = io(`${baseUrl}/groups`, socketConfig);
     setGroupSocket(group);
 
@@ -726,9 +723,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
     // Thiết lập listeners cho group socket
     group.on("connect", () => {
       console.log("[SocketProvider] Group socket connected:", group.id);
-      console.log(
-        "[SocketProvider] Group socket connected to namespace: /groups",
-      );
       setIsGroupConnected(true);
       setupGroupSocketListeners(group);
 

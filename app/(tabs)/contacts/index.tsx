@@ -83,8 +83,6 @@ export default function ContactScreen() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    console.log("Setting up reload listener in contacts screen");
-
     // Lắng nghe sự kiện reload
     const handleReload = () => {
       console.log("Received reload event from server, refreshing data");

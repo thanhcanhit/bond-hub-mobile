@@ -63,7 +63,9 @@
         {
           "filePermission": "Cho phép ứng dụng truy cập files"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
