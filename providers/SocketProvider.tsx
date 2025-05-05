@@ -35,6 +35,7 @@ const SocketContext = createContext<SocketContextType>({
   isGroupConnected: false,
   reconnectMessageSocket: () => {}, // Giá trị mặc định
 });
+const baseUrl = "https://api.bondhub.cloud";
 
 // Hook để sử dụng socket trong các component
 export const useSocket = () => useContext(SocketContext);
@@ -620,8 +621,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
       return;
     }
 
-    // URL của server socket
-    const baseUrl = "http://bondhub.cloud:3000";
     console.log("[SocketProvider] Connecting to socket server at:", baseUrl);
     const socketConfig = {
       auth: { userId: currentUser.userId },
@@ -855,8 +854,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
       messageSocket.disconnect();
     }
 
-    // URL của server socket
-    const baseUrl = "http://bondhub.cloud:3000";
     const socketConfig = {
       auth: { userId: currentUser.userId },
       reconnection: true,
