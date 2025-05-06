@@ -36,7 +36,7 @@ import { MediaPreview } from "@/components/chat/MediaPreview";
 import VoiceRecorder from "@/components/chat/VoiceRecorder";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
-
+import CallScreen from "@/components/call/CallScreen";
 const ChatScreen = () => {
   const {
     loading,
@@ -66,16 +66,18 @@ const ChatScreen = () => {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [showCallScreen, setShowCallScreen] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
   const { id: chatId, name, avatarUrl, type } = useLocalSearchParams();
   const isGroupChat = type === "GROUP";
+
   useEffect(() => {
     if (chatId) {
       const chatType = type === "GROUP" ? "GROUP" : "USER";
-
-      // Cập nhật thông tin cuộc trò chuyện hiện tại
       useChatStore.getState().setCurrentChat({
         id: chatId as string,
         name: name as string,
@@ -98,13 +100,10 @@ const ChatScreen = () => {
           name: name as string,
           profilePictureUrl: avatarUrl as string,
         });
-
-        // Fetch group members for group chats
         fetchGroupMembers(chatId as string);
       }
     }
 
-    // Khi rời khỏi màn hình chat, xóa thông tin cuộc trò chuyện hiện tại
     return () => {
       useChatStore.getState().setCurrentChat(null);
       useChatStore.getState().setCurrentChatType(null);
@@ -115,8 +114,6 @@ const ChatScreen = () => {
     if (chatId) {
       console.log(`Initializing chat screen for ${chatId}`);
       loadMessages(chatId as string);
-
-      // Mark conversation as read when entering chat
       const conversationsStore = useConversationsStore.getState();
       conversationsStore.markAsRead(chatId as string, type as "USER" | "GROUP");
     } else {
@@ -124,17 +121,15 @@ const ChatScreen = () => {
     }
   }, [chatId, type]);
 
-  // Biến để theo dõi xem đang tải thêm tin nhắn cũ hay không
   const isLoadingMore = useRef(false);
 
   useEffect(() => {
-    // Chỉ cuộn xuống dưới khi có tin nhắn mới và không phải đang tải thêm tin nhắn cũ
     if (!isFirstLoad && messages.length > 0 && !isLoadingMore.current) {
       scrollToBottom();
     }
     if (isFirstLoad && messages.length > 0) {
       setIsFirstLoad(false);
-      scrollToBottom(false); // Cuộn xuống dưới không có animation khi lần đầu tải
+      scrollToBottom(false);
     }
   }, [messages, isFirstLoad]);
 
@@ -153,7 +148,6 @@ const ChatScreen = () => {
       console.error("Cannot refresh: No chat ID provided");
       return;
     }
-
     setRefreshing(true);
     try {
       await loadMessages(chatId as string, 1);
@@ -171,14 +165,12 @@ const ChatScreen = () => {
       console.error("Cannot load more: No chat ID provided");
       return;
     }
-
     try {
       isLoadingMore.current = true;
       await loadMessages(chatId as string, page + 1);
     } catch (error) {
       console.error("Error loading more messages:", error);
     } finally {
-      // Đặt lại biến sau khi tải xong
       setTimeout(() => {
         isLoadingMore.current = false;
       }, 500);
@@ -189,7 +181,7 @@ const ChatScreen = () => {
     if (!message.trim() || !user) return;
     await sendMessage(chatId as string, message, user.userId);
     setMessage("");
-    setTimeout(() => scrollToBottom(), 100); // Delay to ensure message is rendered
+    setTimeout(() => scrollToBottom(), 100);
   };
 
   const handleSendMediaMessage = async () => {
@@ -202,7 +194,7 @@ const ChatScreen = () => {
     );
     setMessage("");
     setSelectedMedia([]);
-    setTimeout(() => scrollToBottom(), 100); // Delay to ensure message is rendered
+    setTimeout(() => scrollToBottom(), 100);
   };
 
   const handleDocumentPick = async () => {
@@ -212,25 +204,21 @@ const ChatScreen = () => {
         type: ["application/pdf", "application/msword", "text/plain"],
         multiple: true,
       });
-
       if (!result.canceled && result.assets.length > 0) {
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
         const invalidFiles = result.assets.filter(
           (asset) => asset.size && asset.size > MAX_FILE_SIZE,
         );
-
         if (invalidFiles.length > 0) {
           Alert.alert("File Too Large", "Documents must be under 5MB.");
           return;
         }
-
         const mediaFiles = result.assets.map((asset) => ({
           uri: asset.uri,
           type: "DOCUMENT" as const,
           name: asset.name,
           mimeType: asset.mimeType,
         }));
-        console.log(mediaFiles);
         await sendMediaMessage(
           chatId as string,
           message,
@@ -247,7 +235,6 @@ const ChatScreen = () => {
 
   const handleMediaUpload = async () => {
     if (!user) return;
-
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: MediaTypeOptions.All,
@@ -255,20 +242,15 @@ const ChatScreen = () => {
         quality: 0.8,
         videoMaxDuration: 60,
       });
-
       if (!result.canceled && result.assets.length > 0) {
-        // Kiểm tra kích thước file
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
         const invalidFiles = result.assets.filter(
           (asset) => asset.fileSize && asset.fileSize > MAX_FILE_SIZE,
         );
-
         if (invalidFiles.length > 0) {
           Alert.alert("File quá lớn", "Ảnh hoặc video phải nhỏ hơn 10MB.");
           return;
         }
-
-        // Add selected media to preview
         setSelectedMedia(
           result.assets.map((asset) => ({
             uri: asset.uri,
@@ -284,7 +266,6 @@ const ChatScreen = () => {
     }
   };
 
-  // Render item cho FlatList
   const renderItem: ListRenderItem<Message> = ({ item: msg, index }) => {
     const senderInfo = getSenderInfo(msg.senderId);
     return (
@@ -303,14 +284,12 @@ const ChatScreen = () => {
     );
   };
 
-  // Xử lý khi người dùng cuộn đến đầu danh sách để tải thêm tin nhắn cũ
   const handleEndReached = () => {
     if (hasMore && !loading) {
       handleLoadMore();
     }
   };
 
-  // Fetch group members
   const fetchGroupMembers = async (groupId: string) => {
     try {
       const groupDetails = await groupService.getGroupDetails(groupId);
@@ -322,15 +301,11 @@ const ChatScreen = () => {
     }
   };
 
-  // Get sender name and profile picture from group members
   const getSenderInfo = (senderId: string) => {
     if (!isGroupChat)
       return { name: undefined, profilePic: avatarUrl as string };
-
     const member = groupMembers.find((member) => member.userId === senderId);
     if (member) {
-      // Handle both possible structures of GroupMember using type assertion
-      // Some implementations have user property, others have fullName directly
       const memberAny = member as any;
       return {
         name: memberAny.user?.fullName || memberAny.fullName,
@@ -341,30 +316,21 @@ const ChatScreen = () => {
     return { name: undefined, profilePic: undefined };
   };
 
-  // Hàm để xác định tin nhắn cuối cùng của mỗi người dùng
   const getIsLastMessageOfUser = (message: Message, index: number) => {
     if (index === messages.length - 1) return true;
-
     const nextMessage = messages[index + 1];
     return message.senderId !== nextMessage.senderId;
   };
 
-  // Render typing indicator
   const renderTypingIndicator = () => {
-    // Get typing users and filter out current user
     const typingUsersMap = new Map(typingUsers);
-    // Remove current user from the map to avoid showing your own typing status
     if (user?.userId) {
       typingUsersMap.delete(user.userId);
     }
-
-    // Convert to array for easier processing
     const typingUsersArray = Array.from(typingUsersMap.entries()).map(
       ([userId, data]) => ({ userId, ...data }),
     );
-
     if (typingUsersArray.length > 0) {
-      // For group chats, show who is typing
       if (isGroupChat) {
         const typingNames = typingUsersArray.map((typingUser) => {
           const member = groupMembers.find(
@@ -374,7 +340,6 @@ const ChatScreen = () => {
           const memberAny = member as any;
           return memberAny.user?.fullName || memberAny.fullName || "Someone";
         });
-
         let typingText = "";
         if (typingNames.length === 1) {
           typingText = `${typingNames[0]} đang soạn tin ...`;
@@ -383,7 +348,6 @@ const ChatScreen = () => {
         } else if (typingNames.length > 2) {
           typingText = `${typingNames[0]} và ${typingNames.length - 1} người khác đang soạn tin ...`;
         }
-
         return (
           <Text className="text-blue-300 py-0.5 px-2 text-sm bg-transparent">
             {typingText}
@@ -400,12 +364,10 @@ const ChatScreen = () => {
     return null;
   };
 
-  // Add debounce function
   const debouncedTyping = useCallback(
     debounce((isTyping: boolean) => {
       try {
         console.log("Typing...", isTyping);
-        // Use the chatStore function directly
         useChatStore.getState().handleTypingStatus(isTyping);
       } catch (error) {
         console.error("Error sending typing indicator:", error);
@@ -414,180 +376,206 @@ const ChatScreen = () => {
     [],
   );
 
+  const handleStartCall = (isVideo: boolean) => {
+    setIsVideoEnabled(isVideo);
+    setShowCallScreen(true);
+  };
+
+  const handleEndCall = () => {
+    setShowCallScreen(false);
+    setIsMuted(false);
+    setIsVideoEnabled(false);
+  };
+
+  const handleToggleMute = () => {
+    setIsMuted((prev) => !prev);
+  };
+
   return (
     <View className="flex-1 bg-gray-100">
-      <ChatHeader
-        chatId={chatId as string}
-        name={name as string}
-        isGroup={type === "GROUP"}
-        onBack={() => router.back()}
-      />
-
-      <FlatList
-        ref={flatListRef}
-        data={[...messages].reverse()} // Đảo ngược mảng để tin nhắn mới nhất ở dưới cùng
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
-        inverted={true} // Hiển thị danh sách đảo ngược (tin nhắn mới nhất ở dưới cùng)
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.2}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        ListFooterComponent={
-          loading ? <ActivityIndicator className="py-4" /> : null
-        }
-        initialNumToRender={20}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-      />
-
-      {showEmoji && (
-        <EmojiPicker
-          onEmojiSelected={(emoji: EmojiType) =>
-            setMessage(message + emoji.emoji)
-          }
-          categoryPosition="top"
-          enableRecentlyUsed
-          open={showEmoji}
-          onClose={() => setShowEmoji(!showEmoji)}
+      {showCallScreen ? (
+        <CallScreen
+          callerName={name as string}
+          callerAvatar={avatarUrl as string}
+          onEndCall={handleEndCall}
+          onToggleMute={handleToggleMute}
+          isMuted={isMuted}
+          isVideoEnabled={isVideoEnabled}
         />
-      )}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        style={
-          Platform.OS === "ios"
-            ? { paddingBottom: 0 }
-            : { paddingBottom: insets.bottom }
-        }
-      >
-        {renderTypingIndicator()}
-        {selectedMedia.length > 0 && (
-          <MediaPreview
-            mediaItems={selectedMedia}
-            onRemove={(index) => {
-              const updatedMedia = selectedMedia.filter((_, i) => i !== index);
-              setSelectedMedia(updatedMedia);
-            }}
+      ) : (
+        <>
+          <ChatHeader
+            chatId={chatId as string}
+            name={name as string}
+            avatarUrl={avatarUrl as string}
+            isGroup={type === "GROUP"}
+            onBack={() => router.back()}
+            onStartCall={handleStartCall}
           />
-        )}
-        <View
-          className="flex-row justify-center items-center bg-white px-4 pt-2"
-          style={{
-            paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          }}
-        >
-          <TouchableOpacity
-            className="ml-2.5"
-            onPress={() => setShowEmoji(!showEmoji)}
-            disabled={isLoadingMedia}
-          >
-            <Sticker width={24} height={24} color={"#c4c4c4"} />
-          </TouchableOpacity>
-
-          <TextInput
-            className="flex-1 ml-2.5 p-1 bg-transparent justify-center text-gray-700 text-base"
-            placeholder="Nhập tin nhắn..."
-            value={message}
-            onChangeText={(text) => {
-              setMessage(text);
-              debouncedTyping(text.length > 0);
+          <FlatList
+            ref={flatListRef}
+            data={[...messages].reverse()}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingVertical: 16,
             }}
-            multiline
-            numberOfLines={message.length > 100 ? 4 : 1}
-            textAlignVertical="center"
-            style={{
-              minHeight: 40,
-              maxHeight: 70,
-            }}
+            inverted={true}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.2}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            ListFooterComponent={
+              loading ? <ActivityIndicator className="py-4" /> : null
+            }
+            initialNumToRender={20}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           />
-          {!message.trim() && selectedMedia.length === 0 ? (
-            <View className="flex-row relative">
-              <TouchableOpacity
-                className="mx-2"
-                disabled={isLoadingMedia}
-                onPress={() => setShowVoiceRecorder(true)}
-              >
-                <Mic
-                  size={26}
-                  color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
-                  strokeWidth={1.5}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="mx-2"
-                onPress={handleMediaUpload}
-                disabled={isLoadingMedia}
-              >
-                <ImageIcon
-                  size={26}
-                  color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
-                  strokeWidth={1.5}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="mx-2"
-                onPress={handleDocumentPick}
-                disabled={isLoadingMedia}
-              >
-                <Ellipsis
-                  size={26}
-                  color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
-                  strokeWidth={1.5}
-                />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={
-                selectedMedia.length > 0 ? handleSendMediaMessage : handleSend
+          {showEmoji && (
+            <EmojiPicker
+              onEmojiSelected={(emoji: EmojiType) =>
+                setMessage(message + emoji.emoji)
               }
-              disabled={
-                (!message.trim() && selectedMedia.length === 0) ||
-                isLoadingMedia
-              }
-            >
-              <SendHorizonal size={28} fill={Colors.light.PRIMARY_BLUE} />
-            </TouchableOpacity>
+              categoryPosition="top"
+              enableRecentlyUsed
+              open={showEmoji}
+              onClose={() => setShowEmoji(!showEmoji)}
+            />
           )}
-        </View>
-      </KeyboardAvoidingView>
-
-      {/* Voice Recorder Modal */}
-      <Modal
-        visible={showVoiceRecorder}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowVoiceRecorder(false)}
-      >
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
-          <VoiceRecorder
-            onClose={() => setShowVoiceRecorder(false)}
-            onSend={(uri) => {
-              // Handle the voice message
-              if (user) {
-                const voiceMedia = [
-                  {
-                    uri,
-                    type: "AUDIO" as const,
-                    name: `voice_message_${Date.now()}.m4a`,
-                    mediaType: "AUDIO",
-                  },
-                ];
-                console.log("---- voice: ", voiceMedia);
-                sendMediaMessage(
-                  chatId as string,
-                  "", // No text for voice messages
-                  user.userId,
-                  voiceMedia,
-                );
-                setShowVoiceRecorder(false);
-              }
-            }}
-          />
-        </View>
-      </Modal>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+            style={
+              Platform.OS === "ios"
+                ? { paddingBottom: 0 }
+                : { paddingBottom: insets.bottom }
+            }
+          >
+            {renderTypingIndicator()}
+            {selectedMedia.length > 0 && (
+              <MediaPreview
+                mediaItems={selectedMedia}
+                onRemove={(index) => {
+                  const updatedMedia = selectedMedia.filter(
+                    (_, i) => i !== index,
+                  );
+                  setSelectedMedia(updatedMedia);
+                }}
+              />
+            )}
+            <View
+              className="flex-row justify-center items-center bg-white px-4 pt-2"
+              style={{ paddingBottom: Platform.OS === "ios" ? 20 : 8 }}
+            >
+              <TouchableOpacity
+                className="ml-2.5"
+                onPress={() => setShowEmoji(!showEmoji)}
+                disabled={isLoadingMedia}
+              >
+                <Sticker width={24} height={24} color={"#c4c4c4"} />
+              </TouchableOpacity>
+              <TextInput
+                className="flex-1 ml-2.5 p-1 bg-transparent justify-center text-gray-700 text-base"
+                placeholder="Nhập tin nhắn..."
+                value={message}
+                onChangeText={(text) => {
+                  setMessage(text);
+                  debouncedTyping(text.length > 0);
+                }}
+                multiline
+                numberOfLines={message.length > 100 ? 4 : 1}
+                textAlignVertical="center"
+                style={{ minHeight: 40, maxHeight: 70 }}
+              />
+              {!message.trim() && selectedMedia.length === 0 ? (
+                <View className="flex-row relative">
+                  <TouchableOpacity
+                    className="mx-2"
+                    disabled={isLoadingMedia}
+                    onPress={() => setShowVoiceRecorder(true)}
+                  >
+                    <Mic
+                      size={26}
+                      color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
+                      strokeWidth={1.5}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="mx-2"
+                    onPress={handleMediaUpload}
+                    disabled={isLoadingMedia}
+                  >
+                    <ImageIcon
+                      size={26}
+                      color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
+                      strokeWidth={1.5}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="mx-2"
+                    onPress={handleDocumentPick}
+                    disabled={isLoadingMedia}
+                  >
+                    <Ellipsis
+                      size={26}
+                      color={isLoadingMedia ? "#c4c4c4" : "#c4c4c4"}
+                      strokeWidth={1.5}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={
+                    selectedMedia.length > 0
+                      ? handleSendMediaMessage
+                      : handleSend
+                  }
+                  disabled={
+                    (!message.trim() && selectedMedia.length === 0) ||
+                    isLoadingMedia
+                  }
+                >
+                  <SendHorizonal size={28} fill={Colors.light.PRIMARY_BLUE} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+          <Modal
+            visible={showVoiceRecorder}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowVoiceRecorder(false)}
+          >
+            <View style={{ flex: 1, justifyContent: "flex-end" }}>
+              <VoiceRecorder
+                onClose={() => setShowVoiceRecorder(false)}
+                onSend={(uri) => {
+                  if (user) {
+                    const voiceMedia = [
+                      {
+                        uri,
+                        type: "AUDIO" as const,
+                        name: `voice_message_${Date.now()}.m4a`,
+                        mediaType: "AUDIO",
+                      },
+                    ];
+                    console.log("---- voice: ", voiceMedia);
+                    sendMediaMessage(
+                      chatId as string,
+                      "",
+                      user.userId,
+                      voiceMedia,
+                    );
+                    setShowVoiceRecorder(false);
+                  }
+                }}
+              />
+            </View>
+          </Modal>
+        </>
+      )}
     </View>
   );
 };
