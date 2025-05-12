@@ -37,6 +37,8 @@ import VoiceRecorder from "@/components/chat/VoiceRecorder";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
 import CallScreen from "@/components/call/CallScreen";
+import { callService, Call } from "@/services/call/callService";
+
 const ChatScreen = () => {
   const {
     loading,
@@ -69,6 +71,7 @@ const ChatScreen = () => {
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [currentCall, setCurrentCall] = useState<Call | null>(null);
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
@@ -376,15 +379,42 @@ const ChatScreen = () => {
     [],
   );
 
-  const handleStartCall = (isVideo: boolean) => {
-    setIsVideoEnabled(isVideo);
-    setShowCallScreen(true);
+  const handleStartCall = async (isVideo: boolean) => {
+    if (!user || !chatId) return;
+    try {
+      // 1. Gọi API tạo cuộc gọi
+      const call = await callService.createCall(
+        user.userId,
+        chatId as string,
+        isVideo ? "VIDEO" : "AUDIO",
+      );
+      setCurrentCall(call);
+      setIsVideoEnabled(isVideo);
+      setShowCallScreen(true);
+      // 2. Kết nối socket /call
+      const socket = await callService.connectSocket();
+      // 3. Gửi joinRoom
+      socket?.emit("joinRoom", { roomId: call.roomId });
+      // (Có thể lắng nghe các sự kiện khác ở đây)
+    } catch (err) {
+      Alert.alert("Không thể bắt đầu cuộc gọi", "Vui lòng thử lại sau.");
+      setShowCallScreen(false);
+      setCurrentCall(null);
+    }
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
+    if (currentCall && user) {
+      try {
+        await callService.endCall(currentCall.id, user.userId);
+      } catch (err) {
+        // ignore
+      }
+    }
     setShowCallScreen(false);
     setIsMuted(false);
     setIsVideoEnabled(false);
+    setCurrentCall(null);
   };
 
   const handleToggleMute = () => {
@@ -401,6 +431,7 @@ const ChatScreen = () => {
           onToggleMute={handleToggleMute}
           isMuted={isMuted}
           isVideoEnabled={isVideoEnabled}
+          call={currentCall}
         />
       ) : (
         <>

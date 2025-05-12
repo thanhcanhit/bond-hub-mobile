@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Call } from "@/services/call/callService";
 
 interface CallScreenProps {
   callerName: string;
@@ -19,6 +20,7 @@ interface CallScreenProps {
   onToggleMute: () => void;
   isMuted: boolean;
   isVideoEnabled: boolean;
+  call?: Call | null;
 }
 
 const CallScreen = ({
@@ -28,6 +30,7 @@ const CallScreen = ({
   onToggleMute,
   isMuted,
   isVideoEnabled: initialVideoEnabled = false,
+  call,
 }: CallScreenProps) => {
   const [isVideoOn, setIsVideoOn] = useState(initialVideoEnabled);
   const insets = useSafeAreaInsets();

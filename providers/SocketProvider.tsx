@@ -35,7 +35,7 @@ const SocketContext = createContext<SocketContextType>({
   isGroupConnected: false,
   reconnectMessageSocket: () => {}, // Giá trị mặc định
 });
-const baseUrl = "https://api.bondhub.cloud";
+const baseUrl = "http://bondhub.cloud:3000";
 
 // Hook để sử dụng socket trong các component
 export const useSocket = () => useContext(SocketContext);
