@@ -5,6 +5,7 @@ import {
   Text as RNText,
   Alert,
   Pressable,
+  Clipboard,
 } from "react-native";
 import {
   Avatar,
@@ -201,6 +202,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     setShowLongPressReaction(false);
   };
 
+  // Copy message to clipboard
+  const handleCopyMessage = () => {
+    // Handle different types of content
+    if (message.content && message.content.text) {
+      Clipboard.setString(message.content.text);
+      Alert.alert("Thông báo", "Đã sao chép tin nhắn vào clipboard");
+    } else if (message.content && typeof message.content === "string") {
+      Clipboard.setString(message.content);
+      Alert.alert("Thông báo", "Đã sao chép tin nhắn vào clipboard");
+    }
+  };
+
   return (
     <>
       <View
@@ -301,6 +314,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               handleDelete();
             }}
             onForward={handleForward}
+            onCopy={handleCopyMessage}
             onClose={handleCloseActions}
           />
 

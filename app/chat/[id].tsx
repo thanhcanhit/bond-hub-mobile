@@ -11,6 +11,9 @@ import {
   Text,
   Modal,
   ListRenderItem,
+  TextInput as RNTextInput,
+  ScrollView,
+  Clipboard,
 } from "react-native";
 import EmojiPicker, { type EmojiType } from "rn-emoji-keyboard";
 import {
@@ -18,6 +21,19 @@ import {
   Mic,
   Ellipsis,
   SendHorizonal,
+  FileText,
+  Sparkles,
+  MessageSquare,
+  FileUp,
+  Copy,
+  Wand2,
+  ScanText,
+  X,
+  ClipboardCheck,
+  Check,
+  Trash,
+  RotateCcw,
+  SkipBack,
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,6 +54,7 @@ import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
 import CallScreen from "@/components/call/CallScreen";
 import { callService, Call } from "@/services/call/callService";
+import { aiService } from "@/services/ai-service";
 
 const ChatScreen = () => {
   const {
@@ -72,6 +89,16 @@ const ChatScreen = () => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentCall, setCurrentCall] = useState<Call | null>(null);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [showAiEnhanceModal, setShowAiEnhanceModal] = useState(false);
+  const [showAiGenerateModal, setShowAiGenerateModal] = useState(false);
+  const [showAiSummarizeModal, setShowAiSummarizeModal] = useState(false);
+  const [enhancedMessage, setEnhancedMessage] = useState("");
+  const [generatedMessage, setGeneratedMessage] = useState("");
+  const [textToSummarize, setTextToSummarize] = useState("");
+  const [summarizedText, setSummarizedText] = useState("");
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState("");
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
@@ -421,6 +448,88 @@ const ChatScreen = () => {
     setIsMuted((prev) => !prev);
   };
 
+  // AI feature handlers
+  const handleEnhanceMessage = async () => {
+    if (!message.trim()) return;
+
+    try {
+      setIsLoadingAi(true);
+
+      // Get last 5 messages for context
+      const recentMessages = messages
+        .slice(0, 5)
+        .map((msg) => ({
+          content: msg.content.text || "",
+          type: "user",
+          senderId: msg.senderId,
+          senderName: getSenderInfo(msg.senderId).name || "Unknown",
+        }))
+        .reverse();
+
+      const result = await aiService.enhanceMessage(message, recentMessages);
+      console.log("result", result);
+      setEnhancedMessage(result);
+      setShowAiEnhanceModal(true);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể cải thiện tin nhắn. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
+
+  const handleGenerateResponse = async () => {
+    if (!generatePrompt.trim()) return;
+
+    try {
+      setIsLoadingAi(true);
+      const result = await aiService.generateResponse(generatePrompt);
+      setGeneratedMessage(result);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể tạo phản hồi. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
+
+  const handleSummarizeText = async () => {
+    if (!textToSummarize.trim()) return;
+
+    try {
+      setIsLoadingAi(true);
+
+      // Get last 5 messages for context
+      const recentMessages = messages
+        .slice(0, 5)
+        .map((msg) => ({
+          content: msg.content.text || "",
+          type: "user",
+          senderId: msg.senderId,
+          senderName: getSenderInfo(msg.senderId).name || "Unknown",
+        }))
+        .reverse();
+
+      const result = await aiService.summarizeText(
+        textToSummarize,
+        100,
+        recentMessages,
+      );
+      setSummarizedText(result);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể tóm tắt nội dung. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    if (Platform.OS === "web") {
+      navigator.clipboard.writeText(text);
+    } else {
+      Clipboard.setString(text);
+    }
+    Alert.alert("Thông báo", "Đã sao chép vào clipboard");
+  };
+
   return (
     <View className="flex-1 bg-gray-100">
       {showCallScreen ? (
@@ -546,7 +655,7 @@ const ChatScreen = () => {
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="mx-2"
-                    onPress={handleDocumentPick}
+                    onPress={() => setShowOptionsModal(true)}
                     disabled={isLoadingMedia}
                   >
                     <Ellipsis
@@ -557,19 +666,37 @@ const ChatScreen = () => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  onPress={
-                    selectedMedia.length > 0
-                      ? handleSendMediaMessage
-                      : handleSend
-                  }
-                  disabled={
-                    (!message.trim() && selectedMedia.length === 0) ||
-                    isLoadingMedia
-                  }
-                >
-                  <SendHorizonal size={28} fill={Colors.light.PRIMARY_BLUE} />
-                </TouchableOpacity>
+                <View className="flex-row items-center">
+                  {message.trim() && (
+                    <TouchableOpacity
+                      className="mr-4"
+                      onPress={handleEnhanceMessage}
+                      disabled={isLoadingAi || isLoadingMedia}
+                    >
+                      <View className="w-10 h-10 bg-purple-50 rounded-full items-center justify-center">
+                        <Sparkles size={24} color="#8B5CF6" />
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={
+                      selectedMedia.length > 0
+                        ? handleSendMediaMessage
+                        : handleSend
+                    }
+                    disabled={
+                      (!message.trim() && selectedMedia.length === 0) ||
+                      isLoadingMedia
+                    }
+                  >
+                    <SendHorizonal
+                      size={28}
+                      color={Colors.light.PRIMARY_BLUE}
+                      fill={Colors.light.PRIMARY_BLUE}
+                    />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </KeyboardAvoidingView>
@@ -603,6 +730,484 @@ const ChatScreen = () => {
                   }
                 }}
               />
+            </View>
+          </Modal>
+
+          {/* Options Modal */}
+          <Modal
+            visible={showOptionsModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowOptionsModal(false)}
+          >
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
+              activeOpacity={1}
+              onPress={() => setShowOptionsModal(false)}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "white",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+                }}
+              >
+                <View className="pt-4 pb-2 items-center">
+                  <View className="w-16 h-1 bg-gray-300 rounded-full mb-4" />
+                  <Text className="text-lg font-medium mb-2">Tùy chọn</Text>
+                </View>
+
+                <TouchableOpacity
+                  className="flex-row items-center px-6 py-4 border-t border-gray-100"
+                  onPress={() => {
+                    setShowOptionsModal(false);
+                    handleDocumentPick();
+                  }}
+                >
+                  <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center mr-4">
+                    <FileText size={24} color={Colors.light.PRIMARY_BLUE} />
+                  </View>
+                  <Text className="text-base">Tải lên tài liệu</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-row items-center px-6 py-4 border-t border-gray-100"
+                  onPress={() => {
+                    setShowOptionsModal(false);
+                    setShowAiGenerateModal(true);
+                  }}
+                >
+                  <View className="w-10 h-10 bg-green-50 rounded-full items-center justify-center mr-4">
+                    <Wand2 size={24} color="#10B981" />
+                  </View>
+                  <Text className="text-base">Tạo tin nhắn bằng AI</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-row items-center px-6 py-4 border-t border-gray-100"
+                  onPress={() => {
+                    setShowOptionsModal(false);
+                    setShowAiSummarizeModal(true);
+                  }}
+                >
+                  <View className="w-10 h-10 bg-amber-50 rounded-full items-center justify-center mr-4">
+                    <ScanText size={24} color="#F59E0B" />
+                  </View>
+                  <Text className="text-base">Tóm tắt nội dung</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* AI Enhance Modal */}
+          <Modal
+            visible={showAiEnhanceModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowAiEnhanceModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "white",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+                  maxHeight: "80%",
+                }}
+              >
+                <View className="pt-4 pb-2 items-center relative">
+                  <View className="w-16 h-1 bg-gray-300 rounded-full mb-4" />
+                  <Text className="text-lg font-semibold mb-2">
+                    Cải thiện tin nhắn
+                  </Text>
+                  <TouchableOpacity
+                    style={{ position: "absolute", right: 16, top: 16 }}
+                    onPress={() => setShowAiEnhanceModal(false)}
+                  >
+                    <X size={22} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="px-6 py-2">
+                  <View className="flex-row justify-between mb-2 items-center">
+                    <Text className="text-gray-500 font-medium">
+                      Tin nhắn gốc:
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setMessage("")}
+                      className="flex-row items-center"
+                    >
+                      <Trash size={18} color="#EF4444" className="mr-1" />
+                      <Text className="text-red-500 text-sm">Xóa trắng</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View className="bg-gray-100 rounded-lg p-3 mb-5 border border-gray-200">
+                    <Text className="text-gray-700">{message}</Text>
+                  </View>
+
+                  <View className="flex-row justify-between mb-2 items-center">
+                    <Text className="text-gray-500 font-medium">
+                      Tin nhắn đã cải thiện:
+                    </Text>
+                    {enhancedMessage && (
+                      <TouchableOpacity
+                        onPress={() => setEnhancedMessage("")}
+                        className="flex-row items-center"
+                      >
+                        <RotateCcw size={16} color="#666" className="mr-1" />
+                        <Text className="text-gray-500 text-sm">Làm mới</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View className="bg-purple-50 rounded-lg p-3 mb-6 min-h-[100px] border border-purple-200">
+                    {isLoadingAi ? (
+                      <View className="items-center justify-center h-[100px]">
+                        <ActivityIndicator size="small" color="#8B5CF6" />
+                        <Text className="text-purple-500 mt-2">
+                          Đang cải thiện...
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text className="text-gray-700">{enhancedMessage}</Text>
+                    )}
+                  </View>
+
+                  <View className="flex-row justify-end space-x-3 mt-2 mb-4">
+                    <TouchableOpacity
+                      className="bg-gray-100 px-4 py-2.5 rounded-2xl flex-row items-center border border-gray-200 "
+                      onPress={() => copyToClipboard(enhancedMessage)}
+                      disabled={isLoadingAi || !enhancedMessage}
+                    >
+                      <ClipboardCheck
+                        size={18}
+                        color={
+                          isLoadingAi || !enhancedMessage ? "#ccc" : "#666"
+                        }
+                        className="mr-2"
+                      />
+                      <Text
+                        className={`font-medium pl-1 ${isLoadingAi || !enhancedMessage ? "text-gray-400" : "text-gray-700"}`}
+                      >
+                        Sao chép
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className={`px-4 ml-2 py-2.5 rounded-2xl flex-row items-center ${isLoadingAi || !enhancedMessage ? "bg-purple-200" : "bg-purple-500"}`}
+                      onPress={() => {
+                        setMessage(enhancedMessage);
+                        setShowAiEnhanceModal(false);
+                      }}
+                      disabled={isLoadingAi || !enhancedMessage}
+                    >
+                      <Check size={18} color="white" className="mr-2" />
+                      <Text className="text-white font-medium pl-1">
+                        Sử dụng
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+
+          {/* AI Generate Modal */}
+          <Modal
+            visible={showAiGenerateModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowAiGenerateModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "white",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+                  maxHeight: "80%",
+                }}
+              >
+                <View className="pt-4 pb-2 items-center relative">
+                  <View className="w-16 h-1 bg-gray-300 rounded-full mb-4" />
+                  <Text className="text-lg font-semibold mb-2">
+                    Tạo tin nhắn với AI
+                  </Text>
+                  <TouchableOpacity
+                    style={{ position: "absolute", right: 16, top: 16 }}
+                    onPress={() => setShowAiGenerateModal(false)}
+                  >
+                    <X size={22} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="px-6 py-2">
+                  <View className="flex-row justify-between mb-2 items-center">
+                    <Text className="text-gray-500 font-medium">
+                      Nhập yêu cầu của bạn:
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setGeneratePrompt("")}
+                      className="flex-row items-center"
+                    >
+                      <Trash size={18} color="#EF4444" className="mr-1" />
+                      <Text className="text-red-500 text-sm">Xóa trắng</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View className="bg-gray-100 rounded-lg mb-4 border border-gray-200">
+                    <TextInput
+                      className="p-3 text-gray-700 min-h-[80px]"
+                      multiline
+                      placeholder="Ví dụ: Viết một email xin nghỉ phép với sếp..."
+                      value={generatePrompt}
+                      onChangeText={setGeneratePrompt}
+                      style={{ textAlignVertical: "top" }}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    className={`flex-row py-3 rounded-lg items-center justify-center mb-5 ${isLoadingAi || !generatePrompt.trim() ? "bg-green-200" : "bg-green-500"}`}
+                    onPress={handleGenerateResponse}
+                    disabled={isLoadingAi || !generatePrompt.trim()}
+                  >
+                    <Sparkles size={20} color="white" className="mr-2" />
+                    <Text className="text-white font-medium">Tạo tin nhắn</Text>
+                  </TouchableOpacity>
+
+                  {(isLoadingAi || generatedMessage) && (
+                    <>
+                      <View className="flex-row justify-between mb-2 items-center">
+                        <Text className="text-gray-500 font-medium">
+                          Kết quả:
+                        </Text>
+                        {generatedMessage && (
+                          <TouchableOpacity
+                            onPress={() => setGeneratedMessage("")}
+                            className="flex-row items-center"
+                          >
+                            <RotateCcw
+                              size={16}
+                              color="#666"
+                              className="mr-1"
+                            />
+                            <Text className="text-gray-500 text-sm">
+                              Làm mới
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <View className="bg-green-50 rounded-lg p-3 mb-5 min-h-[120px] border border-green-200">
+                        {isLoadingAi ? (
+                          <View className="items-center justify-center h-[120px]">
+                            <ActivityIndicator size="small" color="#10B981" />
+                            <Text className="text-green-500 mt-2">
+                              Đang tạo tin nhắn...
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text className="text-gray-700">
+                            {generatedMessage}
+                          </Text>
+                        )}
+                      </View>
+
+                      <View className="flex-row justify-end space-x-3 mt-2 mb-4">
+                        <TouchableOpacity
+                          className="bg-gray-100 px-4 py-2.5 rounded-2xl flex-row items-center border border-gray-200"
+                          onPress={() => copyToClipboard(generatedMessage)}
+                          disabled={isLoadingAi || !generatedMessage}
+                        >
+                          <ClipboardCheck
+                            size={18}
+                            color={
+                              isLoadingAi || !generatedMessage ? "#ccc" : "#666"
+                            }
+                            className="mr-2"
+                          />
+                          <Text
+                            className={`font-medium pl-1 ${isLoadingAi || !generatedMessage ? "text-gray-400" : "text-gray-700"}`}
+                          >
+                            Sao chép
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          className={`px-4 ml-2 py-2.5 rounded-2xl flex-row items-center ${isLoadingAi || !generatedMessage ? "bg-green-200" : "bg-green-500"}`}
+                          onPress={() => {
+                            setMessage(generatedMessage);
+                            setShowAiGenerateModal(false);
+                          }}
+                          disabled={isLoadingAi || !generatedMessage}
+                        >
+                          <Check size={18} color="white" className="mr-2" />
+                          <Text className="text-white pl-1 font-medium">
+                            Sử dụng
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+
+          {/* AI Summarize Modal */}
+          <Modal
+            visible={showAiSummarizeModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowAiSummarizeModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "white",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+                  maxHeight: "80%",
+                }}
+              >
+                <View className="pt-4 pb-2 items-center relative">
+                  <View className="w-16 h-1 bg-gray-300 rounded-full mb-4" />
+                  <Text className="text-lg font-semibold mb-2">
+                    Tóm tắt nội dung
+                  </Text>
+                  <TouchableOpacity
+                    style={{ position: "absolute", right: 16, top: 16 }}
+                    onPress={() => setShowAiSummarizeModal(false)}
+                  >
+                    <X size={22} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="px-6 py-2">
+                  <View className="flex-row justify-between mb-2 items-center">
+                    <Text className="text-gray-500 font-medium">
+                      Nhập nội dung cần tóm tắt:
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setTextToSummarize("")}
+                      className="flex-row items-center"
+                    >
+                      <Trash size={18} color="#EF4444" className="mr-1" />
+                      <Text className="text-red-500 text-sm">Xóa trắng</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View className="bg-gray-100 rounded-lg mb-4 border border-gray-200">
+                    <TextInput
+                      className="p-3 text-gray-700 min-h-[120px]"
+                      multiline
+                      placeholder="Dán nội dung cần tóm tắt vào đây..."
+                      value={textToSummarize}
+                      onChangeText={setTextToSummarize}
+                      style={{ textAlignVertical: "top" }}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    className={`flex-row py-3 rounded-lg items-center justify-center mb-5 ${isLoadingAi || !textToSummarize.trim() ? "bg-amber-200" : "bg-amber-500"}`}
+                    onPress={handleSummarizeText}
+                    disabled={isLoadingAi || !textToSummarize.trim()}
+                  >
+                    <ScanText size={20} color="white" className="mr-2" />
+                    <Text className="text-white font-medium">Tóm tắt</Text>
+                  </TouchableOpacity>
+
+                  {(isLoadingAi || summarizedText) && (
+                    <>
+                      <View className="flex-row justify-between mb-2 items-center">
+                        <Text className="text-gray-500 font-medium">
+                          Kết quả tóm tắt:
+                        </Text>
+                        {summarizedText && (
+                          <TouchableOpacity
+                            onPress={() => setSummarizedText("")}
+                            className="flex-row items-center"
+                          >
+                            <RotateCcw
+                              size={16}
+                              color="#666"
+                              className="mr-1"
+                            />
+                            <Text className="text-gray-500 text-sm">
+                              Làm mới
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <View className="bg-amber-50 rounded-lg p-3 mb-5 min-h-[100px] border border-amber-200">
+                        {isLoadingAi ? (
+                          <View className="items-center justify-center h-[100px]">
+                            <ActivityIndicator size="small" color="#F59E0B" />
+                            <Text className="text-amber-500 mt-2">
+                              Đang tóm tắt...
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text className="text-gray-700">
+                            {summarizedText}
+                          </Text>
+                        )}
+                      </View>
+
+                      <View className="flex-row justify-end space-x-3 mt-2 mb-4">
+                        <TouchableOpacity
+                          className="bg-gray-100 px-4 py-2.5 rounded-2xl flex-row items-center border border-gray-200"
+                          onPress={() => copyToClipboard(summarizedText)}
+                          disabled={isLoadingAi || !summarizedText}
+                        >
+                          <ClipboardCheck
+                            size={18}
+                            color={
+                              isLoadingAi || !summarizedText ? "#ccc" : "#666"
+                            }
+                            className="mr-2"
+                          />
+                          <Text
+                            className={`font-medium pl-1 ${isLoadingAi || !summarizedText ? "text-gray-400" : "text-gray-700"}`}
+                          >
+                            Sao chép
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          className={`px-4 py-2.5 ml-2 rounded-2xl flex-row items-center ${isLoadingAi || !summarizedText ? "bg-amber-200" : "bg-amber-500"}`}
+                          onPress={() => {
+                            setMessage(summarizedText);
+                            setShowAiSummarizeModal(false);
+                          }}
+                          disabled={isLoadingAi || !summarizedText}
+                        >
+                          <Check size={18} color="white" className="mr-2" />
+                          <Text className="text-white pl-1 font-medium">
+                            Sử dụng
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </ScrollView>
+              </View>
             </View>
           </Modal>
         </>

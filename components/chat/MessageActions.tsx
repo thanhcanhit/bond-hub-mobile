@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, Text } from "react-native";
-import { Trash2, RefreshCcw, Heart, Forward } from "lucide-react-native";
+import { Trash2, RefreshCcw, Heart, Forward, Copy } from "lucide-react-native";
 import { VStack } from "../ui/vstack";
 import {
   Actionsheet,
@@ -17,6 +17,7 @@ interface MessageActionsProps {
   onRecall: () => void;
   onDelete: () => void;
   onForward: () => void;
+  onCopy: () => void;
   onClose: () => void;
 }
 
@@ -27,6 +28,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onRecall,
   onDelete,
   onForward,
+  onCopy,
   onClose,
 }) => {
   return (
@@ -54,6 +56,19 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                 <Heart size={22} color="#297eff" />
               </View>
               <Text className="text-base font-medium">Thả cảm xúc</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                onCopy();
+                onClose();
+              }}
+              className="px-3 py-3 flex-row items-center rounded-lg"
+            >
+              <View className="bg-blue-50 p-2 rounded-full mr-3">
+                <Copy size={22} color="#297eff" />
+              </View>
+              <Text className="text-base font-medium">Sao chép tin nhắn</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
