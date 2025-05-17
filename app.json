@@ -50,7 +50,6 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-barcode-scanner",
       [
         "expo-video",
         {
