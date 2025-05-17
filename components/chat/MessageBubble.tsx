@@ -6,13 +6,24 @@ import {
   Alert,
   Pressable,
   Clipboard,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import {
   Avatar,
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { Heart, Forward, HeartOff } from "lucide-react-native";
+import {
+  Heart,
+  Forward,
+  HeartOff,
+  X,
+  Check,
+  ClipboardCheck,
+  RotateCcw,
+} from "lucide-react-native";
 import { useAuthStore } from "@/store/authStore";
 import { ImageViewer } from "@/components/chat/ImageViewer";
 import { VideoMessage } from "@/components/chat/VideoMessage";
@@ -24,6 +35,7 @@ import { MediaGrid } from "@/components/chat/MediaGrid";
 import { HStack } from "../ui/hstack";
 import { MessageActions } from "./MessageActions";
 import { MessageForwardModal } from "./MessageForwardModal";
+import { aiService } from "@/services/ai-service";
 
 interface MessageBubbleProps {
   message: Message;
@@ -68,6 +80,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [showLongPressReaction, setShowLongPressReaction] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
+  const [showSummarizeModal, setShowSummarizeModal] = useState(false);
+  const [summarizedText, setSummarizedText] = useState("");
+  const [isLoadingSummarize, setIsLoadingSummarize] = useState(false);
   const { user } = useAuthStore();
   const isMyMessage = message.senderId === user?.userId;
   const mediaItems = message.content.media || [];
@@ -214,6 +229,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
+  const handleSummarize = async () => {
+    if (!message.content.text) return;
+
+    try {
+      setIsLoadingSummarize(true);
+      const result = await aiService.summarizeText(message.content.text, 100);
+      setSummarizedText(result);
+      setShowSummarizeModal(true);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể tóm tắt tin nhắn. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoadingSummarize(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    Clipboard.setString(text);
+    Alert.alert("Thông báo", "Đã sao chép vào clipboard");
+  };
+
   return (
     <>
       <View
@@ -315,6 +350,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             }}
             onForward={handleForward}
             onCopy={handleCopyMessage}
+            onSummarize={handleSummarize}
             onClose={handleCloseActions}
           />
 
@@ -424,6 +460,104 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           message.messageType === "GROUP" ? message.groupId : undefined
         }
       />
+
+      {/* Summarize Modal */}
+      <Modal
+        visible={showSummarizeModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSummarizeModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "white",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingBottom: 20,
+              maxHeight: "80%",
+            }}
+          >
+            <View className="pt-4 pb-2 items-center relative">
+              <View className="w-16 h-1 bg-gray-300 rounded-full mb-4" />
+              <RNText className="text-lg font-semibold mb-2">
+                Tóm tắt tin nhắn
+              </RNText>
+              <TouchableOpacity
+                style={{ position: "absolute", right: 16, top: 16 }}
+                onPress={() => setShowSummarizeModal(false)}
+              >
+                <X size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView className="px-6 py-2">
+              <View className="flex-row justify-between mb-2 items-center">
+                <RNText className="text-gray-500 font-medium">
+                  Kết quả tóm tắt:
+                </RNText>
+                {summarizedText && (
+                  <TouchableOpacity
+                    onPress={() => setSummarizedText("")}
+                    className="flex-row items-center"
+                  >
+                    <RotateCcw size={16} color="#666" className="mr-1" />
+                    <RNText className="text-gray-500 text-sm">Làm mới</RNText>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View className="bg-amber-50 rounded-lg p-3 mb-6 min-h-[100px] border border-amber-200">
+                {isLoadingSummarize ? (
+                  <View className="items-center justify-center h-[100px]">
+                    <ActivityIndicator size="small" color="#F59E0B" />
+                    <RNText className="text-amber-500 mt-2">
+                      Đang tóm tắt...
+                    </RNText>
+                  </View>
+                ) : (
+                  <RNText className="text-gray-700">{summarizedText}</RNText>
+                )}
+              </View>
+
+              <View className="flex-row justify-end space-x-3 mt-2 mb-4">
+                <TouchableOpacity
+                  className="bg-gray-100 px-4 py-2.5 rounded-2xl flex-row items-center border border-gray-200"
+                  onPress={() => copyToClipboard(summarizedText)}
+                  disabled={isLoadingSummarize || !summarizedText}
+                >
+                  <ClipboardCheck
+                    size={18}
+                    color={
+                      isLoadingSummarize || !summarizedText ? "#ccc" : "#666"
+                    }
+                    className="mr-2"
+                  />
+                  <RNText
+                    className={`font-medium pl-1 ${isLoadingSummarize || !summarizedText ? "text-gray-400" : "text-gray-700"}`}
+                  >
+                    Sao chép
+                  </RNText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className={`px-4 py-2.5 ml-2 rounded-2xl flex-row items-center ${isLoadingSummarize || !summarizedText ? "bg-amber-200" : "bg-amber-500"}`}
+                  onPress={() => {
+                    setShowSummarizeModal(false);
+                  }}
+                  disabled={isLoadingSummarize || !summarizedText}
+                >
+                  <Check size={18} color="white" className="mr-2" />
+                  <RNText className="text-white pl-1 font-medium">Đóng</RNText>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
