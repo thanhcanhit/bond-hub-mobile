@@ -12,7 +12,10 @@
       "policy": "sdkVersion"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Cho phép ứng dụng truy cập thư viện ảnh để gửi hình ảnh và chọn ảnh đại diện"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +24,9 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "package": "com.vodka.mobile"
     },
@@ -48,6 +53,12 @@
           "cameraPermission": "Cho phép $(PRODUCT_NAME) truy cập camera của bạn",
           "microphonePermission": "Cho phép $(PRODUCT_NAME) truy cập microphone của bạn",
           "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cho phép $(PRODUCT_NAME) truy cập thư viện ảnh để gửi hình ảnh và chọn ảnh đại diện"
         }
       ],
       [
