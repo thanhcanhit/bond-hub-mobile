@@ -170,6 +170,40 @@ export default function UserInfoScreen() {
         <Text className="text-2xl font-medium text-gray-800">
           {user?.fullName}
         </Text>
+
+        {/* Bio Field */}
+        <View className="mt-2 px-8">
+          <Text className="text-center text-gray-600 text-sm">
+            {userInfo?.bio}
+            {/* Xin chào, tôi đang sử dụng ứng dụng Vodka để kết nối với bạn bè và người thân. */}
+          </Text>
+        </View>
+
+        {/* Status Badge */}
+        <View className="mt-3">
+          <Text className="text-xs text-blue-500 px-3 py-1 bg-blue-50 rounded-full">
+            Đang hoạt động
+          </Text>
+        </View>
+      </View>
+
+      {/* Upcoming Features Notice */}
+      <View className="mx-6 mt-6 bg-blue-50 rounded-xl p-4">
+        <Text className="text-sm font-medium text-blue-700 mb-2">
+          Tính năng sắp ra mắt:
+        </Text>
+        <View>
+          <Text className="text-xs text-gray-700 mb-1.5">
+            • Chia sẻ bài viết lên nhật ký
+          </Text>
+          <Text className="text-xs text-gray-700 mb-1.5">• Call video</Text>
+          <Text className="text-xs text-gray-700 mb-1.5">
+            • Tùy chỉnh giao diện trang cá nhân
+          </Text>
+          <Text className="text-xs text-gray-700">
+            • Tạo album ảnh và video
+          </Text>
+        </View>
       </View>
 
       {/* Posts or Create Post Button */}

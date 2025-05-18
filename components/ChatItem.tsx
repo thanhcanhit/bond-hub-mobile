@@ -7,7 +7,6 @@ import { useUserStatusStore } from "@/store/userStatusStore";
 import { useConversationsStore } from "@/store/conversationsStore";
 import { useRouter } from "expo-router";
 import { Conversation } from "@/types";
-import UserStatusIndicator from "./UserStatusIndicator";
 
 interface ChatItemProps {
   conversation: Conversation;

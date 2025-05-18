@@ -421,7 +421,7 @@ export default function UserProfileScreen() {
               ) : (
                 <HStack className="w-full justify-center space-x-2" space="xs">
                   {/* Nút nhắn tin - chiếm 8 phần */}
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={{ flex: 9 }}
                     className="bg-blue-100 py-2.5 rounded-full items-center justify-center"
                     onPress={handleSendMessage}
@@ -432,7 +432,7 @@ export default function UserProfileScreen() {
                         Nhắn tin
                       </Text>
                     </HStack>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
 
                   {/* Nút kết bạn - chiếm 2 phần */}
                   <TouchableOpacity
@@ -442,13 +442,14 @@ export default function UserProfileScreen() {
                   >
                     <HStack className="items-center space-x-2">
                       <UserPlus size={24} color="black" />
+                      <Text className="ml-2 font-medium">Kết bạn</Text>
                     </HStack>
                   </TouchableOpacity>
                 </HStack>
               )}
             </HStack>
 
-            {/* Suggested Friends Section */}
+            {/* Suggested Friends Section
             <View className="mt-8 px-4">
               <View className="flex-row justify-between items-center mb-4">
                 <Text className="text-lg font-medium">Có thể bạn quen</Text>
@@ -480,7 +481,7 @@ export default function UserProfileScreen() {
                   </View>
                 ))}
               </ScrollView>
-            </View>
+            </View> */}
           </>
         )}
       </ScrollView>

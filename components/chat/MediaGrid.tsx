@@ -29,7 +29,7 @@ export const MediaGrid: React.FC<MediaGridProps> = ({
   const getImageStyle = (index: number, total: number) => {
     const itemWidth = (maxGridWidth - 8) / 2;
     const largeImageHeight = maxGridWidth * 0.6;
-    const smallImageHeight = maxGridWidth * 0.3;
+    const smallImageHeight = maxGridWidth * 0.4;
 
     switch (total) {
       case 1:
@@ -51,11 +51,19 @@ export const MediaGrid: React.FC<MediaGridProps> = ({
             height: largeImageHeight,
             borderRadius: 8,
           };
+        } else if (index === 1) {
+          return {
+            width: itemWidth,
+            height: smallImageHeight,
+            marginRight: 1,
+            borderRadius: 8,
+          };
         }
         return {
           width: itemWidth,
           height: smallImageHeight,
           borderRadius: 8,
+          marginLeft: 1,
         };
       default:
         return {

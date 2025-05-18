@@ -182,7 +182,7 @@ export default function FriendRequestScreen() {
           end={{ x: 0.99, y: 2.5 }}
           colors={["#297eff", "#228eff", "#00d4ff"]}
           style={{
-            paddingTop: Platform.OS === "ios" ? insets.top : insets.top,
+            paddingTop: Platform.OS === "ios" ? 0 : insets.top,
           }}
         >
           {/* WebSocket connection indicator */}
@@ -271,10 +271,10 @@ export default function FriendRequestScreen() {
               </View>
 
               {/* Block Diary Option */}
-              <HStack className="items-center justify-between mb-6">
+              {/* <HStack className="items-center justify-between mb-6">
                 <Text className="text-base">Chặn xem nhật ký của tôi</Text>
                 <View className="w-6 h-6 rounded-full border border-gray-300" />
-              </HStack>
+              </HStack> */}
 
               {/* Send Button */}
               <TouchableOpacity
