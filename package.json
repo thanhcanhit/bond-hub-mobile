@@ -17,6 +17,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@config-plugins/react-native-webrtc": "^10.0.0",
     "@expo/html-elements": "^0.4.2",
     "@expo/vector-icons": "^14.1.0",
     "@gluestack-ui/actionsheet": "^0.2.46",
@@ -96,6 +97,7 @@
     "react-native-toast-message": "^2.3.0",
     "react-native-uuid": "^2.0.3",
     "react-native-web": "^0.20.0",
+    "react-native-webrtc": "^124.0.5",
     "react-native-webview": "13.13.5",
     "rn-emoji-keyboard": "^1.7.0",
     "socket.io-client": "^4.8.1",
