@@ -598,25 +598,19 @@ export default function GroupInfoScreen() {
         onPress: async () => {
           setIsUpdating(true);
           try {
-            console.log("Bước 1: Bắt đầu quá trình rời nhóm");
-
             try {
               // Gọi API rời nhóm
               await groupService.leaveGroup(groupId);
-              console.log("Bước 2: Rời nhóm thành công");
 
               // Hiển thị thông báo rời nhóm thành công
-              console.log("Bước 3: Hiển thị thông báo rời nhóm thành công");
+
               setToastMessage("Rời nhóm thành công");
               setShowRedToast(true);
 
               // Chờ 1 giây rồi chuyển hướng về màn hình chính
-              console.log(
-                "Bước 4: Chờ 1 giây rồi chuyển hướng về màn hình chính",
-              );
+
               setTimeout(() => {
                 router.replace("/(tabs)");
-                console.log("Bước 5: Đã gọi router.replace");
               }, 1000);
 
               // Cập nhật danh sách cuộc trò chuyện (không chờ kết quả)
@@ -680,8 +674,6 @@ export default function GroupInfoScreen() {
           onPress: async () => {
             setIsUpdating(true);
             try {
-              console.log("Bước 1: Bắt đầu quá trình xóa nhóm");
-
               try {
                 // Gọi API xóa nhóm
                 await groupService.deleteGroup(groupId);
@@ -756,7 +748,6 @@ export default function GroupInfoScreen() {
           onPress: async () => {
             try {
               setIsUpdating(true);
-              console.log("Bước 1: Bắt đầu quá trình chuyển quyền trưởng nhóm");
 
               // Gọi API để cập nhật vai trò thành viên
               await groupService.updateMemberRole(
@@ -764,18 +755,15 @@ export default function GroupInfoScreen() {
                 member.userId,
                 "LEADER",
               );
-              console.log("Bước 2: Chuyển quyền trưởng nhóm thành công");
 
               // Hiển thị thông báo thành công
               // Hiển thị thông báo chuyển quyền thành công
-              console.log("Bước 3: Hiển thị thông báo chuyển quyền thành công");
               setToastMessage(
                 `Đã chuyển quyền trưởng nhóm cho ${member.fullName}`,
               );
               setShowBlueToast(true);
 
               // Cập nhật lại thông tin nhóm
-              console.log("Bước 4: Cập nhật lại thông tin nhóm");
               await fetchGroupDetails();
 
               // Hiển thị thông báo thành công
