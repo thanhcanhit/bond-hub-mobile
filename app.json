@@ -14,7 +14,11 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Cho phép ứng dụng truy cập thư viện ảnh để gửi hình ảnh và chọn ảnh đại diện"
+        "NSPhotoLibraryUsageDescription": "Cho phép ứng dụng truy cập thư viện ảnh để gửi hình ảnh và chọn ảnh đại diện",
+        "NSCameraUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập camera của bạn",
+        "NSMicrophoneUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập microphone của bạn",
+        "NSContactsUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập danh bạ của bạn",
+        "NSNotificationsUsageDescription": "Cho phép $(PRODUCT_NAME) gửi thông báo đến bạn"
       }
     },
     "android": {
@@ -26,7 +30,10 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "package": "com.vodka.mobile"
     },
@@ -73,6 +80,20 @@
         "expo-file-system",
         {
           "filePermission": "Cho phép ứng dụng truy cập files"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Cho phép $(PRODUCT_NAME) truy cập danh bạ của bạn"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/vodkalogo.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/sounds/notification.wav"]
         }
       ],
       "expo-font",

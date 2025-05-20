@@ -219,7 +219,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
         type: "user" | "group";
         timestamp: string;
       }) => {
-        console.log("New message received:", data);
         // Chuyển đổi cấu trúc message trước khi thêm vào store
         const normalizedMessage: Message = {
           ...data.message,

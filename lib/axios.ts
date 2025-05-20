@@ -68,12 +68,6 @@ const createAuthInstance = (config: CustomApiConfig = {}): AxiosInstance => {
             const currentTime = new Date();
             const timeLeft =
               (expirationTime.getTime() - currentTime.getTime()) / 1000;
-
-            // console.log("Token Info:", {
-            //   expirationTime: expirationTime.toISOString(),
-            //   currentTime: currentTime.toISOString(),
-            //   timeLeftInSeconds: timeLeft.toFixed(2),
-            // });
           }
           reqConfig.headers.Authorization = `Bearer ${token}`;
         }

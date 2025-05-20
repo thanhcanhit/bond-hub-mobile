@@ -13,7 +13,6 @@ export default function ChangePhoneScreen() {
   const [newPhone, setNewPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { userData } = useAuthStore();
-  console.log("User data:", userData);
 
   const handleInitiatePhoneUpdate = async () => {
     if (!newPhone) {

@@ -175,17 +175,6 @@ class SocketManager {
     this.socket.on("error", (error) => {
       console.error("Socket error:", error);
     });
-
-    // // Debug events
-    // if (__DEV__) {
-    //   this.socket.io.on("ping", () => {
-    //     console.log("Socket ping");
-    //   });
-
-    //   this.socket.io.engine.on("pong", () => {
-    //     console.log("Socket pong");
-    //   });
-    // }
   }
 
   public disconnect() {
