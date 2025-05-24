@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { AlertTriangle } from "lucide-react-native";
 
@@ -13,8 +13,8 @@ const CustomToastRed: React.FC<CustomToastRedProps> = ({
   duration = 1000, // 1 giây
   onHide,
 }) => {
-  const opacity = new Animated.Value(0);
-  const translateY = new Animated.Value(-20);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(-20)).current;
 
   useEffect(() => {
     // Hiệu ứng hiển thị
@@ -52,7 +52,7 @@ const CustomToastRed: React.FC<CustomToastRedProps> = ({
     }, duration - 400);
 
     return () => clearTimeout(hideTimer);
-  }, []);
+  }, [duration, onHide, opacity, translateY]);
 
   return (
     <Animated.View
