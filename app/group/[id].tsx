@@ -14,6 +14,7 @@ import {
   ScrollView,
   Modal,
   Pressable,
+  Platform,
 } from "react-native";
 import {
   Avatar,
@@ -517,7 +518,7 @@ export default function GroupInfoScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
+      mediaTypes: ["images"], //"images",
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -928,7 +929,7 @@ export default function GroupInfoScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <ArrowLeft size={24} color={"white"} />
           </TouchableOpacity>
-          <Text className="text-lg text-white font-semibold">
+          <Text className="text-lg text-white font-semibold mr-4">
             Thông tin nhóm
           </Text>
           {/* <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
@@ -944,7 +945,7 @@ export default function GroupInfoScreen() {
       ) : group ? (
         <ScrollView className="flex-1">
           {/* Group Info */}
-          <VStack className="p-4 items-center border-b border-gray-200">
+          <VStack className="p-4 items-center ">
             <TouchableOpacity
               onPress={handleUpdateGroupAvatar}
               disabled={!isGroupLeader || isUpdating}
@@ -1012,23 +1013,23 @@ export default function GroupInfoScreen() {
           </View>
 
           {/* Actions */}
-          <VStack className="p-4 border-t border-gray-200 mt-4">
+          <VStack className="p-4 border-t border-gray-100 mt-4 mb-6">
             <TouchableOpacity
               onPress={() => setShowQRModal(true)}
-              className="flex-row items-center py-3"
+              className="flex-row items-center py-3 border-b-[0.5px] border-gray-100"
             >
-              <QrCode size={20} color={Colors.light.PRIMARY_BLUE} />
-              <Text className="ml-3 text-blue-500">Mã QR nhóm</Text>
+              <QrCode size={22} color={Colors.light.PRIMARY_BLUE} />
+              <Text className="ml-3 text-lg text-blue-500">Mã QR nhóm</Text>
             </TouchableOpacity>
 
             {/* Chỉ hiển thị nút chuyển quyền trưởng nhóm khi có nhiều hơn 1 thành viên */}
             {isGroupLeader && !isLastMember && (
               <TouchableOpacity
                 onPress={handleTransferLeadership}
-                className="flex-row items-center py-3"
+                className="flex-row items-center py-3 border-b-[0.5px] border-gray-100"
               >
-                <User size={20} color={Colors.light.PRIMARY_BLUE} />
-                <Text className="ml-3 text-blue-500">
+                <User size={22} color={Colors.light.PRIMARY_BLUE} />
+                <Text className="ml-3 text-blue-500 text-lg">
                   Chuyển quyền trưởng nhóm
                 </Text>
               </TouchableOpacity>
@@ -1038,10 +1039,10 @@ export default function GroupInfoScreen() {
             {!isLastMember && (
               <TouchableOpacity
                 onPress={handleLeaveGroup}
-                className="flex-row items-center py-3"
+                className="flex-row items-center py-3 border-b-[0.5px] border-gray-100"
               >
-                <LogOut size={20} color={"red"} />
-                <Text className="ml-3 text-red-500">Rời khỏi nhóm</Text>
+                <LogOut size={22} color={"red"} />
+                <Text className="ml-3 text-red-500 text-lg">Rời khỏi nhóm</Text>
               </TouchableOpacity>
             )}
 
@@ -1049,10 +1050,10 @@ export default function GroupInfoScreen() {
             {isGroupLeader && (
               <TouchableOpacity
                 onPress={handleDeleteGroup}
-                className="flex-row items-center py-3"
+                className="flex-row items-center py-3 border-b-[0.5px] border-gray-100"
               >
-                <Trash2 size={20} color={"red"} />
-                <Text className="ml-3 text-red-500">Giải tán nhóm</Text>
+                <Trash2 size={22} color={"red"} />
+                <Text className="ml-3 text-red-500 text-lg">Giải tán nhóm</Text>
               </TouchableOpacity>
             )}
           </VStack>
@@ -1473,7 +1474,7 @@ export default function GroupInfoScreen() {
             end={{ x: 0.99, y: 2.5 }}
             colors={["#297eff", "#228eff", "#00d4ff"]}
             style={{
-              paddingTop: insets.top,
+              paddingTop: Platform.OS === "ios" ? insets.top : 0,
             }}
           >
             <HStack className="p-2.5 border-b border-gray-200 justify-between items-center">

@@ -65,7 +65,7 @@ const CustomToast: React.FC<CustomToastProps> = ({
       ]}
     >
       <View style={styles.iconContainer}>
-        <Check size={22} color="white" />
+        <Check size={18} color="white" />
       </View>
       <Text style={styles.message}>{message}</Text>
     </Animated.View>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   message: {
     color: "white",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 12,
     letterSpacing: 0.3,
   },
 });

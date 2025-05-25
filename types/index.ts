@@ -264,6 +264,7 @@ export interface GroupInfo {
 }
 
 export interface GroupMember {
+  user?: UserInfo;
   id: string;
   groupId: string;
   userId: string;

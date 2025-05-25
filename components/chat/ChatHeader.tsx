@@ -94,12 +94,14 @@ export const ChatHeader: React.FC<
             {!isGroup ? (
               <>
                 <TouchableOpacity
+                  disabled={true}
                   className="px-2.5"
                   onPress={() => onStartCall(false)} // Audio call
                 >
                   <Phone size={24} color="white" />
                 </TouchableOpacity>
                 <TouchableOpacity
+                  disabled={true}
                   className="px-2.5"
                   onPress={() => onStartCall(true)} // Video call
                 >

@@ -8,6 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from "react-native";
 import {
   X,
@@ -138,14 +139,14 @@ const SearchModal: React.FC<SearchModalProps> = ({ isVisible, onClose }) => {
         >
           {/* Header */}
           <View
-            className="flex-row items-center p-4 border-b border-gray-200"
-            style={{ paddingTop: insets.top }}
+            className="flex-row items-center p-3 border-b border-gray-200"
+            style={{ paddingTop: Platform.OS === "ios" ? insets.top : 12 }}
           >
             <TouchableOpacity onPress={onClose} className="mr-3">
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
 
-            <View className="flex-1 flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
+            <View className="flex-1 flex-row items-center bg-gray-100 rounded-3xl px-3 py-2.5">
               <Search size={20} color="gray" />
               <TextInput
                 className="flex-1 ml-2 text-base p-0.5"

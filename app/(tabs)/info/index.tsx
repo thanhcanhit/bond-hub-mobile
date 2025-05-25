@@ -52,6 +52,7 @@ export default function InfoScreen() {
       )}
       <View className="h-2.5 w-full"></View>
       <FunctionButton
+        disabled={true}
         icon={<Cloudy size={23} color={Colors.light.PRIMARY_BLUE} />}
         title={"Cloud của tôi"}
         description={"Lưu các tin nhắn quan trọng"}
@@ -59,6 +60,7 @@ export default function InfoScreen() {
         showBottomBorder={true}
       />
       <FunctionButton
+        disabled={true}
         icon={
           <CircleFadingArrowUp size={23} color={Colors.light.PRIMARY_BLUE} />
         }
@@ -68,6 +70,7 @@ export default function InfoScreen() {
         showBottomBorder={true}
       />
       <FunctionButton
+        disabled={true}
         icon={<Wallet size={23} color={Colors.light.PRIMARY_BLUE} />}
         title={"Ví QR"}
         description={"Lưu trữ và xuất trình các mã QR quan trọng"}
@@ -81,6 +84,7 @@ export default function InfoScreen() {
         showBottomBorder={true}
       />
       <FunctionButton
+        disabled={true}
         icon={<LockKeyhole size={23} color={Colors.light.PRIMARY_BLUE} />}
         title={"Quyền riêng tư"}
         onPress={() => {}}

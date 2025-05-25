@@ -106,7 +106,7 @@ const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"], //ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -200,14 +200,14 @@ const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
   const renderMemberItem = ({ item }: { item: GroupMember }) => (
     <HStack className="py-3 border-b border-gray-100 items-center">
       <Avatar size="md">
-        {item.user.profilePictureUrl ? (
-          <AvatarImage source={{ uri: item.user.profilePictureUrl }} />
+        {item.user?.profilePictureUrl ? (
+          <AvatarImage source={{ uri: item?.user?.profilePictureUrl }} />
         ) : (
-          <AvatarFallbackText>{item.user.fullName}</AvatarFallbackText>
+          <AvatarFallbackText>{item?.user?.fullName}</AvatarFallbackText>
         )}
       </Avatar>
       <VStack className="ml-3 flex-1">
-        <Text className="font-medium">{item.user.fullName}</Text>
+        <Text className="font-medium">{item.user?.fullName}</Text>
         <Text className="text-xs text-gray-500">
           {item.role === "LEADER"
             ? "Trưởng nhóm"
@@ -223,7 +223,7 @@ const GroupDetailsModal: React.FC<GroupDetailsModalProps> = ({
           onPress={() => {
             Alert.alert(
               "Xóa thành viên",
-              `Bạn có chắc chắn muốn xóa ${item.user.fullName} khỏi nhóm?`,
+              `Bạn có chắc chắn muốn xóa ${item.user?.fullName} khỏi nhóm?`,
               [
                 { text: "Hủy", style: "cancel" },
                 {

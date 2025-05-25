@@ -11,6 +11,9 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
+    "expo": {
+      "jsEngine": "hermes"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -18,12 +21,18 @@
         "NSCameraUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập camera của bạn",
         "NSMicrophoneUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập microphone của bạn",
         "NSContactsUsageDescription": "Cho phép $(PRODUCT_NAME) truy cập danh bạ của bạn",
-        "NSNotificationsUsageDescription": "Cho phép $(PRODUCT_NAME) gửi thông báo đến bạn"
+        "NSNotificationsUsageDescription": "Cho phép $(PRODUCT_NAME) gửi thông báo đến bạn",
+        "UIBackgroundModes": [
+          "audio",
+          "fetch",
+          "remote-notification",
+          "processing"
+        ]
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/vodkalogo.png",
+        "foregroundImage": "./assets/images/vodkaapp.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
@@ -33,14 +42,16 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_CONTACTS",
         "android.permission.WRITE_CONTACTS",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.WAKE_LOCK"
       ],
       "package": "com.vodka.mobile"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/vodkaapp.png"
     },
     "plugins": [
       "@config-plugins/react-native-webrtc",

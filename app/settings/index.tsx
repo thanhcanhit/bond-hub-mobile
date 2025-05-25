@@ -62,7 +62,7 @@ const SettingsScreen = () => {
         end={{ x: 0.99, y: 2.5 }}
         colors={["#297eff", "#228eff", "#00d4ff"]}
         style={{
-          paddingTop: Platform.OS === "ios" ? insets.top : 20,
+          paddingTop: Platform.OS === "ios" ? insets.top : 25,
           paddingBottom: 10,
         }}
       >
@@ -85,12 +85,14 @@ const SettingsScreen = () => {
           showBottomBorder={true}
         />
         <FunctionButton
+          disabled={true}
           icon={<LockKeyhole size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Quyền riêng tư"
           onPress={() => {}}
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
+          disabled={true}
           icon={
             <CircleFadingArrowUp size={23} color={Colors.light.PRIMARY_BLUE} />
           }
@@ -99,12 +101,14 @@ const SettingsScreen = () => {
           showBottomBorder={true}
         />
         <FunctionButton
+          disabled={true}
           icon={<RefreshCcw size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Sao lưu và khôi phục"
           onPress={() => {}}
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
+          disabled={true}
           icon={<BellIcon size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Thông báo"
           onPress={() => {}}
@@ -115,16 +119,20 @@ const SettingsScreen = () => {
             <MessageCircleMore size={23} color={Colors.light.PRIMARY_BLUE} />
           }
           title="Tin nhắn"
-          onPress={() => {}}
+          onPress={() => {
+            router.replace("../(tabs)");
+          }}
           showBottomBorder={true}
         />
         <FunctionButton
+          disabled={true}
           icon={<Phone size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Cuộc gọi"
           onPress={() => {}}
           showBottomBorder={true}
         />
         <FunctionButton
+          disabled={true}
           icon={<Clock size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Nhật ký"
           onPress={() => {}}
@@ -133,10 +141,13 @@ const SettingsScreen = () => {
         <FunctionButton
           icon={<BookUser size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Danh bạ"
-          onPress={() => {}}
+          onPress={() => {
+            router.replace("../(tabs)/contacts");
+          }}
           showBottomBorder={true}
         />
         <FunctionButton
+          disabled={true}
           icon={<PaintBucket size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Giao diện và ngôn ngữ"
           onPress={() => {}}
@@ -144,12 +155,14 @@ const SettingsScreen = () => {
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
+          disabled={true}
           icon={<InfoIcon size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Thông tin về Vodka"
           onPress={() => {}}
           showBottomBorder={true}
         />
         <FunctionButton
+          disabled={true}
           icon={<CircleHelp size={23} color={Colors.light.PRIMARY_BLUE} />}
           title="Liên hệ hỗ trợ"
           onPress={() => {}}
@@ -158,6 +171,7 @@ const SettingsScreen = () => {
         />
         <View className="h-2.5 w-full"></View>
         <FunctionButton
+          disabled={true}
           icon={
             <UserChange
               width={28}

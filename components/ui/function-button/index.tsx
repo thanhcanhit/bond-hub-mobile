@@ -14,9 +14,11 @@ type FunctionButtonProps = {
   rightButton?: React.ReactNode;
   showTopBorder?: boolean;
   showBottomBorder?: boolean;
+  disabled?: boolean;
 };
 
 export const FunctionButton = ({
+  disabled = false,
   icon,
   title,
   description,
@@ -32,9 +34,10 @@ export const FunctionButton = ({
 
   return (
     <TouchableOpacity
+      disabled={disabled}
       onPress={onPress}
       className={clsx(
-        `flex-row items-center px-4 bg-white`,
+        `flex-row items-center px-4 bg-white ${disabled ? "opacity-50" : ""}`,
         size === "md" ? "h-20" : "h-24",
       )}
     >

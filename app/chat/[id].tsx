@@ -266,7 +266,7 @@ const ChatScreen = () => {
     if (!user) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: MediaTypeOptions.All,
+        mediaTypes: ["images"], //MediaTypeOptions.All,
         allowsMultipleSelection: true,
         quality: 0.8,
         videoMaxDuration: 60,
