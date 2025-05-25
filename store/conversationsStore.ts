@@ -13,7 +13,7 @@ interface ConversationsState {
 
   // Actions
   fetchConversations: (page?: number, limit?: number) => Promise<void>;
-  markAsRead: (conversationId: string, type: "USER" | "GROUP") => void;
+  markAsRead: (conversationId: string, type: "USER" | "GROUP") => Promise<void>;
   markMessageAsRead: (
     messageId: string,
     conversationId: string,
@@ -127,22 +127,35 @@ export const useConversationsStore = create<ConversationsState>((set, get) => ({
     set({ conversations: [], totalCount: 0, currentPage: 1, hasMore: true });
   },
 
-  markAsRead: (conversationId, type) => {
-    // Cập nhật trạng thái local mà không gọi API
-    set((state) => ({
-      conversations: state.conversations.map((conv) => {
-        // Tìm cuộc trò chuyện phù hợp dựa trên ID và loại
-        const isMatch =
-          (type === "USER" &&
-            conv.type === "USER" &&
-            conv.user?.id === conversationId) ||
-          (type === "GROUP" &&
-            conv.type === "GROUP" &&
-            conv.group?.id === conversationId);
+  markAsRead: async (conversationId, type) => {
+    try {
+      // Gọi API để đánh dấu tất cả tin nhắn đã đọc
+      const result = await conversationService.markAllMessagesAsRead(
+        type,
+        conversationId,
+      );
 
-        return isMatch ? { ...conv, unreadCount: 0 } : conv;
-      }),
-    }));
+      if (result.success) {
+        // Cập nhật trạng thái local
+        set((state) => ({
+          conversations: state.conversations.map((conv) => {
+            const isMatch =
+              (type === "USER" &&
+                conv.type === "USER" &&
+                conv.user?.id === conversationId) ||
+              (type === "GROUP" &&
+                conv.type === "GROUP" &&
+                conv.group?.id === conversationId);
+
+            return isMatch ? { ...conv, unreadCount: 0 } : conv;
+          }),
+        }));
+      } else {
+        console.error("Failed to mark messages as read:", result.error);
+      }
+    } catch (error) {
+      console.error("Error in markAsRead:", error);
+    }
   },
 
   // Đánh dấu một tin nhắn cụ thể là đã đọc - không gọi API

@@ -51,4 +51,27 @@ export const conversationService = {
       throw error;
     }
   },
+
+  // Đánh dấu tất cả tin nhắn đã đọc cho một cuộc hội thoại
+  async markAllMessagesAsRead(
+    type: "USER" | "GROUP",
+    targetId: string,
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await axiosInstance.post(
+        `/messages/read-all/${type}/${targetId}`,
+      );
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error("Error marking all messages as read:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
+  },
 };

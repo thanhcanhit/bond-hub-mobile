@@ -991,15 +991,14 @@ export default function GroupInfoScreen() {
           <View>
             <HStack className="px-4 py-3 bg-gray-50 justify-between items-center">
               <Text className="font-semibold">Thành viên nhóm</Text>
-              {canManageMembers && (
-                <TouchableOpacity
-                  className="flex-row items-center"
-                  onPress={handleOpenAddMembersModal}
-                >
-                  <UserPlus size={18} color={Colors.light.PRIMARY_BLUE} />
-                  <Text className="ml-1 text-blue-500">Thêm</Text>
-                </TouchableOpacity>
-              )}
+
+              <TouchableOpacity
+                className="flex-row items-center"
+                onPress={handleOpenAddMembersModal}
+              >
+                <UserPlus size={18} color={Colors.light.PRIMARY_BLUE} />
+                <Text className="ml-1 text-blue-500">Thêm</Text>
+              </TouchableOpacity>
             </HStack>
 
             <FlatList
