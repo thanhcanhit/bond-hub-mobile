@@ -65,7 +65,7 @@ const CustomToastRed: React.FC<CustomToastRedProps> = ({
       ]}
     >
       <View style={styles.iconContainer}>
-        <AlertTriangle size={22} color="white" />
+        <AlertTriangle size={18} color="white" />
       </View>
       <Text style={styles.message}>{message}</Text>
     </Animated.View>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   message: {
     color: "white",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 12,
     letterSpacing: 0.3,
   },
 });
