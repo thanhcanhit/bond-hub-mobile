@@ -182,6 +182,7 @@ export interface MediaUploadFile {
 
 // Thêm các interfaces mới
 export interface ChatHeaderProps {
+  user?: string;
   chatId: string;
   name: string;
   avatarUrl?: string;

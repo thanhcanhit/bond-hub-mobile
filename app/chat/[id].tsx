@@ -52,7 +52,6 @@ import { MediaPreview } from "@/components/chat/MediaPreview";
 import VoiceRecorder from "@/components/chat/VoiceRecorder";
 import { useChatStore } from "@/store/chatStore";
 import { debounce } from "lodash";
-import { callService, Call } from "@/services/call/callService";
 import { aiService } from "@/services/ai-service";
 
 const ChatScreen = () => {
@@ -84,10 +83,6 @@ const ChatScreen = () => {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [showCallScreen, setShowCallScreen] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentCall, setCurrentCall] = useState<Call | null>(null);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [showAiEnhanceModal, setShowAiEnhanceModal] = useState(false);
   const [showAiGenerateModal, setShowAiGenerateModal] = useState(false);
@@ -405,48 +400,6 @@ const ChatScreen = () => {
     [],
   );
 
-  const handleStartCall = async (isVideo: boolean) => {
-    if (!user || !chatId) return;
-    try {
-      // 1. Gọi API tạo cuộc gọi
-      const call = await callService.createCall(
-        user.userId,
-        chatId as string,
-        isVideo ? "VIDEO" : "AUDIO",
-      );
-      setCurrentCall(call);
-      setIsVideoEnabled(isVideo);
-      setShowCallScreen(true);
-      // 2. Kết nối socket /call
-      const socket = await callService.connectSocket();
-      // 3. Gửi joinRoom
-      socket?.emit("joinRoom", { roomId: call.roomId });
-      // (Có thể lắng nghe các sự kiện khác ở đây)
-    } catch (err) {
-      Alert.alert("Không thể bắt đầu cuộc gọi", "Vui lòng thử lại sau.");
-      setShowCallScreen(false);
-      setCurrentCall(null);
-    }
-  };
-
-  const handleEndCall = async () => {
-    if (currentCall && user) {
-      try {
-        await callService.endCall(currentCall.id, user.userId);
-      } catch (err) {
-        // ignore
-      }
-    }
-    setShowCallScreen(false);
-    setIsMuted(false);
-    setIsVideoEnabled(false);
-    setCurrentCall(null);
-  };
-
-  const handleToggleMute = () => {
-    setIsMuted((prev) => !prev);
-  };
-
   // AI feature handlers
   const handleEnhanceMessage = async () => {
     if (!message.trim()) return;
@@ -533,12 +486,12 @@ const ChatScreen = () => {
     <View className="flex-1 bg-gray-100">
       <>
         <ChatHeader
+          user={chatId as string}
           chatId={chatId as string}
           name={name as string}
           avatarUrl={avatarUrl as string}
           isGroup={type === "GROUP"}
           onBack={() => router.back()}
-          onStartCall={handleStartCall}
         />
         <FlatList
           ref={flatListRef}

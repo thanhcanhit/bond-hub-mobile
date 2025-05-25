@@ -26,9 +26,13 @@ const formatLastSeen = (lastSeenDate: string) => {
   return date.toLocaleDateString();
 };
 
-export const ChatHeader: React.FC<
-  ChatHeaderProps & { onStartCall: (isVideo: boolean) => void }
-> = ({ chatId, name, avatarUrl, isGroup, onBack, onStartCall }) => {
+export const ChatHeader: React.FC<ChatHeaderProps> = ({
+  user,
+  chatId,
+  name,
+  isGroup,
+  onBack,
+}) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const isOnline = useUserStatusStore((state) => state.isUserOnline(chatId));
@@ -91,37 +95,13 @@ export const ChatHeader: React.FC<
             </VStack>
           </HStack>
           <HStack className="space-x-4">
-            {!isGroup ? (
-              <>
-                <TouchableOpacity
-                  disabled={true}
-                  className="px-2.5"
-                  onPress={() => onStartCall(false)} // Audio call
-                >
-                  <Phone size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  disabled={true}
-                  className="px-2.5"
-                  onPress={() => onStartCall(true)} // Video call
-                >
-                  <Video size={25} color="white" />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity className="px-2.5">
-                  <Search size={24} color="white" />
-                </TouchableOpacity>
-              </>
-            )}
             <TouchableOpacity
               className="pl-2.5"
               onPress={() => {
                 if (isGroup) {
                   router.push(`/group/${chatId}`);
                 } else {
-                  console.log("Logs pressed for non-group chat");
+                  router.push(`/user-info/${chatId}`);
                 }
               }}
             >

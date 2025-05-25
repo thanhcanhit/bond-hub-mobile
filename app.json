@@ -27,6 +27,10 @@
           "fetch",
           "remote-notification",
           "processing"
+        ],
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "com.vodka.mobile.refresh",
+          "com.vodka.mobile.background-fetch"
         ]
       }
     },
@@ -44,9 +48,14 @@
         "android.permission.WRITE_CONTACTS",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.WAKE_LOCK"
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
-      "package": "com.vodka.mobile"
+      "package": "com.vodka.mobile",
+      "allowBackup": true,
+      "autoStart": true,
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro",
@@ -104,7 +113,11 @@
         {
           "icon": "./assets/images/vodkalogo.png",
           "color": "#ffffff",
-          "sounds": ["./assets/sounds/notification.wav"]
+          "sounds": ["./assets/sounds/notification.wav"],
+          "mode": "production",
+          "androidMode": "default",
+          "androidCollapsedTitle": "Vodka",
+          "iosDisplayInForeground": true
         }
       ],
       "expo-font",
