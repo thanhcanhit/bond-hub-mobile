@@ -54,7 +54,7 @@ export default function ForgotPasswordOTPScreen() {
         <ArrowLeft size={24} color={"black"} />
       </TouchableOpacity>
       <View className="w-full justify-center items-center mt-20">
-        <Text className="text-2xl font-bold mb-4">Nhập mã xác thực </Text>
+        <Text className="text-2xl font-bold mb-4">Nhập mã xác thực</Text>
 
         <Text className="text-center font-semibold mb-2 text-gray-700 px-4">
           Nhập mã gồm 6 số được gửi đến email của bạn
@@ -64,7 +64,9 @@ export default function ForgotPasswordOTPScreen() {
           {code.map((value, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputsRef.current[index] = ref)}
+              ref={(ref: TextInput | null): void => {
+                inputsRef.current[index] = ref;
+              }}
               className="w-12 h-14 border border-gray-300 text-center text-lg rounded-[10px] mx-2 mt-2.5"
               value={value}
               onChangeText={(text) => handleChangeText(text, index)}
@@ -89,7 +91,7 @@ export default function ForgotPasswordOTPScreen() {
         </TouchableOpacity>
       </View>
       <TouchableOpacity className="flex-row items-center">
-        <CircleHelp size={14} />
+        <CircleHelp size={14} color={"blue"} />
         <Text className="text-blue-500 text-center pl-2">
           I still need help with verification codes
         </Text>

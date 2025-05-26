@@ -164,7 +164,7 @@ const ChatItem: React.FC<ChatItemProps> = ({ conversation, onPress }) => {
           {/* Group indicator */}
           {!isUser && (
             <View className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
-              <Text className="text-white text-[8px] font-bold">G</Text>
+              <Text className="text-white text-[6px] font-bold">G</Text>
             </View>
           )}
         </View>

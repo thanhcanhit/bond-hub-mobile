@@ -72,9 +72,12 @@ export default function LoginScreen() {
     <View className="flex-1 justify-center items-center bg-white">
       {/* Màn hình chính */}
       <Text className="text-6xl font-bold mb-4 text-blue-500">Vodka</Text>
-      <Text className="text-xl mb-2 font-bold">Gọi video ổn định</Text>
+      <Text className="text-xl mb-2 font-bold">
+        Gặp bằng chữ, chạm bằng tim.
+      </Text>
       <Text className="text-md mb-8 text-gray-400 text-center px-10">
-        Trò chuyện thật đã với chất lượng video ổn định mọi lúc, mọi nơi
+        Trò chuyện mọi lúc, mọi nơi. Nơi những dòng chữ mở lối cảm xúc, kết nối
+        con người không chỉ bằng lời nói, mà bằng sự thấu hiểu.
       </Text>
 
       <TouchableOpacity

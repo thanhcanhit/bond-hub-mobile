@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert, Platform } from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
 import { Input, InputField } from "@/components/ui/input";
@@ -52,23 +52,25 @@ export default function ForgotPasswordEmailScreen() {
     <View className="flex-1 justify-between items-center bg-white  pb-8">
       <View className="w-full ">
         <View
-          className="p-4 flex-row items-center bg-blue-500  w-full px-2.5"
-          style={{ paddingTop: insets.top }}
+          className="p-4 flex-row items-center bg-blue-500  w-full px-2.5 mt-2"
+          style={{
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 10,
+          }}
         >
           <TouchableOpacity
             onPress={() => router.navigate("/login/loginScreen")}
           >
             <ArrowLeft size={24} color="white" />
           </TouchableOpacity>
-          <Text className="text-xl text-white ml-4">Lấy lại mật khẩu</Text>
+          <Text className="text-xl text-white ml-4 ">Lấy lại mật khẩu</Text>
         </View>
 
-        <View className="p-5 ">
-          <Text className="text-gray-500 mb-6">
+        <View className="p-2.5  ">
+          <Text className="text-gray-500 mb-6 text-sm text-center ">
             Nhập email hoặc số điện thoại của bạn để nhận mã xác thực
           </Text>
 
-          <View className="flex-row items-center">
+          <View className="flex-row items-center px-1">
             <Input
               variant="underlined"
               size="xl"

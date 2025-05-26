@@ -58,7 +58,7 @@ const SignUpPasswordScreen = () => {
     <View
       className="flex-1 items-center bg-white  pb-8 px-4"
       style={{
-        paddingTop: Platform.OS === "ios" ? insets.top : 20,
+        paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 10,
       }}
     >
       <View className="flex-row items-center w-full pb-6">

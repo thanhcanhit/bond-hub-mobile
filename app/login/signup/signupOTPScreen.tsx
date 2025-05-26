@@ -65,7 +65,7 @@ const SignUpOTPScreen = () => {
     >
       <TouchableOpacity
         onPress={() => router.back()}
-        className="absolute top-8 left-4"
+        className="absolute top-10 left-4"
       >
         <ArrowLeft size={24} color={"black"} />
       </TouchableOpacity>
@@ -82,7 +82,9 @@ const SignUpOTPScreen = () => {
           {code.map((value, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputsRef.current[index] = ref)}
+              ref={(ref: TextInput | null): void => {
+                inputsRef.current[index] = ref;
+              }}
               className="w-12 h-14 border border-gray-300 text-center text-lg rounded-[10px] mx-2 mt-2.5"
               value={value}
               onChangeText={(text) => handleChangeText(text, index)}
@@ -107,7 +109,7 @@ const SignUpOTPScreen = () => {
         </TouchableOpacity>
       </View>
       <TouchableOpacity className="flex-row items-center">
-        <CircleHelp size={14} />
+        <CircleHelp size={14} color={"blue"} />
         <Text className="text-blue-500 text-center pl-2">
           I still need help with verification codes
         </Text>
