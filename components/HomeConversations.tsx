@@ -6,13 +6,11 @@ import { Conversation, Message } from "@/types";
 import { useRouter } from "expo-router";
 import { useSocket } from "@/providers/SocketProvider";
 import { useAuthStore } from "@/store/authStore";
-import { getFriendList } from "@/services/friend-service";
 
 const HomeConversations: React.FC = () => {
   const router = useRouter();
   const { messageSocket } = useSocket();
   const currentUser = useAuthStore((state) => state.user);
-  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [filteredConversations, setFilteredConversations] = useState<
     Conversation[]
   >([]);
@@ -28,41 +26,15 @@ const HomeConversations: React.FC = () => {
     updateConversation,
   } = useConversationsStore();
 
-  // Tải danh sách bạn bè khi component được mount
-  useEffect(() => {
-    const loadFriends = async () => {
-      try {
-        const friendsList = await getFriendList();
-        const friendIdsSet = new Set(
-          friendsList.map((friend) => friend.friend.id),
-        );
-        setFriendIds(friendIdsSet);
-      } catch (error) {
-        console.error("Error loading friends list:", error);
-      }
-    };
-
-    loadFriends();
-  }, []);
-
   // Lọc cuộc trò chuyện để chỉ hiển thị với bạn bè và nhóm
   useEffect(() => {
     const filtered = conversations.filter((conversation) => {
-      // Luôn hiển thị cuộc trò chuyện nhóm
-      if (conversation.type === "GROUP") {
-        return true;
-      }
-
-      // Với cuộc trò chuyện 1-1, chỉ hiển thị nếu đối phương là bạn bè
-      if (conversation.type === "USER" && conversation.user?.id) {
-        return friendIds.has(conversation.user.id);
-      }
-
-      return false;
+      // Luôn hiển thị tất cả cuộc trò chuyện
+      return true;
     });
 
     setFilteredConversations(filtered);
-  }, [conversations, friendIds]);
+  }, [conversations]);
 
   // Tải danh sách cuộc trò chuyện khi component được mount
   useEffect(() => {

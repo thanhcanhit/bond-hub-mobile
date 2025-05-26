@@ -366,7 +366,7 @@ export default function PhoneContactsScreen() {
         <HStack
           className="bg-transparent items-center p-4"
           style={{
-            paddingTop: insets.top,
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 10,
           }}
         >
           <TouchableOpacity onPress={() => router.back()}>

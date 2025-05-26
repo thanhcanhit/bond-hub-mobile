@@ -62,7 +62,7 @@ const SettingsScreen = () => {
         end={{ x: 0.99, y: 2.5 }}
         colors={["#297eff", "#228eff", "#00d4ff"]}
         style={{
-          paddingTop: Platform.OS === "ios" ? insets.top : 25,
+          paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 10,
           paddingBottom: 10,
         }}
       >

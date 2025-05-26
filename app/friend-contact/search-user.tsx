@@ -141,7 +141,7 @@ export default function SearchUserScreen() {
       >
         <View
           style={{
-            paddingTop: Platform.OS === "ios" ? insets.top : insets.top,
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 10,
           }}
           className="pb-4 px-4"
         >
