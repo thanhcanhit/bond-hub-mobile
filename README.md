@@ -1,50 +1,120 @@
-# Welcome to your Expo app 👋
+# Vodka - Real-time Mobile Chat Application 🍸
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Vodka is a modern, real-time mobile chat application built with Expo, React Native, and TypeScript. It offers seamless communication with features like group chats, direct messaging, and real-time status updates.
 
-## Get started
+## Features ✨
 
-1. Install dependencies
+- 💬 Real-time messaging with WebSocket integration
+- 👥 Group chat functionality
+- 👤 User status indicators
+- 🔔 Push notifications
+- 🌙 Dark/Light theme support
+- 🔒 Secure authentication
+- 📱 Cross-platform (iOS & Android)
+
+## Screenshots 📱
+
+<!-- Add your screenshots here -->
+
+### Authentication
+
+![Login Screen](assets/screenshots/login.jpg)
+![Registration Screen](assets/screenshots/register.jpg)
+
+### Chat Interface
+
+![Chat List](assets/screenshots/chat-list.jpg)
+![Chat Room](assets/screenshots/chat-room.jpg)
+
+### Group Features
+
+![Group Creation](assets/screenshots/group-create.jpg)
+![Group Details](assets/screenshots/group-detail.jpg)
+
+### User Profile
+
+![User Profile](assets/screenshots/profile.jpg)
+![Settings](assets/screenshots/settings.jpg)s
+
+## Tech Stack 🛠
+
+- **Framework**: [Expo](https://expo.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+- **Real-time Communication**: [Socket.IO](https://socket.io/)
+- **UI Components**: Custom components with Tailwind CSS
+- **API Client**: [Axios](https://axios-http.com/)
+
+## Getting Started 🚀
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Expo CLI
+- iOS Simulator (for Mac) or Android Studio (for Android development)
+
+### Installation
+
+1. Clone the repository
+
+   ```bash
+   git clone https://github.com/thanhcanhit/bond-hub-mobile.git
+   cd bond-hub-mobile
+   ```
+
+2. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Start the development server
 
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. Run on your preferred platform
+   - Press `i` for iOS simulator
+   - Press `a` for Android emulator
+   - Scan QR code with Expo Go app for physical device
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Project Structure 📁
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+bond-hub-mobile/
+├── app/                 # Main application screens
+├── assets/             # Static assets (images, fonts, etc.)
+│   ├── fonts/         # Custom fonts
+│   └── screenshots/   # App screenshots for documentation
+├── components/         # Reusable UI components
+├── constants/         # App constants and configurations
+├── hooks/             # Custom React hooks
+├── lib/               # Core utilities and configurations
+├── providers/         # Context providers
+├── services/          # API and service integrations
+├── store/             # Zustand state management
+├── tasks/             # Background tasks
+└── types/             # TypeScript type definitions
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Contributing 🤝
 
-## Learn more
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-To learn more about developing your project with Expo, look at the following resources:
+## License 📝
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Join the community
+## Acknowledgments 🙏
 
-Join our community of developers creating universal apps.
+- [Expo Team](https://expo.dev/) for the amazing framework
+- [Socket.IO](https://socket.io/) for real-time capabilities
+- All contributors who have helped shape this project
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Project Link: [https://github.com/thanhcanhit/bond-hub-mobile](https://github.com/thanhcanhit/bond-hub-mobile)
