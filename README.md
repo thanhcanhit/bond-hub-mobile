@@ -18,23 +18,31 @@ Vodka is a modern, real-time mobile chat application built with Expo, React Nati
 
 ### Authentication
 
-<img src="assets/screenshots/login.jpg" alt="Login Screen" width="200" />
-<img src="assets/screenshots/register.jpg" alt="Registration Screen" width="200" />
+<div style="display: flex; gap: 20px; margin-bottom: 20px;">
+  <img src="assets/screenshots/login.jpg" alt="Login Screen" width="200" />
+  <img src="assets/screenshots/register.jpg" alt="Registration Screen" width="200" />
+</div>
 
 ### Chat Interface
 
-<img src="assets/screenshots/chat-list.jpg" alt="Chat List" width="200" />
-<img src="assets/screenshots/chat-room.jpg" alt="Chat Room" width="200" />
+<div style="display: flex; gap: 20px; margin-bottom: 20px;">
+  <img src="assets/screenshots/chat-list.jpg" alt="Chat List" width="200" />
+  <img src="assets/screenshots/chat-room.jpg" alt="Chat Room" width="200" />
+</div>
 
 ### Group Features
 
-<img src="assets/screenshots/group-create.jpg" alt="Group Creation" width="200" />
-<img src="assets/screenshots/group-detail.jpg" alt="Group Details" width="200" />
+<div style="display: flex; gap: 20px; margin-bottom: 20px;">
+  <img src="assets/screenshots/group-create.jpg" alt="Group Creation" width="200" />
+  <img src="assets/screenshots/group-detail.jpg" alt="Group Details" width="200" />
+</div>
 
 ### User Profile
 
-<img src="assets/screenshots/profile.jpg" alt="User Profile" width="200" />
-<img src="assets/screenshots/settings.jpg" alt="Settings" width="200" />
+<div style="display: flex; gap: 20px; margin-bottom: 20px;">
+  <img src="assets/screenshots/profile.jpg" alt="User Profile" width="200" />
+  <img src="assets/screenshots/settings.jpg" alt="Settings" width="200" />
+</div>
 
 ## Tech Stack 🛠
 
