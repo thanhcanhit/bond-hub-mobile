@@ -18,23 +18,23 @@ Vodka is a modern, real-time mobile chat application built with Expo, React Nati
 
 ### Authentication
 
-![Login Screen](assets/screenshots/login.jpg)
-![Registration Screen](assets/screenshots/register.jpg)
+<img src="assets/screenshots/login.jpg" alt="Login Screen" width="200" />
+<img src="assets/screenshots/register.jpg" alt="Registration Screen" width="200" />
 
 ### Chat Interface
 
-![Chat List](assets/screenshots/chat-list.jpg)
-![Chat Room](assets/screenshots/chat-room.jpg)
+<img src="assets/screenshots/chat-list.jpg" alt="Chat List" width="200" />
+<img src="assets/screenshots/chat-room.jpg" alt="Chat Room" width="200" />
 
 ### Group Features
 
-![Group Creation](assets/screenshots/group-create.jpg)
-![Group Details](assets/screenshots/group-detail.jpg)
+<img src="assets/screenshots/group-create.jpg" alt="Group Creation" width="200" />
+<img src="assets/screenshots/group-detail.jpg" alt="Group Details" width="200" />
 
 ### User Profile
 
-![User Profile](assets/screenshots/profile.jpg)
-![Settings](assets/screenshots/settings.jpg)s
+<img src="assets/screenshots/profile.jpg" alt="User Profile" width="200" />
+<img src="assets/screenshots/settings.jpg" alt="Settings" width="200" />
 
 ## Tech Stack 🛠
 
